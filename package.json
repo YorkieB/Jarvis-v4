@@ -13,7 +13,10 @@
     "test": "jest",
     "test:unit": "jest --testPathPattern=tests/unit",
     "test:compliance": "jest --testPathPattern=tests/compliance",
-    "test:all": "npm run type-check && npm run lint && npm test"
+    "test:all": "npm run type-check && npm run lint && npm test",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
   },
   "keywords": [
     "ai",
