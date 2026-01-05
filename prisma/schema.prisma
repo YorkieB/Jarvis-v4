@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model (placeholder - will be expanded in future PRs)
+model User {
+  id                    String                 @id @default(uuid())
+  email                 String                 @unique
+  name                  String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Batch 4: Creative Media Relations
+  musicTracks           MusicTrack[]
+  musicPersonas         MusicPersona[]
+  generatedImages       GeneratedImage[]
+  podcastEpisodes       PodcastEpisode[]
+  creativePreferences   CreativePreferences?
+  creativeFeedback      CreativeFeedback[]
+}
+
+// Music Models
+model MusicTrack {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  title       String
+  prompt      String
+  genre       String
+  duration    Int
+  filePath    String
+  hasVocals   Boolean         @default(false)
+  personaId   String?
+  persona     MusicPersona?   @relation(fields: [personaId], references: [id])
+  createdAt   DateTime        @default(now())
+  
+  @@index([userId])
+}
+
+model MusicPersona {
+  id                    String       @id @default(uuid())
+  userId                String
+  user                  User         @relation(fields: [userId], references: [id])
+  name                  String
+  description           String
+  voiceCharacteristics  String?
+  musicalStyle          String?
+  tracks                MusicTrack[]
+  createdAt             DateTime     @default(now())
+  
+  @@index([userId])
+}
+
+// Image Models
+model GeneratedImage {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  prompt         String
+  negativePrompt String?
+  style          String
+  width          Int
+  height         Int
+  filePath       String
+  seed           Int
+  parentImageId  String?
+  createdAt      DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([parentImageId])
+}
+
+// Podcast Models
+model PodcastEpisode {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  title            String
+  script           String
+  filePath         String
+  duration         Int
+  speakers         String[]
+  language         String   @default("en")
+  parentPodcastId  String?
+  createdAt        DateTime @default(now())
+  
+  @@index([userId])
+  @@index([parentPodcastId])
+}
+
+// Creative Preferences and Feedback
+model CreativePreferences {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  preferences Json     // Flexible JSON for various preferences
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CreativeFeedback {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  contentType String
+  contentId   String
+  rating      Int
+  feedback    String?
+  timestamp   DateTime @default(now())
+  
+  @@index([userId, contentType])
+}
