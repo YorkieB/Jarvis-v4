@@ -18,7 +18,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "playwright:install": "playwright install chromium"
   },
   "keywords": ["ai", "assistant", "multi-agent", "typescript", "jarvis"],
   "author": "YorkieB",
@@ -29,7 +30,9 @@
     "openai": "^4.0.0",
     "@elevenlabs/elevenlabs-js": "^2.29.0",
     "@prisma/client": "^7.2.0",
-    "pm2": "^6.0.14"
+    "pm2": "^6.0.14",
+    "playwright": "^1.40.0",
+    "googleapis": "^128.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
