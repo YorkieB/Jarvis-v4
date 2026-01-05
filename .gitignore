@@ -32,3 +32,9 @@ coverage/
 # Temporary
 temp/
 tmp/
+
+# Prisma
+/src/generated/prisma
+*.db
+*.db-journal
+prisma/migrations/

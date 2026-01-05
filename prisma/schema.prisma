@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MODEL
+// ============================================
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  name             String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  // Relations
+  transactions     Transaction[]
+  budgets          Budget[]
+  goals            SavingsGoal[]
+  alerts           Alert[]
+  conversations    Conversation[]
+  sessions         Session[]
+  privacySettings  PrivacySettings?
+}
+
+// ============================================
+// PERSONAL FINANCE MODELS (Batch 2)
+// ============================================
+
+// Transactions
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  description String
+  category    String
+  date        DateTime
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, date])
+  @@index([category])
+}
+
+// Budgets
+model Budget {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String
+  amount    Float
+  spent     Float    @default(0)
+  period    String   // 'monthly', 'weekly', 'yearly'
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, category, period])
+}
+
+// Savings Goals
+model SavingsGoal {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  targetAmount      Float
+  currentAmount     Float    @default(0)
+  targetDate        DateTime
+  priority          String   // 'low', 'medium', 'high'
+  milestonesReached String   @default("[]") // JSON array stored as string in SQLite
+  createdAt         DateTime @default(now())
+}
+
+// Alerts
+model Alert {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  severity  String   // 'low', 'medium', 'high', 'critical'
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId, read])
+}
+
+// Privacy Settings
+model PrivacySettings {
+  id                     String   @id @default(uuid())
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dataRetentionDays      Int      @default(365)
+  allowAnalytics         Boolean  @default(true)
+  allowPersonalization   Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+// Destructive Actions (audit)
+model DestructiveAction {
+  id          String   @id @default(uuid())
+  userId      String
+  action      String
+  performedAt DateTime
+  performedBy String
+  metadata    String?  // JSON stored as string in SQLite
+}
+
+// Audit Log
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  timestamp DateTime @default(now())
+  action    String
+  details   String?  // JSON stored as string in SQLite
+  
+  @@index([userId, timestamp])
+}
+
+// ============================================
+// CONVERSATIONAL AI MODELS
+// ============================================
+
+model Conversation {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  messages  Message[]
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String       // 'user' or 'assistant'
+  content        String
+  timestamp      DateTime     @default(now())
+  
+  @@index([conversationId, timestamp])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([token])
+}
