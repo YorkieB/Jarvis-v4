@@ -12,8 +12,13 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "test": "jest",
     "test:unit": "jest --testPathPattern=tests/unit",
+    "test:integration": "jest --testPathPattern=tests/integration",
     "test:compliance": "jest --testPathPattern=tests/compliance",
-    "test:all": "npm run type-check && npm run lint && npm test"
+    "test:all": "npm run type-check && npm run lint && npm test",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
   },
   "keywords": [
     "ai",
