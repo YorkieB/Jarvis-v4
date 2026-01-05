@@ -84,3 +84,79 @@ model AuditLog {
   metadata  Json?
   timestamp DateTime @default(now())
 }
+
+// Personal Finance (Batch 2)
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  amount      Float
+  description String
+  category    String
+  date        DateTime
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, date])
+  @@index([category])
+}
+
+model Budget {
+  id        String   @id @default(uuid())
+  userId    String
+  category  String
+  amount    Float
+  period    String   // 'monthly', 'weekly', 'yearly'
+  spent     Float    @default(0)
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, category, period])
+}
+
+model SavingsGoal {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String
+  targetAmount  Float
+  currentAmount Float    @default(0)
+  targetDate    DateTime
+  priority      String   // 'low', 'medium', 'high'
+  status        String   @default("active") // 'active', 'completed', 'cancelled'
+  createdAt     DateTime @default(now())
+  
+  @@index([userId, status])
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // 'budget', 'savings', 'transaction', 'milestone'
+  severity  String   // 'info', 'warning', 'critical'
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model PrivacySettings {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  dataRetentionDays Int      @default(365)
+  allowAnalytics    Boolean  @default(true)
+  encryptionEnabled Boolean  @default(true)
+  updatedAt         DateTime @updatedAt
+}
+
+model DestructiveAction {
+  id          String   @id @default(uuid())
+  userId      String
+  agentType   String
+  action      String
+  description String
+  approved    Boolean  @default(false)
+  executedAt  DateTime?
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, approved])
+}
