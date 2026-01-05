@@ -12,17 +12,23 @@ export abstract class BaseAgent {
   protected abstract agentType: string;
   protected abstract permissions: string[];
   
+  private rulesAcknowledged: boolean = false;
+  
   constructor() {
-    this.acknowledgeRules();
+    // Note: acknowledgeRules will be called lazily on first use
+    // This is because agentType is not available during constructor
   }
   
   /**
    * Acknowledge that this agent has read AI_RULES_MANDATORY.md
    */
   private acknowledgeRules(): void {
-    console.log(`📋 ${this.agentType} Agent reading AI_RULES_MANDATORY.md...`);
-    AIRulesEnforcer.acknowledgeRules(this.agentType);
-    console.log(`✅ ${this.agentType} Agent acknowledged mandatory AI rules`);
+    if (!this.rulesAcknowledged) {
+      console.log(`📋 ${this.agentType} Agent reading AI_RULES_MANDATORY.md...`);
+      AIRulesEnforcer.acknowledgeRules(this.agentType);
+      console.log(`✅ ${this.agentType} Agent acknowledged mandatory AI rules`);
+      this.rulesAcknowledged = true;
+    }
   }
   
   /**
@@ -33,6 +39,9 @@ export abstract class BaseAgent {
     prompt: string,
     options: { context?: any; confidence?: number } = {}
   ): Promise<any> {
+    // Ensure rules are acknowledged
+    this.acknowledgeRules();
+    
     // Check rules acknowledged
     await AIRulesEnforcer.checkRulesAcknowledgment(this.agentType);
     
@@ -81,6 +90,9 @@ export abstract class BaseAgent {
     operation: 'read' | 'write' | 'delete',
     action: () => Promise<T>
   ): Promise<T> {
+    // Ensure rules are acknowledged
+    this.acknowledgeRules();
+    
     await AIRulesEnforcer.checkRulesAcknowledgment(this.agentType);
     
     // Check permission
