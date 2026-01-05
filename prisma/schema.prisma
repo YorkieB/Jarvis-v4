@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
   extensions = [pgvector(map: "vector")]
 }
 
@@ -16,8 +15,14 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   
-  conversations Conversation[]
-  sessions      Session[]
+  conversations       Conversation[]
+  sessions            Session[]
+  transactions        Transaction[]
+  budgets             Budget[]
+  savingsGoals        SavingsGoal[]
+  alerts              Alert[]
+  privacySettings     PrivacySettings?
+  destructiveActions  DestructiveAction[]
 }
 
 // Conversations
@@ -58,7 +63,7 @@ model KnowledgeBase {
   metadata  Json?
   createdAt DateTime @default(now())
   
-  @@index([embedding(ops: raw("vector_cosine_ops"))], type: Hnsw)
+  @@index([embedding(ops: raw("vector_cosine_ops"))])
 }
 
 // Agent Health
@@ -83,4 +88,86 @@ model AuditLog {
   error     String?
   metadata  Json?
   timestamp DateTime @default(now())
+}
+
+// Personal Finance (Batch 2)
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  amount      Float
+  description String
+  category    String
+  date        DateTime
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, date])
+  @@index([category])
+}
+
+model Budget {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  category  String
+  amount    Float
+  period    String   // 'monthly', 'weekly', 'yearly'
+  spent     Float    @default(0)
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, category, period])
+}
+
+model SavingsGoal {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  name          String
+  targetAmount  Float
+  currentAmount Float    @default(0)
+  targetDate    DateTime
+  priority      String   // 'low', 'medium', 'high'
+  status        String   @default("active") // 'active', 'completed', 'cancelled'
+  createdAt     DateTime @default(now())
+  
+  @@index([userId, status])
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // 'budget', 'savings', 'transaction', 'milestone'
+  severity  String   // 'info', 'warning', 'critical'
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model PrivacySettings {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  dataRetentionDays Int      @default(365)
+  allowAnalytics    Boolean  @default(true)
+  encryptionEnabled Boolean  @default(true)
+  updatedAt         DateTime @updatedAt
+}
+
+model DestructiveAction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  agentType   String
+  action      String
+  description String
+  approved    Boolean  @default(false)
+  executedAt  DateTime?
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, approved])
 }
