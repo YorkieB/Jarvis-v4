@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
   extensions = [pgvector(map: "vector")]
 }
 
@@ -58,7 +57,7 @@ model KnowledgeBase {
   metadata  Json?
   createdAt DateTime @default(now())
   
-  @@index([embedding(ops: raw("vector_cosine_ops"))], type: Hnsw)
+  @@index([embedding(ops: raw("vector_cosine_ops"))])
 }
 
 // Agent Health
