@@ -150,6 +150,9 @@ export class InsightsAgent extends BaseAgent {
       const earlierMonths = months.slice(0, -3);
       const avgEarlier = earlierMonths.reduce((sum, [_, amt]) => sum + amt, 0) / earlierMonths.length;
       
+      // Guard against division by zero
+      if (avgEarlier === 0) continue;
+      
       const percentChange = ((avgRecent - avgEarlier) / avgEarlier) * 100;
       
       if (percentChange > 20) {

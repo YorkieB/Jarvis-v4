@@ -50,8 +50,17 @@ export class SavingsAgent extends BaseAgent {
     const income = transactions.filter(t => t.amount > 0);
     const expenses = transactions.filter(t => t.amount < 0);
     
-    const avgMonthlyIncome = income.reduce((sum, t) => sum + t.amount, 0) / 3;
-    const avgMonthlyExpenses = Math.abs(expenses.reduce((sum, t) => sum + t.amount, 0) / 3);
+    // Calculate the actual number of months with data
+    const now = new Date();
+    const monthsWithData = Math.min(3, 
+      (now.getTime() - threeMonthsAgo.getTime()) / (1000 * 60 * 60 * 24 * 30)
+    );
+    
+    // Guard against division by zero for new users
+    if (monthsWithData === 0) return 0;
+    
+    const avgMonthlyIncome = income.reduce((sum, t) => sum + t.amount, 0) / monthsWithData;
+    const avgMonthlyExpenses = Math.abs(expenses.reduce((sum, t) => sum + t.amount, 0) / monthsWithData);
     
     // Safe amount: 70% of surplus (conservative)
     const monthlySurplus = avgMonthlyIncome - avgMonthlyExpenses;

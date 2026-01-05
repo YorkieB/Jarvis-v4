@@ -7,6 +7,7 @@ export class AlertAgent extends BaseAgent {
   protected permissions = ['read:transactions', 'read:budgets', 'read:goals', 'write:alerts'];
   
   private prisma: PrismaClient;
+  private monitoringIntervals: Map<string, NodeJS.Timeout> = new Map();
   
   constructor() {
     super();
@@ -14,10 +15,23 @@ export class AlertAgent extends BaseAgent {
   }
   
   async startMonitoring(userId: string): Promise<void> {
+    // Stop existing monitoring if any
+    this.stopMonitoring(userId);
+    
     // Check alerts every hour
-    setInterval(async () => {
+    const intervalId = setInterval(async () => {
       await this.checkAllAlerts(userId);
     }, 60 * 60 * 1000);
+    
+    this.monitoringIntervals.set(userId, intervalId);
+  }
+  
+  async stopMonitoring(userId: string): Promise<void> {
+    const intervalId = this.monitoringIntervals.get(userId);
+    if (intervalId) {
+      clearInterval(intervalId);
+      this.monitoringIntervals.delete(userId);
+    }
   }
   
   private async checkAllAlerts(userId: string): Promise<void> {

@@ -15,7 +15,10 @@ export class PrivacyAgent extends BaseAgent {
     this.prisma = getPrismaClient();
     
     // Encryption key from environment (32 bytes for AES-256)
-    const key = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+    const key = process.env.ENCRYPTION_KEY;
+    if (!key) {
+      throw new Error('ENCRYPTION_KEY environment variable is required for PrivacyAgent');
+    }
     this.encryptionKey = Buffer.from(key, 'hex');
   }
   

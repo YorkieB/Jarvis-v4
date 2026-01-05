@@ -59,7 +59,7 @@ model Budget {
   category  String
   amount    Float
   spent     Float    @default(0)
-  period    String   // 'monthly', 'weekly', 'yearly'
+  period    String   // 'weekly', 'monthly', 'yearly' - validated in application code
   createdAt DateTime @default(now())
   
   @@unique([userId, category, period])

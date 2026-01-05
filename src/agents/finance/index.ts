@@ -49,6 +49,12 @@ export class FinanceAgent extends BaseAgent {
     period: 'monthly' | 'weekly' | 'yearly';
   }): Promise<any> {
     return await this.accessResource('budgets', 'write', async () => {
+      // Validate period
+      const validPeriods = ['weekly', 'monthly', 'yearly'];
+      if (!validPeriods.includes(data.period)) {
+        throw new Error(`Invalid period. Must be one of: ${validPeriods.join(', ')}`);
+      }
+      
       return await this.prisma.budget.create({
         data: {
           userId: data.userId,
@@ -111,7 +117,8 @@ export class FinanceAgent extends BaseAgent {
     
     if (!budget) return;
     
-    const newSpent = budget.spent + amount;
+    // For expenses (negative amounts), add absolute value to spent
+    const newSpent = budget.spent + Math.abs(amount);
     const percentUsed = (newSpent / budget.amount) * 100;
     
     // Update budget
