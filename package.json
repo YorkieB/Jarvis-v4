@@ -1,0 +1,41 @@
+{
+  "name": "jarvis-v4",
+  "version": "4.0.0",
+  "description": "Multi-Agent AI Assistant with 29 Specialized Agents",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=tests/unit",
+    "test:compliance": "jest --testPathPattern=tests/compliance",
+    "test:all": "npm run type-check && npm run lint && npm test"
+  },
+  "keywords": ["ai", "assistant", "multi-agent", "typescript", "jarvis"],
+  "author": "YorkieB",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/express": "^4.17.21",
+    "typescript": "^5.3.0",
+    "tsx": "^4.7.0",
+    "eslint": "^8.55.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.11",
+    "ts-jest": "^29.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
