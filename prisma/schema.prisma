@@ -23,6 +23,14 @@ model User {
   alerts              Alert[]
   privacySettings     PrivacySettings?
   destructiveActions  DestructiveAction[]
+  
+  // Batch 4: Creative Media Relations
+  musicTracks           MusicTrack[]
+  musicPersonas         MusicPersona[]
+  generatedImages       GeneratedImage[]
+  podcastEpisodes       PodcastEpisode[]
+  creativePreferences   CreativePreferences?
+  creativeFeedback      CreativeFeedback[]
 }
 
 // Conversations
@@ -170,4 +178,93 @@ model DestructiveAction {
   createdAt   DateTime @default(now())
   
   @@index([userId, approved])
+}
+
+// Batch 4: Creative Media
+model MusicTrack {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  title       String
+  prompt      String
+  genre       String
+  duration    Int
+  filePath    String
+  hasVocals   Boolean       @default(false)
+  personaId   String?
+  persona     MusicPersona? @relation(fields: [personaId], references: [id])
+  createdAt   DateTime      @default(now())
+  
+  @@index([userId])
+}
+
+model MusicPersona {
+  id                    String       @id @default(uuid())
+  userId                String
+  user                  User         @relation(fields: [userId], references: [id])
+  name                  String
+  description           String
+  voiceCharacteristics  String?
+  musicalStyle          String?
+  tracks                MusicTrack[]
+  createdAt             DateTime     @default(now())
+  
+  @@index([userId])
+}
+
+model GeneratedImage {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  prompt         String
+  negativePrompt String?
+  style          String
+  width          Int
+  height         Int
+  filePath       String
+  seed           Int
+  parentImageId  String?
+  createdAt      DateTime @default(now())
+  
+  @@index([userId])
+  @@index([parentImageId])
+}
+
+model PodcastEpisode {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  title            String
+  script           String
+  filePath         String
+  duration         Int
+  speakers         String[]
+  language         String   @default("en")
+  parentPodcastId  String?
+  createdAt        DateTime @default(now())
+  
+  @@index([userId])
+  @@index([parentPodcastId])
+}
+
+model CreativePreferences {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  preferences Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CreativeFeedback {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  contentType String
+  contentId   String
+  rating      Int
+  feedback    String?
+  timestamp   DateTime @default(now())
+  
+  @@index([userId, contentType])
 }
