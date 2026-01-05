@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Music Tracks
+model MusicTrack {
+  id         String   @id @default(uuid())
+  userId     String?
+  prompt     String
+  genre      String
+  duration   Int
+  hasVocals  Boolean  @default(false)
+  lyrics     String?
+  personaId  String?
+  status     String   // 'generating', 'completed', 'failed'
+  audioUrl   String?
+  createdAt  DateTime @default(now())
+}
+
+// Music Personas
+model MusicPersona {
+  id          String   @id @default(uuid())
+  name        String
+  style       String
+  voiceId     String?
+  preferences String?  // JSON string
+  createdAt   DateTime @default(now())
+}
+
+// Generated Images
+model GeneratedImage {
+  id             String   @id @default(uuid())
+  userId         String?
+  prompt         String
+  style          String
+  width          Int
+  height         Int
+  negativePrompt String?
+  seed           Int?
+  steps          Int
+  status         String   // 'generating', 'completed', 'failed'
+  imageUrl       String?
+  createdAt      DateTime @default(now())
+}
+
+// Image Styles
+model ImageStyle {
+  id             String   @id @default(uuid())
+  name           String   @unique
+  promptModifier String
+  negativePrompt String?
+  createdAt      DateTime @default(now())
+}
+
+// Podcast Episodes
+model PodcastEpisode {
+  id                String   @id @default(uuid())
+  userId            String?
+  title             String
+  script            String
+  language          String   @default("en")
+  status            String   // 'generating', 'completed', 'failed'
+  audioUrl          String?
+  backgroundMusicId String?
+  createdAt         DateTime @default(now())
+}
+
+// Creative Preferences
+model CreativePreferences {
+  id          String   @id @default(uuid())
+  userId      String
+  contentType String   // 'music', 'image', 'podcast'
+  preferences String   // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, contentType])
+}
+
+// Creative Feedback
+model CreativeFeedback {
+  id          String   @id @default(uuid())
+  userId      String
+  contentType String
+  contentId   String
+  rating      Int?
+  liked       Boolean?
+  comments    String?
+  adjustments String   // JSON array string
+  createdAt   DateTime @default(now())
+}
