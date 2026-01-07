@@ -2,6 +2,7 @@ import { BaseAgent } from '../agents/base-agent';
 import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
+import { addHealthCheck } from '../health';
 
 export class Orchestrator extends BaseAgent {
   protected agentType = 'orchestrator';
@@ -15,6 +16,9 @@ export class Orchestrator extends BaseAgent {
     // Set up Express server
     const app = express();
     app.use(express.json());
+
+        // Health check endpoints
+    addHealthCheck(app);
     
     this.server = createServer(app);
     this.wss = new WebSocketServer({ server: this.server });
