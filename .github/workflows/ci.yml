@@ -1,0 +1,52 @@
+name: CI - Quality Gate
+
+# Run on every push to main and on every PR
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality-gate:
+    name: Quality Gate - BLOCKING
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      # BLOCKING: ESLint must pass
+      - name: Run ESLint
+        run: npm run lint
+      
+      # BLOCKING: TypeScript type-check must pass
+      - name: Run TypeScript type-check
+        run: npm run type-check
+      
+      # BLOCKING: Build must succeed (catches truncated files, OOM errors)
+      - name: Build project
+        run: npm run build
+      
+      # BLOCKING: All tests must pass
+      - name: Run tests
+        run: npm run test
+      
+      # Upload build artifacts for debugging on failure
+      - name: Upload build artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            dist/
+            *.log
