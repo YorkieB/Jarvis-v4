@@ -3,6 +3,7 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts', '**/*.spec.ts'],
+  testTimeout: 15000, // 15s timeout for network calls in smoke tests
   transform: {
     '^.+\\.ts$': [
       'ts-jest',
