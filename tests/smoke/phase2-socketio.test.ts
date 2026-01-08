@@ -75,8 +75,13 @@ describe('Phase 2: Socket.IO Audio Streaming', () => {
 
   test('2.2 - Audio Stream Upload', (done) => {
     // Skip if no valid API key is configured
-    if (!process.env.DEEPGRAM_API_KEY || process.env.DEEPGRAM_API_KEY === 'dummy-key-for-testing') {
-      console.warn('⚠️  DEEPGRAM_API_KEY not set or invalid, skipping audio stream test');
+    if (
+      !process.env.DEEPGRAM_API_KEY ||
+      process.env.DEEPGRAM_API_KEY === 'dummy-key-for-testing'
+    ) {
+      console.warn(
+        '⚠️  DEEPGRAM_API_KEY not set or invalid, skipping audio stream test',
+      );
       done();
       return;
     }
@@ -162,8 +167,13 @@ describe('Phase 2: Socket.IO Audio Streaming', () => {
 
   test('2.3 - Speech-to-Text Processing', (done) => {
     // Skip if no valid API key is configured
-    if (!process.env.DEEPGRAM_API_KEY || process.env.DEEPGRAM_API_KEY === 'dummy-key-for-testing') {
-      console.warn('⚠️  DEEPGRAM_API_KEY not set or invalid, skipping STT test');
+    if (
+      !process.env.DEEPGRAM_API_KEY ||
+      process.env.DEEPGRAM_API_KEY === 'dummy-key-for-testing'
+    ) {
+      console.warn(
+        '⚠️  DEEPGRAM_API_KEY not set or invalid, skipping STT test',
+      );
       done();
       return;
     }
