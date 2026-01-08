@@ -82,9 +82,30 @@ npm install
 
 ## Running Tests
 
-### Run All Smoke Tests
+### Automated: Run with Helper Script (Recommended)
+
+The easiest way to run smoke tests is using the provided script that handles server startup/shutdown:
 
 ```bash
+./scripts/run-smoke-tests.sh
+```
+
+This script will:
+
+1. Start the development server in the background
+2. Wait for the server to be ready
+3. Run all smoke tests
+4. Stop the server automatically (even on failure)
+
+### Manual: Run All Smoke Tests
+
+If you prefer to manage the server manually:
+
+```bash
+# Terminal 1: Start the server
+npm run dev
+
+# Terminal 2: Run tests
 npm run test:smoke
 ```
 
