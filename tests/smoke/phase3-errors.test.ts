@@ -57,7 +57,9 @@ describe('Phase 3: Error Handling', () => {
       });
 
       socket.once('stream-ended', () => {
-        console.log('✅ Stream ended despite invalid audio (graceful handling)');
+        console.log(
+          '✅ Stream ended despite invalid audio (graceful handling)',
+        );
         socket.disconnect();
         done();
       });
@@ -166,15 +168,18 @@ describe('Phase 3: Error Handling', () => {
         console.log(`✅ Socket ${i + 1} connected`);
 
         // Immediately disconnect
-        setTimeout(() => {
-          socket.disconnect();
-          completedSockets++;
+        setTimeout(
+          () => {
+            socket.disconnect();
+            completedSockets++;
 
-          if (completedSockets === numSockets) {
-            console.log('✅ All rapid connections handled successfully');
-            done();
-          }
-        }, 100 * (i + 1)); // Stagger disconnects
+            if (completedSockets === numSockets) {
+              console.log('✅ All rapid connections handled successfully');
+              done();
+            }
+          },
+          100 * (i + 1),
+        ); // Stagger disconnects
       });
 
       socket.on('connect_error', (error) => {
@@ -214,7 +219,10 @@ describe('Phase 3: Error Handling', () => {
 
     socket.on('error', (error) => {
       // This is also acceptable - server may send error for invalid state
-      console.log('✅ Server sent error for invalid state (acceptable):', error);
+      console.log(
+        '✅ Server sent error for invalid state (acceptable):',
+        error,
+      );
       socket.disconnect();
       done();
     });

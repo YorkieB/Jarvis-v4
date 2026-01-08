@@ -138,6 +138,7 @@ npm run test:compliance
 Smoke tests validate the audio pipeline (Phases 1-3):
 
 1. Start the development server:
+
    ```bash
    npm run dev
    ```

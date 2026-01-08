@@ -86,19 +86,50 @@ describe('Phase 1: Backend Verification', () => {
       );
       // Minimal valid WAV header (44 bytes) + minimal data
       const wavHeader = Buffer.from([
-        0x52, 0x49, 0x46, 0x46, // "RIFF"
-        0x24, 0x00, 0x00, 0x00, // File size - 8
-        0x57, 0x41, 0x56, 0x45, // "WAVE"
-        0x66, 0x6d, 0x74, 0x20, // "fmt "
-        0x10, 0x00, 0x00, 0x00, // Subchunk1 size (16)
-        0x01, 0x00, // Audio format (1 = PCM)
-        0x01, 0x00, // Number of channels (1)
-        0x44, 0xac, 0x00, 0x00, // Sample rate (44100)
-        0x88, 0x58, 0x01, 0x00, // Byte rate
-        0x02, 0x00, // Block align
-        0x10, 0x00, // Bits per sample (16)
-        0x64, 0x61, 0x74, 0x61, // "data"
-        0x00, 0x00, 0x00, 0x00, // Data size
+        0x52,
+        0x49,
+        0x46,
+        0x46, // "RIFF"
+        0x24,
+        0x00,
+        0x00,
+        0x00, // File size - 8
+        0x57,
+        0x41,
+        0x56,
+        0x45, // "WAVE"
+        0x66,
+        0x6d,
+        0x74,
+        0x20, // "fmt "
+        0x10,
+        0x00,
+        0x00,
+        0x00, // Subchunk1 size (16)
+        0x01,
+        0x00, // Audio format (1 = PCM)
+        0x01,
+        0x00, // Number of channels (1)
+        0x44,
+        0xac,
+        0x00,
+        0x00, // Sample rate (44100)
+        0x88,
+        0x58,
+        0x01,
+        0x00, // Byte rate
+        0x02,
+        0x00, // Block align
+        0x10,
+        0x00, // Bits per sample (16)
+        0x64,
+        0x61,
+        0x74,
+        0x61, // "data"
+        0x00,
+        0x00,
+        0x00,
+        0x00, // Data size
       ]);
       fs.mkdirSync(path.dirname(testAudioPath), { recursive: true });
       fs.writeFileSync(testAudioPath, wavHeader);
@@ -108,13 +139,11 @@ describe('Phase 1: Backend Verification', () => {
       // Use Deepgram's prerecorded transcription API
       const audioBuffer = fs.readFileSync(testAudioPath);
 
-      const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
-        audioBuffer,
-        {
+      const { result, error } =
+        await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
           model: 'nova-2',
           smart_format: true,
-        },
-      );
+        });
 
       // Should not error
       expect(error).toBeUndefined();

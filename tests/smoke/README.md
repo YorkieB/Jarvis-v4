@@ -7,19 +7,25 @@ This directory contains automated smoke tests for the Jarvis v4 audio pipeline, 
 ## Test Suites
 
 ### Phase 1: Backend Verification (`phase1-backend.test.ts`)
+
 Tests basic backend functionality:
+
 - ✅ Health check endpoint validation
 - ✅ AudioService initialization
 - ✅ Deepgram API connectivity
 
 ### Phase 2: Socket.IO Audio Streaming (`phase2-socketio.test.ts`)
+
 Tests real-time audio streaming:
+
 - ✅ WebSocket connection establishment
 - ✅ Audio chunk upload
 - ✅ Speech-to-Text transcription end-to-end
 
 ### Phase 3: Error Handling (`phase3-errors.test.ts`)
+
 Tests resilience and error handling:
+
 - ✅ Invalid audio format handling
 - ✅ API failure graceful degradation
 - ✅ Network interruption recovery
@@ -27,7 +33,9 @@ Tests resilience and error handling:
 - ✅ Invalid state handling
 
 ### Sentry Validation (`phase-sentry-validation.test.ts`)
+
 Tests error monitoring integration:
+
 - ✅ Intentional error capture
 - ✅ Server health after errors
 - ✅ Configuration validation
@@ -172,7 +180,8 @@ Tests:       17 passed, 17 total
 
 **Problem**: Tests fail with "Server not ready" error
 
-**Solution**: 
+**Solution**:
+
 1. Ensure the server is running: `npm run dev`
 2. Check that port 3000 is not blocked
 3. Verify server health: `curl http://localhost:3000/health`
@@ -182,6 +191,7 @@ Tests:       17 passed, 17 total
 **Problem**: Phase 1.3 and Phase 2.3 tests are skipped
 
 **Solution**:
+
 1. Add `DEEPGRAM_API_KEY` to your `.env` file
 2. Restart the server
 3. Re-run tests
@@ -193,6 +203,7 @@ Tests:       17 passed, 17 total
 **Problem**: Phase 2 tests timeout on Socket.IO connection
 
 **Solution**:
+
 1. Check server logs for errors
 2. Verify Socket.IO is initialized (check server startup logs)
 3. Ensure no firewall blocking WebSocket connections
@@ -203,6 +214,7 @@ Tests:       17 passed, 17 total
 **Problem**: "Deepgram API connection failed"
 
 **Solution**:
+
 1. Verify API key is valid
 2. Check Deepgram dashboard for quota/limits
 3. Test API key independently:
@@ -223,24 +235,24 @@ on: [push, pull_request]
 jobs:
   smoke-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-          
+
       - name: Install dependencies
         run: npm install
-        
+
       - name: Start server
         run: npm run dev &
         env:
           DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-          
+
       - name: Wait for server
         run: |
           for i in {1..30}; do
@@ -251,7 +263,7 @@ jobs:
             echo "Waiting for server..."
             sleep 2
           done
-          
+
       - name: Run smoke tests
         run: npm run test:smoke
         env:
@@ -269,7 +281,7 @@ These smoke tests validate:
 ✅ **Real-time Communication**: Socket.IO WebSocket connections  
 ✅ **Audio Processing**: STT transcription pipeline  
 ✅ **Error Resilience**: Invalid input handling, API failures, network issues  
-✅ **Monitoring**: Sentry error tracking and reporting  
+✅ **Monitoring**: Sentry error tracking and reporting
 
 ## Next Steps
 
@@ -293,6 +305,7 @@ When adding new smoke tests:
 ## Support
 
 For issues or questions:
+
 - Check server logs: `npm run dev`
 - Review test output for detailed error messages
 - Verify environment configuration in `.env`
