@@ -225,9 +225,11 @@ class AudioStreamingService {
         process.env.ELEVENLABS_VOICE_ID || 'EfwLzp3a6IkyvrMSx3oD',
         {
           text,
-          model_id: 'eleven_turbo_v2_5', // Optimized for latency
-          output_format: 'mp3_44100_128',
-          similarity_boost: 0.75
+          modelId: 'eleven_turbo_v2_5', // Optimized for latency
+          outputFormat: 'mp3_44100_128',
+          voiceSettings: {
+            similarityBoost: 0.75
+          }
         }
       );
 
