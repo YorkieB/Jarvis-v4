@@ -1,3 +1,6 @@
+// Load environment variables from .env file
+import 'dotenv/config';
+
 /**
  * Jarvis v4 - Entry Point
  * 
