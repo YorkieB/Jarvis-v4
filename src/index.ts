@@ -76,15 +76,20 @@ app.use(errorHandler);
 // Create HTTP server for Socket.IO integration
 const server = createServer(app);
 
-// Initialize Audio Streaming Service
-const audioService = new AudioStreamingService(server);
-logger.info('🎤 Audio Streaming Service initialized');
-
-// Start server
+// Start server first - health endpoints are already registered
 server.listen(PORT, () => {
   logger.info(`🎉 Jarvis v4 server listening on port ${PORT}`);
   logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-  logger.info(`🚀 Ready for voice agent implementation`);
+
+  // Initialize Audio Streaming Service after server is listening
+  try {
+    const audioService = new AudioStreamingService(server);
+    logger.info('🎤 Audio Streaming Service initialized');
+    logger.info(`🚀 Ready for voice agent implementation`);
+  } catch (error) {
+    logger.error('Failed to initialize Audio Streaming Service', { error });
+    logger.warn('⚠️  Audio streaming will be unavailable');
+  }
 });
 
 // Handle graceful shutdown

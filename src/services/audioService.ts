@@ -46,7 +46,7 @@ class AudioStreamingService {
   private io: SocketIOServer;
   private deepgram: ReturnType<typeof createClient>;
   private openai: OpenAI;
-  private elevenlabs: ElevenLabsClient;
+  private elevenlabs: ElevenLabsClient | null;
   private activeSessions: Map<string, AudioSession>;
 
   constructor(httpServer: HttpServer) {
@@ -61,9 +61,23 @@ class AudioStreamingService {
     // Initialize API clients
     this.deepgram = createClient(process.env.DEEPGRAM_API_KEY || '');
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    this.elevenlabs = new ElevenLabsClient({
-      apiKey: process.env.ELEVENLABS_API_KEY,
-    });
+
+    // Non-blocking ElevenLabs initialization
+    try {
+      if (!process.env.ELEVENLABS_API_KEY) {
+        logger.warn('⚠️  ELEVENLABS_API_KEY not set - TTS will be unavailable');
+        this.elevenlabs = null;
+      } else {
+        this.elevenlabs = new ElevenLabsClient({
+          apiKey: process.env.ELEVENLABS_API_KEY,
+        });
+        logger.info('✅ ElevenLabs client initialized');
+      }
+    } catch (error) {
+      logger.error('Failed to initialize ElevenLabs client', { error });
+      logger.warn('⚠️  TTS functionality will be unavailable');
+      this.elevenlabs = null;
+    }
 
     this.activeSessions = new Map();
 
@@ -242,6 +256,15 @@ class AudioStreamingService {
     const ttsStartTime = Date.now();
 
     try {
+      // Check if ElevenLabs is available
+      if (!this.elevenlabs) {
+        logger.warn('TTS unavailable - ElevenLabs not initialized', {
+          sessionId: session.sessionId,
+        });
+        socket.emit('error', { message: 'Text-to-speech service unavailable' });
+        return;
+      }
+
       // Use ElevenLabs streaming API for low latency
       // Use ElevenLabs TextToSpeech.convert with stream option
       const audioStream = await this.elevenlabs.textToSpeech.convert(
