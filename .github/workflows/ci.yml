@@ -47,7 +47,7 @@ jobs:
       # Start server for smoke tests
       - name: Start server in background
         run: |
-          npm run dev &
+          npm run start &
           echo $! > server.pid
           
       - name: Wait for server to be ready
