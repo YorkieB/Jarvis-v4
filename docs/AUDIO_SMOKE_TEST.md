@@ -230,8 +230,8 @@ This document outlines the manual smoke testing procedures for Jarvis-v4 audio f
 
 ## Smoke Test Summary
 
-**Test Date**: ******\_\_\_******
-**Tester**: ******\_\_\_******
+**Test Date**: **\*\***\_\_\_**\*\***
+**Tester**: **\*\***\_\_\_**\*\***
 **Environment**: Production / Staging
 
 **Overall Results**:
@@ -253,4 +253,4 @@ This document outlines the manual smoke testing procedures for Jarvis-v4 audio f
 
 ---
 
-**Sign-off**: ******\_\_\_******
+**Sign-off**: **\*\***\_\_\_**\*\***
