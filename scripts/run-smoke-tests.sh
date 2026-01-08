@@ -23,6 +23,15 @@ if [ ! -f .env ]; then
     echo ""
 fi
 
+# Build the application first
+echo "🏗️  Building application..."
+if ! npm run build; then
+    echo "❌ Build failed"
+    exit 1
+fi
+echo "✅ Build completed successfully"
+echo ""
+
 # Start the server in background
 echo "📡 Starting development server..."
 npm run dev > "$SERVER_LOG" 2>&1 &

@@ -37,9 +37,29 @@ jobs:
       - name: Build project
         run: npm run build
       
+      # Start server for smoke tests
+      - name: Start server in background
+        run: |
+          npm run dev &
+          echo $! > server.pid
+          
+      - name: Wait for server to be ready
+        run: |
+          timeout 30 bash -c 'until curl -f http://localhost:3000/health 2>/dev/null; do sleep 1; done'
+          echo "✅ Server is ready"
+      
       # BLOCKING: All tests must pass
       - name: Run tests
         run: npm run test
+      
+      # Stop server
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+            rm server.pid
+          fi
       
       # Upload build artifacts for debugging on failure
       - name: Upload build artifacts

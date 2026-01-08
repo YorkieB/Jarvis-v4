@@ -14,7 +14,7 @@
     "test:unit": "jest --testPathPattern=tests/unit",
     "test:integration": "jest --testPathPattern=tests/integration",
     "test:compliance": "jest --testPathPattern=tests/compliance",
-    "test:smoke": "jest --testPathPattern=tests/smoke --runInBand",
+    "test:smoke": "jest --testPathPattern=tests/smoke --runInBand --detectOpenHandles --forceExit",
     "test:smoke:watch": "jest --testPathPattern=tests/smoke --watch",
     "test:phase1": "jest tests/smoke/phase1-backend.test.ts",
     "test:phase2": "jest tests/smoke/phase2-socketio.test.ts",
