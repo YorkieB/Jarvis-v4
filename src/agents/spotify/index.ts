@@ -59,7 +59,7 @@ export class SpotifyAgent extends BaseAgent {
       },
     });
 
-    const data: SpotifySearchResponse = await response.json();
+    const data = (await response.json()) as SpotifySearchResponse;
     return data.tracks?.items || [];
   }
 

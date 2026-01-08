@@ -74,6 +74,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
+          if-no-files-found: ignore
           path: |
             dist/
             *.log
