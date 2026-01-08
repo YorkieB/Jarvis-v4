@@ -7,6 +7,14 @@ import { io, Socket } from 'socket.io-client';
 
 describe('Phase 3: Error Handling', () => {
   const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
+  const activeSockets: Socket[] = [];
+
+  // Helper to track sockets for cleanup
+  const createSocket = (options?: any): Socket => {
+    const socket = io(BASE_URL, options);
+    activeSockets.push(socket);
+    return socket;
+  };
 
   // Wait for server to be ready before running tests
   beforeAll(async () => {
@@ -32,8 +40,25 @@ describe('Phase 3: Error Handling', () => {
     );
   }, 15000);
 
+  afterEach(() => {
+    // Clean up all sockets created in this test
+    activeSockets.forEach((socket) => {
+      if (socket && socket.connected) {
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
+    });
+    // Clear the array
+    activeSockets.length = 0;
+  });
+
+  afterAll((done) => {
+    // Give time for cleanup
+    setTimeout(done, 500);
+  });
+
   test('3.1 - Invalid Audio Format', (done) => {
-    const socket = io(BASE_URL, {
+    const socket = createSocket({
       transports: ['websocket'],
       reconnection: false,
     });
@@ -87,7 +112,7 @@ describe('Phase 3: Error Handling', () => {
     const response = await fetch(`${BASE_URL}/health`);
     expect(response.ok).toBe(true);
 
-    const data = await response.json();
+    const data: any = await response.json();
     expect(data.status).toBe('healthy');
 
     // Server should remain healthy even if Deepgram has issues
@@ -96,7 +121,7 @@ describe('Phase 3: Error Handling', () => {
   });
 
   test('3.3 - Network Interruption Recovery', (done) => {
-    const socket = io(BASE_URL, {
+    const socket = createSocket({
       transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: 3,
@@ -154,12 +179,11 @@ describe('Phase 3: Error Handling', () => {
 
   test('3.4 - Multiple Rapid Connections', (done) => {
     // Test server handling of rapid connect/disconnect
-    const sockets: Socket[] = [];
     const numSockets = 3;
     let completedSockets = 0;
 
     for (let i = 0; i < numSockets; i++) {
-      const socket = io(BASE_URL, {
+      const socket = createSocket({
         transports: ['websocket'],
         reconnection: false,
       });
@@ -186,13 +210,11 @@ describe('Phase 3: Error Handling', () => {
         console.error(`❌ Socket ${i + 1} connection error:`, error);
         done(error);
       });
-
-      sockets.push(socket);
     }
   }, 10000);
 
   test('3.5 - Stream Without Starting', (done) => {
-    const socket = io(BASE_URL, {
+    const socket = createSocket({
       transports: ['websocket'],
       reconnection: false,
     });

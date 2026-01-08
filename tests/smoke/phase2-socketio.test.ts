@@ -49,10 +49,23 @@ describe('Phase 2: Socket.IO Audio Streaming', () => {
     });
   }, 15000);
 
-  afterAll(() => {
+  afterEach(() => {
+    // Clean up any active listeners after each test
     if (socket && socket.connected) {
+      socket.removeAllListeners('stream-started');
+      socket.removeAllListeners('stream-ended');
+      socket.removeAllListeners('transcription');
+      socket.removeAllListeners('error');
+    }
+  });
+
+  afterAll((done) => {
+    if (socket && socket.connected) {
+      socket.removeAllListeners();
       socket.disconnect();
     }
+    // Give time for cleanup
+    setTimeout(done, 500);
   });
 
   test('2.1 - Socket Connection', () => {
