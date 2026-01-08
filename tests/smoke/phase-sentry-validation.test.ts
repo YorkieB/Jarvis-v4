@@ -50,10 +50,11 @@ describe('Sentry Integration', () => {
         'ℹ️  To fully validate Sentry capture, check Sentry dashboard at:',
       );
       console.log('   https://sentry.io/organizations/<your-org>/issues/');
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Fetch might throw on 500 status depending on implementation
       // This is also acceptable
-      console.log('✅ Error thrown as expected:', error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      console.log('✅ Error thrown as expected:', message);
     }
   });
 
@@ -69,7 +70,7 @@ describe('Sentry Integration', () => {
     const healthResponse = await fetch(`${BASE_URL}/health`);
     expect(healthResponse.ok).toBe(true);
 
-    const healthData: any = await healthResponse.json();
+    const healthData = (await healthResponse.json()) as { status: string };
     expect(healthData.status).toBe('healthy');
 
     console.log('✅ Server remains healthy after error capture');
@@ -80,7 +81,7 @@ describe('Sentry Integration', () => {
     const response = await fetch(`${BASE_URL}/health`);
     expect(response.ok).toBe(true);
 
-    const data: any = await response.json();
+    const data = (await response.json()) as { status: string };
     expect(data.status).toBe('healthy');
 
     console.log('✅ Normal operations do not trigger Sentry errors');

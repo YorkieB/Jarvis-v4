@@ -12,13 +12,27 @@
 
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
+import {
+  createClient,
+  LiveTranscriptionEvents,
+  ListenLiveClient,
+} from '@deepgram/sdk';
 import OpenAI from 'openai';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import logger from '../utils/logger';
+
+interface DeepgramTranscriptData {
+  channel: {
+    alternatives: Array<{
+      transcript: string;
+    }>;
+  };
+  is_final: boolean;
+}
+
 interface AudioSession {
   sessionId: string;
-  deepgramConnection: any;
+  deepgramConnection: ListenLiveClient;
   transcriptBuffer: string;
   startTime: number;
   latencyMetrics: {
@@ -30,7 +44,7 @@ interface AudioSession {
 
 class AudioStreamingService {
   private io: SocketIOServer;
-  private deepgram: any;
+  private deepgram: ReturnType<typeof createClient>;
   private openai: OpenAI;
   private elevenlabs: ElevenLabsClient;
   private activeSessions: Map<string, AudioSession>;
@@ -97,7 +111,7 @@ class AudioStreamingService {
       // Handle Deepgram transcription events
       deepgramConnection.on(
         LiveTranscriptionEvents.Transcript,
-        async (data: any) => {
+        async (data: DeepgramTranscriptData) => {
           const transcript = data.channel.alternatives[0].transcript;
 
           if (transcript && data.is_final) {
@@ -119,7 +133,7 @@ class AudioStreamingService {
         },
       );
 
-      deepgramConnection.on(LiveTranscriptionEvents.Error, (error: any) => {
+      deepgramConnection.on(LiveTranscriptionEvents.Error, (error: Error) => {
         logger.error('Deepgram error', { sessionId, error });
         socket.emit('error', { message: 'Speech recognition error' });
       });
@@ -132,7 +146,7 @@ class AudioStreamingService {
     }
   }
 
-  private handleAudioChunk(socket: Socket, audioData: Buffer): void {
+  private handleAudioChunk(socket: Socket, audioData: Buffer | ArrayBuffer): void {
     const session = this.activeSessions.get(socket.id);
 
     if (!session) {
@@ -144,7 +158,10 @@ class AudioStreamingService {
 
     // Send audio chunk to Deepgram
     try {
-      session.deepgramConnection.send(audioData);
+      // Convert Buffer to ArrayBuffer if needed for Deepgram API
+      const data =
+        Buffer.isBuffer(audioData) ? audioData.buffer : audioData;
+      session.deepgramConnection.send(data);
     } catch (error) {
       logger.error('Failed to send audio chunk to Deepgram', {
         sessionId: session.sessionId,

@@ -1,15 +1,26 @@
 import { BaseAgent } from '../agents/base-agent';
 import express from 'express';
-import { createServer } from 'http';
+import { createServer, Server } from 'http';
 import { WebSocketServer } from 'ws';
 import { addHealthCheck } from '../health';
+
+interface AgentMessage {
+  type: string;
+  content?: string;
+  sessionId?: string;
+}
+
+interface AgentResponse {
+  agent: string;
+  status: string;
+}
 
 export class Orchestrator extends BaseAgent {
   protected agentType = 'orchestrator';
   protected permissions = ['read:*', 'write:sessions'];
 
-  private agents: Map<string, any> = new Map();
-  private server: any;
+  private agents: Map<string, BaseAgent> = new Map();
+  private server!: Server;
   private wss!: WebSocketServer;
 
   async initialize(): Promise<void> {
@@ -45,8 +56,8 @@ export class Orchestrator extends BaseAgent {
     });
   }
 
-  async routeMessage(message: any): Promise<any> {
-    const { type, content, sessionId } = message;
+  async routeMessage(message: AgentMessage): Promise<AgentResponse> {
+    const { type } = message;
 
     // Route based on intent
     switch (type) {
@@ -61,7 +72,10 @@ export class Orchestrator extends BaseAgent {
     }
   }
 
-  private async routeToAgent(agentType: string, message: any): Promise<any> {
+  private async routeToAgent(
+    agentType: string,
+    message: AgentMessage,
+  ): Promise<AgentResponse> {
     // TODO: Implement actual inter-agent communication via message queue
     console.log(`Routing to ${agentType}:`, message);
     return { agent: agentType, status: 'received' };

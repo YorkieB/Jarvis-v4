@@ -3,7 +3,7 @@
  * Provides health check endpoints for monitoring and deployment verification
  */
 
-import { Request, Response, Router } from 'express';
+import { Application, Request, Response, Router } from 'express';
 import os from 'os';
 
 interface HealthCheck {
@@ -165,7 +165,7 @@ export function createHealthRouter(): Router {
 /**
  * Simple middleware to add health check to existing Express app
  */
-export function addHealthCheck(app: any): void {
+export function addHealthCheck(app: Application): void {
   const healthRouter = createHealthRouter();
   app.use(healthRouter);
 }
