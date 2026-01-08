@@ -119,11 +119,35 @@ npm run type-check
 npm run lint
 
 # Tests
-npm test
+npm test                      # Run all tests
+npm run test:unit            # Unit tests only
+npm run test:integration     # Integration tests only
+npm run test:smoke           # Smoke tests (requires running server)
+
+# Individual smoke test phases
+npm run test:phase1          # Backend verification
+npm run test:phase2          # Socket.IO audio streaming
+npm run test:phase3          # Error handling
 
 # Compliance tests
 npm run test:compliance
 ```
+
+### Running Smoke Tests
+
+Smoke tests validate the audio pipeline (Phases 1-3):
+
+1. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+2. In a separate terminal, run tests:
+   ```bash
+   npm run test:smoke
+   ```
+
+See [tests/smoke/README.md](./tests/smoke/README.md) for detailed documentation.
 
 ---
 
