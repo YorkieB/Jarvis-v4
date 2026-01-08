@@ -19,7 +19,7 @@ interface AIAction {
   aiSystemId: string;
   confidence?: number;
   declaredUncertainty?: boolean;
-  sources?: any[];
+  sources?: unknown[];
   verified?: boolean;
   requestedPermissions?: string[];
   maxRetries?: number;

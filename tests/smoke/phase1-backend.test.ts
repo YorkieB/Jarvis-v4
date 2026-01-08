@@ -38,7 +38,18 @@ describe('Phase 1: Backend Verification', () => {
     const response = await fetch(`${BASE_URL}/health`);
     expect(response.ok).toBe(true);
 
-    const data: any = await response.json();
+    const data = (await response.json()) as {
+      status: string;
+      environment: string;
+      timestamp: string;
+      uptime: number;
+      system: {
+        platform: string;
+        nodeVersion: string;
+        memory: Record<string, unknown>;
+      };
+      checks: Record<string, unknown>;
+    };
     expect(data.status).toBe('healthy');
     expect(data.environment).toBeDefined();
     expect(data.timestamp).toBeDefined();
@@ -55,14 +66,17 @@ describe('Phase 1: Backend Verification', () => {
     const response = await fetch(`${BASE_URL}/health`);
     expect(response.ok).toBe(true);
 
-    const data: any = await response.json();
+    const data = (await response.json()) as {
+      status: string;
+      checks: Record<string, { status: string }>;
+    };
     // If the server is healthy and running, AudioService was initialized
     // because it's part of the server startup in src/index.ts
     expect(data.status).toBe('healthy');
 
     // Additional check: verify all checks pass
     const allChecksPassed = Object.values(data.checks).every(
-      (check: any) => check.status === 'pass',
+      (check) => check.status === 'pass',
     );
     expect(allChecksPassed).toBe(true);
   });

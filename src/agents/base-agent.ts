@@ -31,8 +31,13 @@ export abstract class BaseAgent {
    */
   protected async callLLM(
     prompt: string,
-    options: { context?: any; confidence?: number } = {},
-  ): Promise<any> {
+    options: { context?: unknown[]; confidence?: number } = {},
+  ): Promise<{
+    type: string;
+    message: string;
+    confidence: number;
+    note?: string;
+  }> {
     // Check rules acknowledged
     await AIRulesEnforcer.checkRulesAcknowledgment(this.agentType);
 
