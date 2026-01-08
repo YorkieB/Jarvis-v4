@@ -38,7 +38,7 @@ describe('Phase 1: Backend Verification', () => {
     const response = await fetch(`${BASE_URL}/health`);
     expect(response.ok).toBe(true);
 
-    const data = await response.json();
+    const data: any = await response.json();
     expect(data.status).toBe('healthy');
     expect(data.environment).toBeDefined();
     expect(data.timestamp).toBeDefined();
@@ -55,7 +55,7 @@ describe('Phase 1: Backend Verification', () => {
     const response = await fetch(`${BASE_URL}/health`);
     expect(response.ok).toBe(true);
 
-    const data = await response.json();
+    const data: any = await response.json();
     // If the server is healthy and running, AudioService was initialized
     // because it's part of the server startup in src/index.ts
     expect(data.status).toBe('healthy');
