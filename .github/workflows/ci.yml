@@ -12,7 +12,7 @@ jobs:
     name: Quality Gate - BLOCKING
     runs-on: ubuntu-latest
 
-        env:
+    env:
       DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
