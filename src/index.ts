@@ -57,6 +57,24 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from public directory
+import * as path from 'path';
+import * as fs from 'fs';
+
+// Resolve public directory path (works for both dev and production)
+const publicPath = path.resolve(__dirname, '../public');
+if (fs.existsSync(publicPath)) {
+  app.use(express.static(publicPath));
+  logger.info('✅ Static files served from public directory');
+  
+  // Serve index.html for root route
+  app.get('/', (_req, res) => {
+    res.sendFile(path.join(publicPath, 'index.html'));
+  });
+} else {
+  logger.warn('⚠️  Public directory not found, static file serving disabled');
+}
+
 // Register health check endpoints
 app.use(createHealthRouter());
 logger.info('✅ Health endpoints registered at /health and /health/ready');
