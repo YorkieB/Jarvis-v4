@@ -61,7 +61,7 @@ class AudioStreamingService {
     // Initialize API clients
     this.deepgram = createClient(process.env.DEEPGRAM_API_KEY || '');
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    
+
     // Non-blocking ElevenLabs initialization
     try {
       if (!process.env.ELEVENLABS_API_KEY) {

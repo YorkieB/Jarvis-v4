@@ -80,7 +80,7 @@ const server = createServer(app);
 server.listen(PORT, () => {
   logger.info(`🎉 Jarvis v4 server listening on port ${PORT}`);
   logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-  
+
   // Initialize Audio Streaming Service after server is listening
   try {
     const audioService = new AudioStreamingService(server);
