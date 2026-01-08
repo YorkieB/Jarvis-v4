@@ -76,8 +76,14 @@ app.use(errorHandler);
 // Create HTTP server for Socket.IO integration
 const server = createServer(app);
 
+// Handle server errors
+server.on('error', (error: Error) => {
+  logger.error('Server error:', { error });
+  process.exit(1);
+});
+
 // Start server first - health endpoints are already registered
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   logger.info(`🎉 Jarvis v4 server listening on port ${PORT}`);
   logger.info(`📊 Health check: http://localhost:${PORT}/health`);
 
