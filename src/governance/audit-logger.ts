@@ -8,11 +8,11 @@ interface AuditLogEntry {
   agent_id?: string;
   user_id?: string;
   action: string;
-  input?: any;
-  output?: any;
+  input?: unknown;
+  output?: unknown;
   status: 'success' | 'failed' | 'pending';
   error?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class AuditLogger {
@@ -24,7 +24,7 @@ export class AuditLogger {
     input: string;
     output: string;
     confidence: number;
-    sources: any[];
+    sources: unknown[];
   }): Promise<void> {
     const logEntry: AuditLogEntry = {
       timestamp: new Date(),
@@ -49,8 +49,8 @@ export class AuditLogger {
   async logToolCall(entry: {
     agentId: string;
     toolName: string;
-    inputs: any;
-    outputs: any;
+    inputs: Record<string, unknown>;
+    outputs: unknown;
     status: 'success' | 'failed';
     error?: string;
   }): Promise<void> {
@@ -74,7 +74,7 @@ export class AuditLogger {
   async logRuleViolation(entry: {
     agentId: string;
     rule: string;
-    context: any;
+    context: Record<string, unknown>;
   }): Promise<void> {
     const logEntry: AuditLogEntry = {
       timestamp: new Date(),
