@@ -1,5 +1,20 @@
-// Load environment variables from .env file
-import 'dotenv/config';
+// Load environment variables FIRST - before any other imports
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Explicitly configure dotenv with path resolution
+// In production, __dirname will be 'dist/', so '../.env' resolves to project root
+// This works for both compiled (dist/index.js) and source (src/index.ts) contexts
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+// Validate critical environment variables
+const requiredEnvVars = ['SENTRY_DSN', 'OPENAI_API_KEY', 'DATABASE_URL'];
+const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.warn(`⚠️  Missing environment variables: ${missingVars.join(', ')}`);
+  console.warn('⚠️  Some features may not work correctly');
+}
 
 /**
  * Jarvis v4 - Entry Point
