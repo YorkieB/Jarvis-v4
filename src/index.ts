@@ -51,7 +51,7 @@ logger.info('📋 All agents must acknowledge AI_RULES_MANDATORY.md on startup')
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Middleware
 app.use(express.json());
@@ -83,7 +83,8 @@ server.on('error', (error: Error) => {
 });
 
 // Start server first - health endpoints are already registered
-server.listen(PORT, '0.0.0.0', () => {
+// Note: Omitting hostname defaults to listening on all interfaces (0.0.0.0)
+server.listen(PORT, () => {
   logger.info(`🎉 Jarvis v4 server listening on port ${PORT}`);
   logger.info(`📊 Health check: http://localhost:${PORT}/health`);
 
