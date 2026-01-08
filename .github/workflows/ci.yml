@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      NODE_ENV: test
       DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -59,11 +60,11 @@ jobs:
       - name: Wait for server to be ready
         run: |
           echo "Waiting for server to be ready..."
-          # First check if server is listening (using /health/live which always returns 200)
-          timeout 60 bash -c 'until curl -f http://localhost:3000/health/live 2>/dev/null; do sleep 1; done' || {
+          # Wait for /health endpoint to return 200 (matches what tests expect)
+          timeout 60 bash -c 'until curl -f http://localhost:3000/health 2>/dev/null; do sleep 1; done' || {
             echo "❌ Health check failed"
             echo "Testing connectivity..."
-            curl -v http://localhost:3000/health/live || echo "Curl failed"
+            curl -v http://localhost:3000/health || echo "Curl failed"
             echo ""
             echo "Server logs:"
             cat server.log || echo "No server log found"
