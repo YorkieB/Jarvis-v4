@@ -49,20 +49,30 @@ jobs:
         run: |
           npm run start > server.log 2>&1 &
           echo $! > server.pid
-          sleep 2
+          sleep 5
           echo "Server PID: $(cat server.pid)"
           echo "Checking if server process is running..."
           ps -p $(cat server.pid) || echo "⚠️ Server process not found"
+          echo "Waiting additional 2 seconds for server to fully initialize..."
+          sleep 2
           
       - name: Wait for server to be ready
         run: |
           echo "Waiting for server to be ready..."
-          timeout 60 bash -c 'until curl -f http://localhost:3000/health 2>/dev/null; do sleep 1; done' || {
+          # First check if server is listening (using /health/live which always returns 200)
+          timeout 60 bash -c 'until curl -f http://localhost:3000/health/live 2>/dev/null; do sleep 1; done' || {
             echo "❌ Health check failed"
+            echo "Testing connectivity..."
+            curl -v http://localhost:3000/health/live || echo "Curl failed"
+            echo ""
             echo "Server logs:"
             cat server.log || echo "No server log found"
+            echo ""
             echo "Checking server process:"
             ps aux | grep node || echo "No node process found"
+            echo ""
+            echo "Checking if port 3000 is listening:"
+            netstat -tlnp 2>/dev/null | grep 3000 || ss -tlnp 2>/dev/null | grep 3000 || echo "Port check failed"
             exit 1
           }
           echo "✅ Server is ready"
