@@ -1,17 +1,20 @@
 import { BaseAgent } from '../base-agent';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
+import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
 
 export class VoiceAgent extends BaseAgent {
   protected agentType = 'voice';
   protected permissions = ['read:audio_settings'];
   
   private elevenLabs: ElevenLabsClient;
+    private deepgram: any;
   
   constructor() {
     super();
     this.elevenLabs = new ElevenLabsClient({
       apiKey: process.env.ELEVENLABS_API_KEY
     });
+        this.deepgram = createClient(process.env.DEEPGRAM_API_KEY || '');
   }
   
   async textToSpeech(text: string, voiceId?: string): Promise<Buffer> {
@@ -36,7 +39,25 @@ export class VoiceAgent extends BaseAgent {
   }
   
   async speechToText(audioBuffer: Buffer): Promise<string> {
-    // TODO: Implement Deepgram integration
-    return 'transcribed text';
-  }
+    try {
+      // Use Deepgram Nova-2 model for high accuracy STT
+      const { result, error } = await this.deepgram.listen.prerecorded.transcribeFile(
+        audioBuffer,
+        {
+          model: 'nova-2',
+          smart_format: true,
+          language: 'en',
+          punctuate: true,
+        }
+      );
+
+      if (error) throw error;
+
+      const transcript = result.results.channels[0].alternatives[0].transcript;
+      return transcript;
+    } catch (error) {
+      console.error('Deepgram STT error:', error);
+      // TODO: Fallback to Google STT if Deepgram fails
+      throw new Error(`Speech-to-text failed: ${error}`);
+    }  }
 }
