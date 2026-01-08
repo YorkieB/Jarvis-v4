@@ -146,7 +146,10 @@ class AudioStreamingService {
     }
   }
 
-  private handleAudioChunk(socket: Socket, audioData: Buffer | ArrayBuffer): void {
+  private handleAudioChunk(
+    socket: Socket,
+    audioData: Buffer | ArrayBuffer,
+  ): void {
     const session = this.activeSessions.get(socket.id);
 
     if (!session) {
@@ -159,8 +162,7 @@ class AudioStreamingService {
     // Send audio chunk to Deepgram
     try {
       // Convert Buffer to ArrayBuffer if needed for Deepgram API
-      const data =
-        Buffer.isBuffer(audioData) ? audioData.buffer : audioData;
+      const data = Buffer.isBuffer(audioData) ? audioData.buffer : audioData;
       session.deepgramConnection.send(data);
     } catch (error) {
       logger.error('Failed to send audio chunk to Deepgram', {
