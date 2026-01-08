@@ -11,6 +11,12 @@ jobs:
   quality-gate:
     name: Quality Gate - BLOCKING
     runs-on: ubuntu-latest
+
+        env:
+      DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     
     steps:
       - name: Checkout code
