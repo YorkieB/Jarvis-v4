@@ -2,8 +2,10 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
-// Explicitly configure dotenv with absolute path
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// Explicitly configure dotenv with path resolution
+// In production, __dirname will be 'dist/', so '../.env' resolves to project root
+// This works for both compiled (dist/index.js) and source (src/index.ts) contexts
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Validate critical environment variables
 const requiredEnvVars = ['SENTRY_DSN', 'OPENAI_API_KEY', 'DATABASE_URL'];
