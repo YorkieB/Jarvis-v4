@@ -15,8 +15,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
 import OpenAI from 'openai';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
-import { logger } from '../utils/logger';
-
+import logger from '../utils/logger';
 interface AudioSession {
   sessionId: string;
   deepgramConnection: any;
@@ -221,14 +220,13 @@ class AudioStreamingService {
 
     try {
       // Use ElevenLabs streaming API for low latency
-      const audioStream = await this.elevenlabs.textToSpeech.convertAsStream(
-        process.env.ELEVENLABS_VOICE_ID || '6IwLzp3a6IkyvrMSx3oD',
+      // Use ElevenLabs TextToSpeech.convert with stream option
+      const audioStream = await this.elevenlabs.textToSpeech.convert(
+        process.env.ELEVENLABS_VOICE_ID || 'EfwLzp3a6IkyvrMSx3oD',
         {
           text,
-          model_id: 'eleven_turbo_v2.5', // Optimized for latency
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75
+          model_id: 'eleven_turbo_v2_5', // Optimized for latency
+          output_format: 'mp3_44100_128'            similarity_boost: 0.75
           }
         }
       );
