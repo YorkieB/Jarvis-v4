@@ -150,7 +150,6 @@ describe('Phase 1: Backend Verification', () => {
       expect(result).toBeDefined();
 
       // Result should have expected structure
-      expect(result).toBeDefined();
       if (result) {
         expect(result.metadata).toBeDefined();
         expect(result.results).toBeDefined();

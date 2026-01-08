@@ -3,14 +3,16 @@
  * Validates error handling for invalid input, API failures, and network issues
  */
 
-import { io, Socket } from 'socket.io-client';
+import { io, Socket, ManagerOptions, SocketOptions } from 'socket.io-client';
 
 describe('Phase 3: Error Handling', () => {
   const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
   const activeSockets: Socket[] = [];
 
   // Helper to track sockets for cleanup
-  const createSocket = (options?: any): Socket => {
+  const createSocket = (
+    options?: Partial<ManagerOptions & SocketOptions>,
+  ): Socket => {
     const socket = io(BASE_URL, options);
     activeSockets.push(socket);
     return socket;
@@ -112,7 +114,8 @@ describe('Phase 3: Error Handling', () => {
     const response = await fetch(`${BASE_URL}/health`);
     expect(response.ok).toBe(true);
 
-    const data: any = await response.json();
+    const data: { status: string; [key: string]: unknown } =
+      await response.json();
     expect(data.status).toBe('healthy');
 
     // Server should remain healthy even if Deepgram has issues
