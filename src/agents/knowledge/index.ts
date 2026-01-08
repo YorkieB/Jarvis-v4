@@ -1,6 +1,12 @@
 import { BaseAgent } from '../base-agent';
 import OpenAI from 'openai';
 
+interface KnowledgeDocument {
+  content: string;
+  embedding: number[];
+  metadata?: Record<string, unknown>;
+}
+
 export class KnowledgeAgent extends BaseAgent {
   protected agentType = 'knowledge';
   protected permissions = ['read:knowledge_base', 'write:knowledge_base'];
@@ -12,9 +18,9 @@ export class KnowledgeAgent extends BaseAgent {
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
 
-  async retrieveRelevantDocs(query: string, limit: number = 5): Promise<any[]> {
+  async retrieveRelevantDocs(query: string, _limit: number = 5): Promise<KnowledgeDocument[]> {
     // Generate embedding for query
-    const embedding = await this.generateEmbedding(query);
+    await this.generateEmbedding(query);
 
     // TODO: Query pgvector database
     // SELECT * FROM knowledge_base
@@ -33,13 +39,13 @@ export class KnowledgeAgent extends BaseAgent {
     return response.data[0].embedding;
   }
 
-  async ingestDocument(content: string, metadata: any): Promise<void> {
+  async ingestDocument(content: string, _metadata: Record<string, unknown>): Promise<void> {
     // Chunk document
     const chunks = this.chunkDocument(content);
 
     // Generate embeddings for each chunk
     for (const chunk of chunks) {
-      const embedding = await this.generateEmbedding(chunk);
+      await this.generateEmbedding(chunk);
 
       // TODO: Store in database with pgvector
       // INSERT INTO knowledge_base (content, embedding, metadata)

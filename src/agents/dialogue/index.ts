@@ -1,12 +1,13 @@
 import { BaseAgent } from '../base-agent';
 import OpenAI from 'openai';
+import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 export class DialogueAgent extends BaseAgent {
   protected agentType = 'dialogue';
   protected permissions = ['read:conversations', 'write:conversations'];
 
   private openai: OpenAI;
-  private conversationHistory: Map<string, any[]> = new Map();
+  private conversationHistory: Map<string, ChatCompletionMessageParam[]> = new Map();
 
   constructor() {
     super();
@@ -21,7 +22,7 @@ export class DialogueAgent extends BaseAgent {
     history.push({ role: 'user', content: input });
 
     // RULE 2: Grounding in context (conversation history)
-    const response = await this.callLLM(input, {
+    await this.callLLM(input, {
       context: history,
     });
 

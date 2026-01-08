@@ -1,5 +1,18 @@
 import { BaseAgent } from '../base-agent';
 
+interface SpotifyTrack {
+  id: string;
+  name: string;
+  uri: string;
+  [key: string]: unknown;
+}
+
+interface SpotifySearchResponse {
+  tracks?: {
+    items: SpotifyTrack[];
+  };
+}
+
 export class SpotifyAgent extends BaseAgent {
   protected agentType = 'spotify';
   protected permissions = ['read:spotify', 'write:spotify'];
@@ -32,7 +45,7 @@ export class SpotifyAgent extends BaseAgent {
     });
   }
 
-  async search(query: string, type: string = 'track'): Promise<any[]> {
+  async search(query: string, type: string = 'track'): Promise<SpotifyTrack[]> {
     await this.ensureAccessToken();
 
     const url = new URL('https://api.spotify.com/v1/search');
@@ -46,7 +59,7 @@ export class SpotifyAgent extends BaseAgent {
       },
     });
 
-    const data: any = await response.json();
+    const data: SpotifySearchResponse = await response.json();
     return data.tracks?.items || [];
   }
 
