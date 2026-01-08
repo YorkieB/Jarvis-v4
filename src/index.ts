@@ -18,6 +18,8 @@ initSentry();
 import logger from './utils/logger';
 import { errorHandler, handleUncaughtException, handleUnhandledRejection } from './middleware/errorHandler';
 import express from 'express';
+import { createServer } from 'http';
+import AudioStreamingService from './services/audioService';
 import { createHealthRouter } from './health';
 // Set up global error handlers
 handleUncaughtException();
@@ -46,9 +48,15 @@ logger.info('🔄 Agent implementation coming in subsequent PRs');
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
+// Create HTTP server for Socket.IO integration
+const server = createServer(app);
+
+// Initialize Audio Streaming Service
+const audioService = new AudioStreamingService(server);
+logger.info('🎤 Audio Streaming Service initialized');
+
 // Start server
-app.listen(PORT, () => {
-  logger.info(`🎉 Jarvis v4 server listening on port ${PORT}`);
+server.listen(PORT, () => {  logger.info(`🎉 Jarvis v4 server listening on port ${PORT}`);
   logger.info(`📊 Health check: http://localhost:${PORT}/health`);
   logger.info(`🚀 Ready for voice agent implementation`);
 });
