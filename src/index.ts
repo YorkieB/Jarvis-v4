@@ -62,9 +62,9 @@ app.use(createHealthRouter());
 logger.info('✅ Health endpoints registered at /health and /health/ready');
 
 // Sentry test endpoint
-app.get("/debug-sentry", function mainHandler(req, res) {
-    throw new Error("My first Sentry error!");
-  });
+app.get('/debug-sentry', function mainHandler(req, res) {
+  throw new Error('My first Sentry error!');
+});
 
 // TODO: Initialize orchestrator and all agents
 logger.info('✅ Jarvis v4 foundation ready');
