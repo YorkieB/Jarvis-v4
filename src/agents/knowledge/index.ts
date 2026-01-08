@@ -18,7 +18,10 @@ export class KnowledgeAgent extends BaseAgent {
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
 
-  async retrieveRelevantDocs(query: string, _limit: number = 5): Promise<KnowledgeDocument[]> {
+  async retrieveRelevantDocs(
+    query: string,
+    _limit: number = 5,
+  ): Promise<KnowledgeDocument[]> {
     // Generate embedding for query
     await this.generateEmbedding(query);
 
@@ -39,7 +42,10 @@ export class KnowledgeAgent extends BaseAgent {
     return response.data[0].embedding;
   }
 
-  async ingestDocument(content: string, _metadata: Record<string, unknown>): Promise<void> {
+  async ingestDocument(
+    content: string,
+    _metadata: Record<string, unknown>,
+  ): Promise<void> {
     // Chunk document
     const chunks = this.chunkDocument(content);
 

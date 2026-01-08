@@ -7,7 +7,8 @@ export class DialogueAgent extends BaseAgent {
   protected permissions = ['read:conversations', 'write:conversations'];
 
   private openai: OpenAI;
-  private conversationHistory: Map<string, ChatCompletionMessageParam[]> = new Map();
+  private conversationHistory: Map<string, ChatCompletionMessageParam[]> =
+    new Map();
 
   constructor() {
     super();
