@@ -4,6 +4,7 @@ const path = require('path');
 // Read and parse .env file
 const envPath = path.join(__dirname, '.env');
 const envVars = { NODE_ENV: 'production' };
+let envFileVarsCount = 0;
 
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
@@ -23,10 +24,11 @@ if (fs.existsSync(envPath)) {
       }
 
       envVars[key] = value;
+      envFileVarsCount++;
     }
   });
   console.log(
-    `✅ Loaded ${Object.keys(envVars).length} environment variables from .env`
+    `✅ Loaded ${envFileVarsCount} environment variables from .env file`
   );
 } else {
   console.warn(`⚠️  .env file not found at ${envPath}`);
@@ -41,7 +43,7 @@ module.exports = {
       instances: 1,
       env: {
         ...envVars,
-        PORT: process.env.PORT || envVars.PORT || 3000,
+        PORT: envVars.PORT || process.env.PORT || 3000,
       },
     },
 
