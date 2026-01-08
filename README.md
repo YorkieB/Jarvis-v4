@@ -9,6 +9,7 @@
 3. ✅ Acknowledge rules by extending `BaseAgent` class
 
 **This applies to:**
+
 - GitHub Copilot
 - All 29 Jarvis agents
 - Any coding assistants
@@ -36,6 +37,7 @@ Jarvis v4 is a comprehensive multi-agent AI assistant system with 29 specialized
 ### 29 Specialized Agents (Organized in 6 Batches)
 
 **Batch 1: Core Conversational (7 agents)**
+
 1. Orchestrator - Central routing and coordination
 2. Dialogue - Conversation management
 3. Voice - ElevenLabs TTS integration
@@ -44,43 +46,22 @@ Jarvis v4 is a comprehensive multi-agent AI assistant system with 29 specialized
 6. Spotify - Music playback control
 7. Self-Healing - Diagnostics and auto-repair
 
-**Batch 2: Personal Finance (5 agents)**
-8. Finance - Transaction tracking and budgets
-9. Savings - Goals and recommendations
-10. Insights - Pattern analysis and optimization
-11. Alert - Proactive notifications
-12. Privacy - Data control and encryption
+**Batch 2: Personal Finance (5 agents)** 8. Finance - Transaction tracking and budgets 9. Savings - Goals and recommendations 10. Insights - Pattern analysis and optimization 11. Alert - Proactive notifications 12. Privacy - Data control and encryption
 
-**Batch 3: Computer Control (5 agents)**
-13. Windows Control - System automation
-14. Browser Control - Web automation
-15. Document Control - Word processing
-16. Email Control - Gmail/Outlook
-17. Calendar Control - Google Calendar
+**Batch 3: Computer Control (5 agents)** 13. Windows Control - System automation 14. Browser Control - Web automation 15. Document Control - Word processing 16. Email Control - Gmail/Outlook 17. Calendar Control - Google Calendar
 
-**Batch 4: Creative Media (4 agents)**
-18. Music Generation - AI music creation
-19. Image Generation - SDXL images
-20. Podcast Generation - Multi-voice podcasts
-21. Creative Memory - Personalization
+**Batch 4: Creative Media (4 agents)** 18. Music Generation - AI music creation 19. Image Generation - SDXL images 20. Podcast Generation - Multi-voice podcasts 21. Creative Memory - Personalization
 
-**Batch 5: Video Production (4 agents)**
-22. Video Generation - Image-to-video HD/4K
-23. Storyboard - Timeline and scene management
-24. Creation Console - Preview and editing
-25. Iterative Refinement - Feedback loops
+**Batch 5: Video Production (4 agents)** 22. Video Generation - Image-to-video HD/4K 23. Storyboard - Timeline and scene management 24. Creation Console - Preview and editing 25. Iterative Refinement - Feedback loops
 
-**Batch 6: Visual Guidance (4 agents)**
-26. Camera Management - Multi-camera PTZ control
-27. Computer Vision - Object detection and tracking
-28. Visual Guidance - Step-by-step instructions
-29. Edge Processor - Low-latency processing
+**Batch 6: Visual Guidance (4 agents)** 26. Camera Management - Multi-camera PTZ control 27. Computer Vision - Object detection and tracking 28. Visual Guidance - Step-by-step instructions 29. Edge Processor - Low-latency processing
 
 ---
 
 ## 🚀 Current Status
 
 **✅ Foundation Complete:**
+
 - AI Rules enforcement system
 - Governance layer (rules-enforcer, audit-logger)
 - Base agent class (all agents must extend)
@@ -88,6 +69,7 @@ Jarvis v4 is a comprehensive multi-agent AI assistant system with 29 specialized
 - Core documentation
 
 **🔧 Coming in Subsequent PRs:**
+
 - Agent implementations (batches 1-6)
 - Database schema (Prisma with ~50 tables)
 - Tests (unit, integration, compliance)

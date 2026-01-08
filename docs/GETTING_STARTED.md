@@ -9,23 +9,27 @@
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/YorkieB/Jarvis-v4.git
 cd Jarvis-v4
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Set up environment:
+
 ```bash
 cp .env.example .env
 # Edit .env with your API keys
 ```
 
 4. Run development server:
+
 ```bash
 npm run dev
 ```

@@ -15,9 +15,9 @@ describe('Orchestrator', () => {
     const message = {
       type: 'conversation',
       content: 'Hello Jarvis',
-      sessionId: 'test-session'
+      sessionId: 'test-session',
     };
-    
+
     const response = await orchestrator.routeMessage(message);
     expect(response.agent).toBe('dialogue');
     expect(response.status).toBe('received');
@@ -27,9 +27,9 @@ describe('Orchestrator', () => {
     const message = {
       type: 'search',
       content: 'What is the weather today?',
-      sessionId: 'test-session'
+      sessionId: 'test-session',
     };
-    
+
     const response = await orchestrator.routeMessage(message);
     expect(response.agent).toBe('web');
     expect(response.status).toBe('received');
@@ -39,9 +39,9 @@ describe('Orchestrator', () => {
     const message = {
       type: 'music',
       content: 'Play some jazz',
-      sessionId: 'test-session'
+      sessionId: 'test-session',
     };
-    
+
     const response = await orchestrator.routeMessage(message);
     expect(response.agent).toBe('spotify');
     expect(response.status).toBe('received');
@@ -51,9 +51,9 @@ describe('Orchestrator', () => {
     const message = {
       type: 'unknown',
       content: 'Random message',
-      sessionId: 'test-session'
+      sessionId: 'test-session',
     };
-    
+
     const response = await orchestrator.routeMessage(message);
     expect(response.agent).toBe('dialogue');
     expect(response.status).toBe('received');

@@ -35,14 +35,14 @@ export class AuditLogger {
       status: 'success',
       metadata: {
         confidence: entry.confidence,
-        sources: entry.sources
-      }
+        sources: entry.sources,
+      },
     };
-    
+
     // TODO: Store in database
     console.log('[AUDIT]', logEntry);
   }
-  
+
   /**
    * Log a tool call
    */
@@ -61,13 +61,13 @@ export class AuditLogger {
       input: { tool: entry.toolName, ...entry.inputs },
       output: entry.outputs,
       status: entry.status,
-      error: entry.error
+      error: entry.error,
     };
-    
+
     // TODO: Store in database
     console.log('[AUDIT]', logEntry);
   }
-  
+
   /**
    * Log a rule violation
    */
@@ -84,10 +84,10 @@ export class AuditLogger {
       metadata: {
         rule: entry.rule,
         context: entry.context,
-        severity: 'critical'
-      }
+        severity: 'critical',
+      },
     };
-    
+
     // TODO: Store in database and alert admin
     console.error('[AUDIT] RULE VIOLATION:', logEntry);
   }

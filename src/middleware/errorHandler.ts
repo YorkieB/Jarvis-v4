@@ -21,12 +21,12 @@ export function errorHandler(
   err: Error | AppError,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   // Default to 500 server error
   let statusCode = 500;
   let message = 'Internal Server Error';
-  
+
   // If it's an operational error, use its status code and message
   if (err instanceof AppError && err.isOperational) {
     statusCode = err.statusCode;
@@ -44,7 +44,7 @@ export function errorHandler(
   });
 
   // Send error to Sentry for non-operational errors
-  if (!((err instanceof AppError) && err.isOperational)) {
+  if (!(err instanceof AppError && err.isOperational)) {
     Sentry.captureException(err, {
       contexts: {
         request: {

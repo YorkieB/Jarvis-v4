@@ -48,25 +48,29 @@ function performHealthChecks(): HealthCheck['checks'] {
 
   checks.memory = {
     status: memUsagePercent < 90 ? 'pass' : 'fail',
-    message: memUsagePercent < 90 ? 'Memory usage within acceptable range' : 'Memory usage critical'
+    message:
+      memUsagePercent < 90
+        ? 'Memory usage within acceptable range'
+        : 'Memory usage critical',
   };
 
   // Check process uptime
   const uptime = process.uptime();
   checks.uptime = {
     status: uptime > 0 ? 'pass' : 'fail',
-    message: `Process has been running for ${Math.floor(uptime)} seconds`
+    message: `Process has been running for ${Math.floor(uptime)} seconds`,
   };
 
   // Check if required environment variables are set
   const requiredEnvVars = ['NODE_ENV'];
-  const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
-  
+  const missingEnvVars = requiredEnvVars.filter((v) => !process.env[v]);
+
   checks.environment = {
     status: missingEnvVars.length === 0 ? 'pass' : 'fail',
-    message: missingEnvVars.length === 0 
-      ? 'All required environment variables are set'
-      : `Missing environment variables: ${missingEnvVars.join(', ')}`
+    message:
+      missingEnvVars.length === 0
+        ? 'All required environment variables are set'
+        : `Missing environment variables: ${missingEnvVars.join(', ')}`,
   };
 
   return checks;
@@ -88,7 +92,9 @@ export function createHealthRouter(): Router {
     const usedMem = totalMem - freeMem;
 
     const checks = performHealthChecks();
-    const allChecksPassed = Object.values(checks).every(check => check.status === 'pass');
+    const allChecksPassed = Object.values(checks).every(
+      (check) => check.status === 'pass',
+    );
 
     const healthData: HealthCheck = {
       status: allChecksPassed ? 'healthy' : 'unhealthy',
@@ -103,14 +109,14 @@ export function createHealthRouter(): Router {
           total: totalMem,
           free: freeMem,
           used: usedMem,
-          usagePercent: (usedMem / totalMem) * 100
+          usagePercent: (usedMem / totalMem) * 100,
         },
         cpu: {
           cores: os.cpus().length,
-          loadAverage: os.loadavg()
-        }
+          loadAverage: os.loadavg(),
+        },
       },
-      checks
+      checks,
     };
 
     const statusCode = allChecksPassed ? 200 : 503;
@@ -124,7 +130,7 @@ export function createHealthRouter(): Router {
   router.get('/health/live', (req: Request, res: Response) => {
     res.status(200).json({
       status: 'alive',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   });
 
@@ -134,19 +140,21 @@ export function createHealthRouter(): Router {
    */
   router.get('/health/ready', (req: Request, res: Response) => {
     const checks = performHealthChecks();
-    const allChecksPassed = Object.values(checks).every(check => check.status === 'pass');
+    const allChecksPassed = Object.values(checks).every(
+      (check) => check.status === 'pass',
+    );
 
     if (allChecksPassed) {
       res.status(200).json({
         status: 'ready',
         timestamp: new Date().toISOString(),
-        checks
+        checks,
       });
     } else {
       res.status(503).json({
         status: 'not_ready',
         timestamp: new Date().toISOString(),
-        checks
+        checks,
       });
     }
   });

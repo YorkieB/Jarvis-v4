@@ -36,6 +36,7 @@ ssh root@161.35.169.117
 ```
 
 The deployment script will:
+
 1. Pull latest code from GitHub
 2. Create timestamped release directory
 3. Sync files using rsync (atomic operation)
@@ -54,6 +55,7 @@ ssh root@161.35.169.117
 ```
 
 The script will:
+
 1. Display available releases
 2. Prompt for release number
 3. Update symlink to selected release
@@ -64,16 +66,18 @@ The script will:
 ### GitHub Actions Workflow
 
 Deployments are automatically triggered on:
+
 - Push to `main` branch
 - After successful CI checks
 
 ### Prerequisites
 
 1. **SSH Key Setup**:
+
    ```bash
    # Generate deployment key on your local machine
    ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github_deploy_key
-   
+
    # Add public key to server
    ssh root@161.35.169.117
    mkdir -p ~/.ssh

@@ -5,48 +5,62 @@ This document provides an overview of the 7 core agents implemented in Batch 1.
 ## Agents Overview
 
 ### 1. Orchestrator Agent
+
 **Location:** `src/orchestrator/index.ts`
+
 - Central message routing to appropriate agents
-- Load balancing across agent instances  
+- Load balancing across agent instances
 - Session management
 - WebSocket and REST API endpoints
 - Listens on port 3000 (configurable via PORT env var)
 
 ### 2. Dialogue Agent
+
 **Location:** `src/agents/dialogue/index.ts`
+
 - Bidirectional conversation management using GPT-4
 - Context preservation across conversation turns
 - Session-based conversation history
 - Integrates with OpenAI API
 
-### 3. Voice Agent  
+### 3. Voice Agent
+
 **Location:** `src/agents/voice/index.ts`
+
 - Text-to-speech using ElevenLabs
 - Speech-to-text (Deepgram - TODO)
 - Voice synthesis with configurable voice settings
 
 ### 4. Knowledge Agent
+
 **Location:** `src/agents/knowledge/index.ts`
+
 - RAG (Retrieval Augmented Generation)
 - Vector embeddings with OpenAI
 - Document ingestion and chunking
 - Semantic search (pgvector integration - TODO)
 
 ### 5. Web Agent
+
 **Location:** `src/agents/web/index.ts`
+
 - Web search using Bing API
 - Web scraping capabilities
 - Real-time information retrieval
 
 ### 6. Spotify Agent
+
 **Location:** `src/agents/spotify/index.ts`
+
 - Spotify playback control
 - Track search
 - Play/pause functionality
 - OAuth integration (TODO)
 
 ### 7. Self-Healing Agent
+
 **Location:** `src/agents/self-healing/index.ts`
+
 - Agent health monitoring via PM2
 - Auto-restart failed agents
 - Performance diagnostics
@@ -55,6 +69,7 @@ This document provides an overview of the 7 core agents implemented in Batch 1.
 ## Architecture
 
 All agents extend `BaseAgent` which provides:
+
 - AI Rules acknowledgment (AI_RULES_MANDATORY.md compliance)
 - LLM call grounding and verification
 - Permission-based access control
@@ -63,6 +78,7 @@ All agents extend `BaseAgent` which provides:
 ## Database Schema
 
 The Prisma schema includes:
+
 - User and Session management
 - Conversation and Message history
 - Knowledge Base with pgvector for embeddings
@@ -72,11 +88,13 @@ The Prisma schema includes:
 ## Deployment
 
 Use PM2 to manage all agents:
+
 ```bash
 pm2 start ecosystem.config.cjs
 ```
 
 This will start:
+
 - 1x Orchestrator instance
 - 2x Dialogue Agent instances
 - 1x Voice Agent instance
@@ -100,6 +118,7 @@ PORT=3000
 ## Testing
 
 Run tests with:
+
 ```bash
 npm test                  # All tests
 npm run test:unit         # Unit tests only
@@ -109,6 +128,7 @@ npm run test:integration  # Integration tests only
 ## Next Steps
 
 Future enhancements:
+
 - Implement inter-agent message queue communication
 - Complete Deepgram speech-to-text integration
 - Add Spotify OAuth flow

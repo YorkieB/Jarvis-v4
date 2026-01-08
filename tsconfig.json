@@ -13,7 +13,8 @@
     "declaration": true,
     "sourceMap": true,
     "moduleResolution": "node",
-    "types": ["node"],    "baseUrl": ".",
+    "types": ["node"],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
       "@agents/*": ["src/agents/*"],

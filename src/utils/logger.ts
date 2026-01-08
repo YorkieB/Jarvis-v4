@@ -37,13 +37,13 @@ const format = winston.format.combine(
 const transports = [
   // Console transport for all logs
   new winston.transports.Console(),
-  
+
   // File transport for error logs
   new winston.transports.File({
     filename: path.join(logDir, 'errors.log'),
     level: 'error',
   }),
-  
+
   // File transport for all logs
   new winston.transports.File({
     filename: path.join(logDir, 'combined.log'),
