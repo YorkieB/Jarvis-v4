@@ -39,6 +39,7 @@
     "@prisma/client": "^7.2.0",
     "@sentry/node": "^7.99.0",
     "@sentry/profiling-node": "^7.99.0",
+    "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "googleapis": "^128.0.0",
     "openai": "^4.104.0",
