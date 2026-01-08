@@ -31,8 +31,6 @@ describe('Phase 2: Socket.IO Audio Streaming', () => {
       }
     }
 
-    // Connect socket after server is ready
-    // Connect socket after server is ready
     return new Promise<void>((resolve, reject) => {
       socket = io(BASE_URL, {
         transports: ['websocket'],

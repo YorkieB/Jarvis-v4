@@ -9,6 +9,10 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PROJECT_ROOT"
 
+# Use TMPDIR if available, fallback to /tmp
+LOG_DIR="${TMPDIR:-/tmp}"
+SERVER_LOG="$LOG_DIR/jarvis-smoke-server.log"
+
 echo "🚀 Starting Jarvis v4 smoke test runner..."
 echo ""
 
@@ -21,10 +25,11 @@ fi
 
 # Start the server in background
 echo "📡 Starting development server..."
-npm run dev > /tmp/jarvis-smoke-server.log 2>&1 &
+npm run dev > "$SERVER_LOG" 2>&1 &
 SERVER_PID=$!
 
 echo "   Server PID: $SERVER_PID"
+echo "   Server log: $SERVER_LOG"
 echo ""
 
 # Function to cleanup on exit
@@ -60,7 +65,7 @@ if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
     echo "❌ Server failed to start within timeout"
     echo ""
     echo "Server logs (last 20 lines):"
-    tail -20 /tmp/jarvis-smoke-server.log
+    tail -20 "$SERVER_LOG"
     exit 1
 fi
 
@@ -77,6 +82,6 @@ else
     echo "❌ Some smoke tests failed"
     echo ""
     echo "Server logs (last 50 lines):"
-    tail -50 /tmp/jarvis-smoke-server.log
+    tail -50 "$SERVER_LOG"
     exit 1
 fi
