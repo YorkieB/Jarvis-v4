@@ -238,12 +238,9 @@ describe('Phase 2: Socket.IO Audio Streaming', () => {
       fs.writeFileSync(testAudioPath, wavHeader);
     }
 
-    let transcriptionReceived = false;
-
     // Listen for transcription event
     socket.once('transcription', (data) => {
       console.log('✅ Transcription received:', data);
-      transcriptionReceived = true;
 
       // Verify transcription structure
       expect(data).toBeDefined();

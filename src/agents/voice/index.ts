@@ -1,13 +1,13 @@
 import { BaseAgent } from '../base-agent';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
-import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
+import { createClient } from '@deepgram/sdk';
 
 export class VoiceAgent extends BaseAgent {
   protected agentType = 'voice';
   protected permissions = ['read:audio_settings'];
 
   private elevenLabs: ElevenLabsClient;
-  private deepgram: any;
+  private deepgram: ReturnType<typeof createClient>;
 
   constructor() {
     super();

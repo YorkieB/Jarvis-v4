@@ -1,10 +1,24 @@
 import { BaseAgent } from '../base-agent';
 
+interface BingWebPage {
+  id: string;
+  name: string;
+  url: string;
+  snippet: string;
+  [key: string]: unknown;
+}
+
+interface BingSearchResponse {
+  webPages?: {
+    value: BingWebPage[];
+  };
+}
+
 export class WebAgent extends BaseAgent {
   protected agentType = 'web';
   protected permissions = ['read:web'];
 
-  async search(query: string, limit: number = 5): Promise<any[]> {
+  async search(query: string, limit: number = 5): Promise<BingWebPage[]> {
     const url = new URL('https://api.bing.microsoft.com/v7.0/search');
     url.searchParams.append('q', query);
     url.searchParams.append('count', limit.toString());
@@ -15,7 +29,7 @@ export class WebAgent extends BaseAgent {
       },
     });
 
-    const data: any = await response.json();
+    const data = (await response.json()) as BingSearchResponse;
 
     return data.webPages?.value || [];
   }

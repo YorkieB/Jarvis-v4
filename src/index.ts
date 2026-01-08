@@ -62,7 +62,7 @@ app.use(createHealthRouter());
 logger.info('✅ Health endpoints registered at /health and /health/ready');
 
 // Sentry test endpoint
-app.get('/debug-sentry', function mainHandler(req, res) {
+app.get('/debug-sentry', function mainHandler(_req, _res) {
   throw new Error('My first Sentry error!');
 });
 
@@ -83,7 +83,7 @@ server.listen(PORT, () => {
 
   // Initialize Audio Streaming Service after server is listening
   try {
-    const audioService = new AudioStreamingService(server);
+    new AudioStreamingService(server);
     logger.info('🎤 Audio Streaming Service initialized');
     logger.info(`🚀 Ready for voice agent implementation`);
   } catch (error) {
