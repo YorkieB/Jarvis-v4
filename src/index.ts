@@ -15,8 +15,7 @@ initSentry();
 import logger from './utils/logger';
 import { errorHandler, handleUncaughtException, handleUnhandledRejection } from './middleware/errorHandler';
 import express from 'express';
-import { registerHealthRoutes } from './health';
-
+import { createHealthRouter } from './health';
 // Set up global error handlers
 handleUncaughtException();
 handleUnhandledRejection();
@@ -35,8 +34,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Register health check endpoints
-registerHealthRoutes(app);
-logger.info('✅ Health endpoints registered at /health and /health/ready');
+app.use(createHealthRouter());logger.info('✅ Health endpoints registered at /health and /health/ready');
 
 // TODO: Initialize orchestrator and all agents
 logger.info('✅ Jarvis v4 foundation ready');
