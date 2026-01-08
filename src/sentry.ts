@@ -38,7 +38,7 @@ export function initSentry() {
     ],
 
     // Filter out sensitive information
-    beforeSend(event, hint) {
+    beforeSend(event, _hint) {
       // Log to Winston when sending to Sentry
       logger.info('Sending error to Sentry', {
         eventId: event.event_id,

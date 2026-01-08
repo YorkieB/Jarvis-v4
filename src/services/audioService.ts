@@ -226,8 +226,8 @@ class AudioStreamingService {
         {
           text,
           model_id: 'eleven_turbo_v2_5', // Optimized for latency
-          output_format: 'mp3_44100_128'            similarity_boost: 0.75
-          }
+          output_format: 'mp3_44100_128',
+          similarity_boost: 0.75
         }
       );
 
