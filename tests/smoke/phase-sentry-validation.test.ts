@@ -69,7 +69,7 @@ describe('Sentry Integration', () => {
     const healthResponse = await fetch(`${BASE_URL}/health`);
     expect(healthResponse.ok).toBe(true);
 
-    const healthData = await healthResponse.json();
+    const healthData: any = await healthResponse.json();
     expect(healthData.status).toBe('healthy');
 
     console.log('✅ Server remains healthy after error capture');
@@ -80,7 +80,7 @@ describe('Sentry Integration', () => {
     const response = await fetch(`${BASE_URL}/health`);
     expect(response.ok).toBe(true);
 
-    const data = await response.json();
+    const data: any = await response.json();
     expect(data.status).toBe('healthy');
 
     console.log('✅ Normal operations do not trigger Sentry errors');

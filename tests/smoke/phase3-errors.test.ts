@@ -114,8 +114,7 @@ describe('Phase 3: Error Handling', () => {
     const response = await fetch(`${BASE_URL}/health`);
     expect(response.ok).toBe(true);
 
-    const data: { status: string; [key: string]: unknown } =
-      await response.json();
+    const data: any = await response.json();
     expect(data.status).toBe('healthy');
 
     // Server should remain healthy even if Deepgram has issues
