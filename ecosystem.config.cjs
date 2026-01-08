@@ -46,6 +46,16 @@ module.exports = {
         PORT: envVars.PORT || process.env.PORT || 3000,
       },
     },
+        // Main HTTP Server
+        {
+                name: 'jarvis-server',
+                script: './dist/index.js',
+                instances: 1,
+                env: {
+                          ...envVars,
+                          PORT: envVars.PORT || process.env.PORT || 3000,
+                        },
+              },
 
     // Batch 1: Core Conversational
     {
