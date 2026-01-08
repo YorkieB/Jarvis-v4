@@ -8,7 +8,7 @@ import * as path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Validate critical environment variables
-const requiredEnvVars = ['SENTRY_DSN', 'OPENAI_API_KEY', 'DATABASE_URL'];
+const requiredEnvVars = ['SENTRY_DSN', 'OPENAI_API_KEY', 'DATABASE_URL', 'ELEVENLABS_API_KEY'];
 const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingVars.length > 0) {
@@ -76,15 +76,20 @@ app.use(errorHandler);
 // Create HTTP server for Socket.IO integration
 const server = createServer(app);
 
-// Initialize Audio Streaming Service
-const audioService = new AudioStreamingService(server);
-logger.info('🎤 Audio Streaming Service initialized');
-
-// Start server
+// Start server first - health endpoints are already registered
 server.listen(PORT, () => {
   logger.info(`🎉 Jarvis v4 server listening on port ${PORT}`);
   logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-  logger.info(`🚀 Ready for voice agent implementation`);
+  
+  // Initialize Audio Streaming Service after server is listening
+  try {
+    const audioService = new AudioStreamingService(server);
+    logger.info('🎤 Audio Streaming Service initialized');
+    logger.info(`🚀 Ready for voice agent implementation`);
+  } catch (error) {
+    logger.error('Failed to initialize Audio Streaming Service', { error });
+    logger.warn('⚠️  Audio streaming will be unavailable');
+  }
 });
 
 // Handle graceful shutdown
