@@ -1,0 +1,45 @@
+name: Deploy to Production
+
+# Trigger after CI passes on main branch
+on:
+  workflow_run:
+    workflows: ["CI - Quality Gate - BLOCKING"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    # Only deploy if CI workflow succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # [UNCERTAIN] - SSH deployment requires:
+      # 1. SSH_HOST (jarvissolutions.co.uk server IP)
+      # 2. SSH_USERNAME (deployment user)
+      # 3. SSH_PRIVATE_KEY (private key for authentication)
+      # 4. Server path where code should be deployed
+      # 5. PM2 process name to restart
+      
+      - name: Deploy to DigitalOcean
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /path/to/jarvis-v4
+            git pull origin main
+            npm ci
+            npm run build
+            pm2 restart jarvis-v4
+      
+      - name: Health check
+        run: |
+          sleep 10
+          curl -f https://jarvissolutions.co.uk/health || exit 1
