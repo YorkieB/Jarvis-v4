@@ -20,6 +20,8 @@ import {
 import OpenAI from 'openai';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import logger from '../utils/logger';
+import VoiceAuthService from './voiceAuthService';
+import { PrismaClient } from '@prisma/client';
 
 interface DeepgramTranscriptData {
   channel: {
@@ -35,6 +37,8 @@ interface AudioSession {
   deepgramConnection: ListenLiveClient;
   transcriptBuffer: string;
   startTime: number;
+  userId?: string; // User ID for voice authentication
+  audioBuffer: Buffer[]; // Buffer for voice verification
   latencyMetrics: {
     stt: number;
     llm: number;
@@ -48,8 +52,14 @@ class AudioStreamingService {
   private openai: OpenAI;
   private elevenlabs: ElevenLabsClient | null;
   private activeSessions: Map<string, AudioSession>;
+  private voiceAuth: VoiceAuthService;
+  private prisma: PrismaClient;
+  private readonly VOICE_AUTH_ENABLED =
+    process.env.VOICE_AUTH_ENABLED !== 'false'; // Default enabled
 
-  constructor(httpServer: HttpServer) {
+  constructor(httpServer: HttpServer, prisma?: PrismaClient) {
+    this.prisma = prisma || new PrismaClient();
+    this.voiceAuth = new VoiceAuthService(this.prisma);
     // Initialize Socket.IO with CORS
     this.io = new SocketIOServer(httpServer, {
       cors: {
@@ -83,6 +93,11 @@ class AudioStreamingService {
 
     this.setupSocketHandlers();
     logger.info('Audio Streaming Service initialized');
+    if (this.VOICE_AUTH_ENABLED) {
+      logger.info('Voice authentication: ENABLED');
+    } else {
+      logger.warn('Voice authentication: DISABLED');
+    }
   }
 
   private setupSocketHandlers(): void {
@@ -111,12 +126,21 @@ class AudioStreamingService {
         endpointing: 300, // ms of silence to detect end of utterance
       });
 
+      // Extract userId from socket handshake or query params
+      // For now, using a placeholder - in production, extract from auth token
+      const userId =
+        (socket.handshake.query.userId as string) ||
+        (socket.handshake.auth?.userId as string) ||
+        'anonymous';
+
       // Initialize session
       const session: AudioSession = {
         sessionId,
         deepgramConnection,
         transcriptBuffer: '',
         startTime,
+        userId,
+        audioBuffer: [],
         latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       };
 
@@ -138,11 +162,59 @@ class AudioStreamingService {
               latency: sttLatency,
             });
 
+            // Voice verification (if enabled and user is not anonymous)
+            if (
+              this.VOICE_AUTH_ENABLED &&
+              session.userId &&
+              session.userId !== 'anonymous'
+            ) {
+              // Combine audio buffer for verification
+              const combinedAudio = Buffer.concat(session.audioBuffer);
+
+              if (combinedAudio.length > 0) {
+                const verification = await this.voiceAuth.verifyVoice(
+                  session.userId,
+                  combinedAudio,
+                );
+
+                if (!verification.verified) {
+                  logger.warn('Voice verification failed', {
+                    sessionId,
+                    userId: session.userId,
+                    confidence: verification.confidence,
+                  });
+
+                  socket.emit('error', {
+                    message:
+                      verification.message ||
+                      'Voice not recognized. Jarvis only responds to authorized users.',
+                  });
+                  socket.emit('voice-verification-failed', {
+                    confidence: verification.confidence,
+                    message: verification.message,
+                  });
+
+                  // Clear audio buffer
+                  session.audioBuffer = [];
+                  return; // Don't process conversation
+                }
+
+                logger.info('Voice verified', {
+                  sessionId,
+                  userId: session.userId,
+                  confidence: verification.confidence,
+                });
+              }
+            }
+
             // Emit transcript to client
             socket.emit('transcription', { transcript });
 
             // Process through LLM and TTS
             await this.processConversationTurn(socket, session, transcript);
+
+            // Clear audio buffer after processing
+            session.audioBuffer = [];
           }
         },
       );
@@ -171,6 +243,23 @@ class AudioStreamingService {
         socketId: socket.id,
       });
       return;
+    }
+
+    // Convert to Buffer for voice verification
+    const audioBuffer = Buffer.isBuffer(audioData)
+      ? audioData
+      : Buffer.from(audioData);
+
+    // Store audio chunks for voice verification (keep last 5 seconds)
+    session.audioBuffer.push(audioBuffer);
+    const maxBufferSize = 16000 * 2 * 5; // 5 seconds at 16kHz, 16-bit
+    let totalSize = 0;
+    for (let i = session.audioBuffer.length - 1; i >= 0; i--) {
+      totalSize += session.audioBuffer[i].length;
+      if (totalSize > maxBufferSize) {
+        session.audioBuffer.splice(0, i);
+        break;
+      }
     }
 
     // Send audio chunk to Deepgram

@@ -8,6 +8,8 @@ interface AgentMessage {
   type: string;
   content?: string;
   sessionId?: string;
+  userId?: string;
+  conversationId?: string;
 }
 
 interface AgentResponse {
@@ -45,7 +47,19 @@ export class Orchestrator extends BaseAgent {
 
     // REST API
     app.post('/api/message', async (req, res) => {
-      const response = await this.routeMessage(req.body);
+      // Extract userId from headers, auth token, or request body
+      // For now, using placeholder - in production, extract from JWT/session
+      const userId =
+        req.headers['x-user-id'] ||
+        req.body.userId ||
+        'anonymous';
+
+      const messageWithUserId = {
+        ...req.body,
+        userId,
+      };
+
+      const response = await this.routeMessage(messageWithUserId);
       res.json(response);
     });
 

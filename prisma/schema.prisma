@@ -31,6 +31,7 @@ model User {
   podcastEpisodes       PodcastEpisode[]
   creativePreferences   CreativePreferences?
   creativeFeedback      CreativeFeedback[]
+  voiceprint            Voiceprint?
 }
 
 // Conversations
@@ -267,4 +268,19 @@ model CreativeFeedback {
   timestamp   DateTime @default(now())
   
   @@index([userId, contentType])
+}
+
+// Voice Authentication
+model Voiceprint {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  embedding   Unsupported("vector(512)")  // Voiceprint embedding vector
+  audioSample String?  // Path to enrollment audio sample (optional)
+  enrolledAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isActive    Boolean  @default(true)
+  confidence  Float    @default(0.85)  // Minimum confidence threshold (0-1)
+  
+  @@index([embedding(ops: raw("vector_cosine_ops"))])
 }

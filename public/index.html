@@ -11,9 +11,14 @@
         <header>
             <h1>🎯 Jarvis v4</h1>
             <p class="subtitle">Multi-Agent AI Assistant</p>
-            <div class="status" id="connectionStatus">
-                <span class="status-dot"></span>
-                <span class="status-text">Connecting...</span>
+            <div class="header-actions">
+                <button id="enrollVoiceBtn" class="enroll-button" title="Enroll your voice">
+                    🎤 Enroll Voice
+                </button>
+                <div class="status" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
             </div>
         </header>
 
@@ -68,6 +73,42 @@
                 </div>
             </div>
         </main>
+
+        <!-- Voice Enrollment Modal -->
+        <div id="enrollmentModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Voice Enrollment</h2>
+                    <button class="modal-close" id="closeEnrollmentModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Record 3-5 voice samples (10-30 seconds total) to enroll your voice.</p>
+                    <p class="hint">Jarvis will only respond to your voice after enrollment.</p>
+                    
+                    <div class="enrollment-controls">
+                        <input type="text" id="userIdInput" placeholder="Enter your user ID" class="user-id-input">
+                        <div class="sample-counter">
+                            <span>Sample <span id="currentSample">1</span> of <span id="totalSamples">3</span></span>
+                        </div>
+                        <button id="recordSampleBtn" class="record-sample-btn">Start Recording Sample</button>
+                        <div id="enrollmentStatus" class="enrollment-status"></div>
+                    </div>
+
+                    <div id="enrollmentProgress" class="enrollment-progress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p id="progressText">Recording...</p>
+                    </div>
+
+                    <div id="enrollmentSamples" class="enrollment-samples"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="submitEnrollmentBtn" class="submit-btn" disabled>Enroll Voice</button>
+                    <button id="cancelEnrollmentBtn" class="cancel-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Socket.IO Client -->
