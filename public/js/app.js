@@ -11,6 +11,14 @@ class JarvisApp {
         this.audioChunks = [];
         this.recognition = null;
         this.isConnected = false;
+        this.userId = localStorage.getItem('jarvis_userId') || null;
+
+        // Voice enrollment state
+        this.enrollmentSamples = [];
+        this.currentSampleIndex = 0;
+        this.totalSamples = 3;
+        this.enrollmentRecorder = null;
+        this.isEnrolling = false;
 
         // DOM elements
         this.messagesContainer = document.getElementById('messages');
@@ -22,6 +30,13 @@ class JarvisApp {
         this.connectionStatus = document.getElementById('connectionStatus');
         this.statusDot = this.connectionStatus.querySelector('.status-dot');
         this.statusText = this.connectionStatus.querySelector('.status-text');
+        this.enrollVoiceBtn = document.getElementById('enrollVoiceBtn');
+        this.enrollmentModal = document.getElementById('enrollmentModal');
+        this.userIdInput = document.getElementById('userIdInput');
+        this.recordSampleBtn = document.getElementById('recordSampleBtn');
+        this.submitEnrollmentBtn = document.getElementById('submitEnrollmentBtn');
+        this.cancelEnrollmentBtn = document.getElementById('cancelEnrollmentBtn');
+        this.closeEnrollmentModal = document.getElementById('closeEnrollmentModal');
 
         this.init();
     }
@@ -30,17 +45,26 @@ class JarvisApp {
         this.setupSocketIO();
         this.setupEventListeners();
         this.setupSpeechRecognition();
+        this.setupVoiceEnrollment();
         this.checkBrowserSupport();
+        this.checkVoiceEnrollmentStatus();
     }
 
     setupSocketIO() {
-        // Connect to Socket.IO server
-        this.socket = io({
+        // Connect to Socket.IO server with userId if available
+        const socketOptions = {
             transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionAttempts: 5,
-        });
+        };
+
+        // Add userId to query if available
+        if (this.userId) {
+            socketOptions.query = { userId: this.userId };
+        }
+
+        this.socket = io(socketOptions);
 
         // Connection events
         this.socket.on('connect', () => {
@@ -94,6 +118,13 @@ class JarvisApp {
             this.updateVoiceStatus('Error occurred', false);
             this.stopRecording();
         });
+
+        this.socket.on('voice-verification-failed', (data) => {
+            console.warn('Voice verification failed:', data);
+            this.addMessage('system', `Voice not recognized: ${data.message || 'Unauthorized access attempt'}`);
+            this.updateVoiceStatus('Voice verification failed', false);
+            this.stopRecording();
+        });
     }
 
     setupEventListeners() {
@@ -116,6 +147,241 @@ class JarvisApp {
                 this.startRecording();
             }
         });
+
+        // Voice enrollment button
+        if (this.enrollVoiceBtn) {
+            this.enrollVoiceBtn.addEventListener('click', () => {
+                this.showEnrollmentModal();
+            });
+        }
+
+        // Enrollment modal controls
+        if (this.closeEnrollmentModal) {
+            this.closeEnrollmentModal.addEventListener('click', () => {
+                this.hideEnrollmentModal();
+            });
+        }
+
+        if (this.cancelEnrollmentBtn) {
+            this.cancelEnrollmentBtn.addEventListener('click', () => {
+                this.hideEnrollmentModal();
+            });
+        }
+    }
+
+    setupVoiceEnrollment() {
+        if (!this.recordSampleBtn || !this.submitEnrollmentBtn) return;
+
+        // Set user ID if stored
+        if (this.userId && this.userIdInput) {
+            this.userIdInput.value = this.userId;
+        }
+
+        // Update submit button when userId changes
+        if (this.userIdInput) {
+            this.userIdInput.addEventListener('input', () => {
+                this.updateEnrollmentUI();
+            });
+        }
+
+        this.recordSampleBtn.addEventListener('click', () => {
+            if (this.isEnrolling) {
+                this.stopEnrollmentRecording();
+            } else {
+                this.startEnrollmentRecording();
+            }
+        });
+
+        this.submitEnrollmentBtn.addEventListener('click', () => {
+            this.submitEnrollment();
+        });
+    }
+
+    async checkVoiceEnrollmentStatus() {
+        if (!this.userId) return;
+
+        try {
+            const response = await fetch(`/api/voice/status/${this.userId}`);
+            const data = await response.json();
+
+            if (data.hasVoiceprint) {
+                this.addMessage('system', '✅ Your voice is enrolled. Jarvis will only respond to you.');
+            } else {
+                this.addMessage('system', '⚠️ Voice not enrolled. Click "Enroll Voice" to set up voice authentication.');
+            }
+        } catch (error) {
+            console.error('Failed to check voice status:', error);
+        }
+    }
+
+    showEnrollmentModal() {
+        if (this.enrollmentModal) {
+            this.enrollmentModal.style.display = 'flex';
+            this.enrollmentSamples = [];
+            this.currentSampleIndex = 0;
+            this.updateEnrollmentUI();
+        }
+    }
+
+    hideEnrollmentModal() {
+        if (this.enrollmentModal) {
+            this.enrollmentModal.style.display = 'none';
+            if (this.isEnrolling) {
+                this.stopEnrollmentRecording();
+            }
+        }
+    }
+
+    updateEnrollmentUI() {
+        const currentSampleEl = document.getElementById('currentSample');
+        const totalSamplesEl = document.getElementById('totalSamples');
+        const samplesContainer = document.getElementById('enrollmentSamples');
+
+        if (currentSampleEl) currentSampleEl.textContent = this.currentSampleIndex + 1;
+        if (totalSamplesEl) totalSamplesEl.textContent = this.totalSamples;
+
+        if (samplesContainer) {
+            samplesContainer.innerHTML = '';
+            for (let i = 0; i < this.enrollmentSamples.length; i++) {
+                const sampleDiv = document.createElement('div');
+                sampleDiv.className = 'sample-item';
+                sampleDiv.innerHTML = `
+                    <span>Sample ${i + 1}</span>
+                    <span class="sample-duration">${(this.enrollmentSamples[i].duration / 1000).toFixed(1)}s</span>
+                    <button class="remove-sample" data-index="${i}">Remove</button>
+                `;
+                samplesContainer.appendChild(sampleDiv);
+            }
+
+            // Add remove handlers
+            samplesContainer.querySelectorAll('.remove-sample').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    this.enrollmentSamples.splice(index, 1);
+                    this.updateEnrollmentUI();
+                });
+            });
+        }
+
+        // Update submit button state
+        if (this.submitEnrollmentBtn) {
+            this.submitEnrollmentBtn.disabled = this.enrollmentSamples.length < 3 || !this.userIdInput?.value;
+        }
+    }
+
+    async startEnrollmentRecording() {
+        if (!this.userIdInput?.value) {
+            alert('Please enter your user ID first');
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.enrollmentRecorder = new MediaRecorder(stream, {
+                mimeType: 'audio/webm;codecs=opus'
+            });
+
+            const chunks = [];
+            const startTime = Date.now();
+
+            this.enrollmentRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    chunks.push(event.data);
+                }
+            };
+
+            this.enrollmentRecorder.onstop = () => {
+                stream.getTracks().forEach(track => track.stop());
+                const duration = Date.now() - startTime;
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                
+                this.enrollmentSamples.push({
+                    blob,
+                    duration
+                });
+
+                this.updateEnrollmentUI();
+                this.isEnrolling = false;
+
+                if (this.recordSampleBtn) {
+                    this.recordSampleBtn.textContent = 'Start Recording Sample';
+                    this.recordSampleBtn.classList.remove('recording');
+                }
+            };
+
+            this.enrollmentRecorder.start();
+            this.isEnrolling = true;
+
+            if (this.recordSampleBtn) {
+                this.recordSampleBtn.textContent = 'Stop Recording';
+                this.recordSampleBtn.classList.add('recording');
+            }
+        } catch (error) {
+            console.error('Failed to start enrollment recording:', error);
+            alert('Failed to access microphone. Please check permissions.');
+        }
+    }
+
+    stopEnrollmentRecording() {
+        if (this.enrollmentRecorder && this.isEnrolling) {
+            this.enrollmentRecorder.stop();
+        }
+    }
+
+    async submitEnrollment() {
+        if (!this.userIdInput?.value) {
+            alert('Please enter your user ID');
+            return;
+        }
+
+        if (this.enrollmentSamples.length < 3) {
+            alert('Please record at least 3 samples');
+            return;
+        }
+
+        const userId = this.userIdInput.value;
+        this.userId = userId;
+        localStorage.setItem('jarvis_userId', userId);
+
+        try {
+            // Convert blobs to base64
+            const audioSamples = await Promise.all(
+                this.enrollmentSamples.map(sample => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const base64 = reader.result.split(',')[1];
+                            resolve(base64);
+                        };
+                        reader.readAsDataURL(sample.blob);
+                    });
+                })
+            );
+
+            const response = await fetch('/api/voice/enroll', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId,
+                    audioSamples,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Voice enrolled successfully! Jarvis will now only respond to your voice.');
+                this.hideEnrollmentModal();
+                this.addMessage('system', '✅ Voice enrollment completed successfully!');
+            } else {
+                alert(`Enrollment failed: ${data.message || data.error}`);
+            }
+        } catch (error) {
+            console.error('Enrollment submission failed:', error);
+            alert('Failed to submit enrollment. Please try again.');
+        }
     }
 
     setupSpeechRecognition() {
