@@ -1,0 +1,21 @@
+# Cron configuration for Jarvis v4 automated backups
+# Add these lines to your crontab (crontab -e)
+
+# Daily backup at 2 AM
+0 2 * * * /path/to/jarvis-v4/scripts/backup-db.sh >> /var/log/jarvis/backup-cron.log 2>&1
+
+# Weekly backup on Sundays at 3 AM (kept for 12 weeks)
+0 3 * * 0 /path/to/jarvis-v4/scripts/backup-db.sh >> /var/log/jarvis/backup-cron.log 2>&1
+
+# Monthly backup on 1st of month at 4 AM (kept for 12 months)
+0 4 1 * * /path/to/jarvis-v4/scripts/backup-db.sh >> /var/log/jarvis/backup-cron.log 2>&1
+
+# Cleanup old backups (runs daily at 5 AM, keeps last 30 days)
+0 5 * * * cd /path/to/jarvis-v4 && npm run backup:cleanup >> /var/log/jarvis/backup-cron.log 2>&1
+
+# Instructions:
+# 1. Replace /path/to/jarvis-v4 with your actual project path
+# 2. Make scripts executable: chmod +x scripts/*.sh
+# 3. Add to crontab: crontab -e
+# 4. Copy the lines above (adjust paths as needed)
+# 5. Save and exit
