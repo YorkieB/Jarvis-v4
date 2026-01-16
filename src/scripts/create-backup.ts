@@ -5,14 +5,13 @@
 
 import * as dotenv from 'dotenv';
 import * as path from 'path';
-import { PrismaClient } from '@prisma/client';
 import BackupService from '../services/backupService';
+import { prisma } from '../utils/prisma';
 import logger from '../utils/logger';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 async function main() {
-  const prisma = new PrismaClient();
   const backupService = new BackupService(prisma);
 
   try {

@@ -3,17 +3,19 @@
  * Manages spawning, lifecycle, and health of child agents
  */
 
-import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
+import { prisma as globalPrisma } from '../utils/prisma';
 import {
   AgentStatus,
   AgentCapabilities,
   AgentHealthMetrics,
 } from '../types/agentTypes';
 
+type PrismaClient = typeof globalPrisma;
+
 export class AgentManagerService {
-  private prisma: PrismaClient;
-  private agentRegistry: Map<string, AgentCapabilities> = new Map();
+  private readonly prisma: PrismaClient;
+  private readonly agentRegistry: Map<string, AgentCapabilities> = new Map();
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
@@ -239,7 +241,8 @@ export class AgentManagerService {
     });
 
     return agents.filter(
-      (agent) => agent.currentWorkload < agent.maxConcurrentTasks,
+      (agent: { currentWorkload: number; maxConcurrentTasks: number }) =>
+        agent.currentWorkload < agent.maxConcurrentTasks,
     );
   }
 

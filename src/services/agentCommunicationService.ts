@@ -7,8 +7,8 @@ import { MessageBus, AgentMessage } from '../utils/messageBus';
 import logger from '../utils/logger';
 
 export class AgentCommunicationService {
-  private messageBus: MessageBus;
-  private agentSubscriptions: Map<string, (message: AgentMessage) => void> =
+  private readonly messageBus: MessageBus;
+  private readonly agentSubscriptions: Map<string, (message: AgentMessage) => void> =
     new Map();
 
   constructor() {
@@ -97,22 +97,25 @@ export class AgentCommunicationService {
       let responseHandler: ((message: AgentMessage) => void) | null = null;
       let timeout: NodeJS.Timeout | null = null;
 
-      responseHandler = (message: AgentMessage) => {
+      const handler = (message: AgentMessage) => {
         if (message.from === to && message.type === responseType) {
           if (timeout) clearTimeout(timeout);
-          this.messageBus.unsubscribe(undefined, responseHandler!);
+          this.messageBus.unsubscribe(undefined, handler);
           resolve(message);
         }
       };
 
-      this.messageBus.subscribeToType(responseType, responseHandler);
+      responseHandler = handler;
+      this.messageBus.subscribeToType(responseType, handler);
 
       // Send request
       this.sendMessage(from, to, type, payload);
 
       // Set timeout
       timeout = setTimeout(() => {
-        this.messageBus.unsubscribe(undefined, responseHandler!);
+        if (responseHandler) {
+          this.messageBus.unsubscribe(undefined, responseHandler);
+        }
         resolve(null);
       }, timeoutMs);
     });

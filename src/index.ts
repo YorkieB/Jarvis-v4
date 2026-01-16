@@ -31,7 +31,8 @@ initSentry();
 
 // Import monitoring and utilities
 import logger from './utils/logger';
-import { PrismaClient, BankConnection } from '@prisma/client';
+import { BankConnection } from '@prisma/client';
+import { prisma } from './utils/prisma';
 import { randomUUID } from 'crypto';
 import {
   errorHandler,
@@ -39,7 +40,7 @@ import {
   handleUnhandledRejection,
 } from './middleware/errorHandler';
 import express from 'express';
-import { createServer } from 'http';
+import https from 'https';
 import AudioStreamingService from './services/audioService';
 import { createHealthRouter, setPrismaInstance, setCodeAnalysisAgent } from './health';
 import { setErrorDetectionService } from './middleware/errorHandler';
@@ -50,8 +51,6 @@ import { ErrorDetectionService } from './services/errorDetectionService';
 // Set up global error handlers
 handleUncaughtException();
 handleUnhandledRejection();
-
-const prisma = new PrismaClient();
 
 async function verifyDatabaseSchema(): Promise<void> {
   try {
@@ -74,6 +73,19 @@ logger.info('📋 All agents must acknowledge AI_RULES_MANDATORY.md on startup')
 
 // Initialize Express app
 const app = express();
+app.disable('x-powered-by');
+const HTTPS_ENFORCE = (process.env.HTTPS_ENFORCE || 'true') !== 'false';
+if (HTTPS_ENFORCE) {
+  app.enable('trust proxy');
+  app.use((req, res, next) => {
+    const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
+    if (proto !== 'https') {
+      const host = req.headers.host;
+      return res.redirect(301, `https://${host}${req.originalUrl}`);
+    }
+    return next();
+  });
+}
 const PORT = Number(process.env.PORT) || 3000;
 const TENANT_TOKEN = process.env.TENANT_TOKEN;
 
@@ -934,6 +946,9 @@ app.post('/api/system/exec', requireSystemEnabled, async (req: express.Request, 
     if (!cmd) {
       return res.status(400).json({ error: 'Missing cmd' });
     }
+    if (typeof cmd !== 'string' || /[;&|`><]/.test(cmd) || /\r|\n/.test(cmd)) {
+      return res.status(400).json({ error: 'Invalid command' });
+    }
     const result = await systemControlAgent.exec({ cmd, shell, timeoutMs, dryRun });
     res.json(result);
   } catch (error) {
@@ -1296,10 +1311,18 @@ if (process.env.VISION_ENABLED !== 'false') {
   app.get('/api/vision/recordings/:id/download', async (req: express.Request, res: express.Response) => {
     try {
       const recording = await recordingService.getRecording(req.params.id);
-      if (!recording || !fs.existsSync(recording.filePath)) {
+      const safeBasePath = path.resolve(process.env.RECORDING_STORAGE_PATH || './recordings');
+      const safePath = recording ? path.resolve(recording.filePath) : '';
+      if (!recording || !safePath.startsWith(`${safeBasePath}${path.sep}`) || !fs.existsSync(safePath)) {
         return res.status(404).json({ error: 'Recording file not found' });
       }
-      res.download(recording.filePath);
+      const maxMb = Number(process.env.RECORDING_DOWNLOAD_MAX_MB || 500);
+      const stats = fs.statSync(safePath);
+      const sizeMb = stats.size / (1024 * 1024);
+      if (sizeMb > maxMb) {
+        return res.status(413).json({ error: 'Recording too large to download' });
+      }
+      res.download(safePath);
     } catch (error) {
       logger.error('Download recording failed', { error });
       res.status(500).json({ error: 'Download recording failed' });
@@ -1342,8 +1365,23 @@ logger.info('🔄 Agent implementation coming in subsequent PRs');
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
-// Create HTTP server for Socket.IO integration
-const server = createServer(app);
+// Create HTTP/HTTPS server for Socket.IO integration
+function createAppServer(): import('https').Server {
+  const keyPath = process.env.HTTPS_KEY_PATH;
+  const certPath = process.env.HTTPS_CERT_PATH;
+  if (!keyPath || !certPath) {
+    throw new Error('HTTPS_KEY_PATH and HTTPS_CERT_PATH are required for HTTPS-only mode');
+  }
+  if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+    throw new Error('HTTPS cert or key path not found');
+  }
+  const key = fs.readFileSync(keyPath);
+  const cert = fs.readFileSync(certPath);
+  logger.info('Starting HTTPS server (strict HTTPS-only mode)');
+  return https.createServer({ key, cert }, app);
+}
+
+const server = createAppServer();
 
 // Handle server errors
 server.on('error', (error: Error) => {
@@ -1377,30 +1415,39 @@ server.listen(PORT, () => {
     }
   }
 
-  // Initialize Self-Healing Agent
-  try {
-    const selfHealingAgent = new SelfHealingAgent();
-    void selfHealingAgent.startMonitoring();
-    logger.info('🔧 Self-Healing Agent initialized and monitoring');
-    
-    // Integrate code error handling with self-healing
-    if (errorDetectionService && codeAnalysisAgent) {
-      // Self-healing agent can trigger code fixes on code-related failures
-      logger.info('🔗 Code error handling integrated with self-healing');
+  const runEmbeddedSelfHealing = process.env.EMBEDDED_SELF_HEALING === 'true';
+  const runEmbeddedWatchdog = process.env.EMBEDDED_WATCHDOG === 'true';
+
+  // Initialize Self-Healing Agent (only when explicitly enabled)
+  if (runEmbeddedSelfHealing) {
+    try {
+      const selfHealingAgent = new SelfHealingAgent();
+      void selfHealingAgent.startMonitoring();
+      logger.info('🔧 Self-Healing Agent initialized and monitoring (embedded)');
+
+      if (errorDetectionService && codeAnalysisAgent) {
+        logger.info('🔗 Code error handling integrated with self-healing');
+      }
+    } catch (error) {
+      logger.error('Failed to initialize Self-Healing Agent', { error });
+      logger.warn('⚠️  Self-healing will be unavailable in embedded mode');
     }
-  } catch (error) {
-    logger.error('Failed to initialize Self-Healing Agent', { error });
-    logger.warn('⚠️  Self-healing will be unavailable');
+  } else {
+    logger.info('Skipping embedded Self-Healing Agent (managed by standalone process)');
   }
 
-  // Initialize Watchdog Agent
-  try {
-    const watchdogAgent = new WatchdogAgent(prisma);
-    void watchdogAgent.startMonitoring(30000);
-    logger.info('🐕 Watchdog Agent initialized and monitoring critical agents');
-  } catch (error) {
-    logger.error('Failed to initialize Watchdog Agent', { error });
-    logger.warn('⚠️  Watchdog monitoring will be unavailable');
+  // Initialize Watchdog Agent (only when explicitly enabled)
+  if (runEmbeddedWatchdog) {
+    try {
+      const watchdogAgent = new WatchdogAgent(prisma);
+      void watchdogAgent.startMonitoring(30000);
+      logger.info('🐕 Watchdog Agent initialized and monitoring (embedded)');
+    } catch (error) {
+      logger.error('Failed to initialize Watchdog Agent', { error });
+      logger.warn('⚠️  Watchdog monitoring will be unavailable in embedded mode');
+    }
+  } else {
+    logger.info('Skipping embedded Watchdog Agent (managed by standalone process)');
   }
 
   // Initialize Mutual Monitoring Service

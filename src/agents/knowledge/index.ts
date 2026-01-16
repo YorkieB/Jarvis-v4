@@ -1,8 +1,9 @@
 import { BaseAgent } from '../base-agent';
 import OpenAI from 'openai';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
 import { ReflectionGrader } from '../../services/selfRAG/reflectionGrader';
 import { CorrectiveRAG } from '../../services/selfRAG/correctiveRAG';
 
@@ -25,7 +26,7 @@ export class KnowledgeAgent extends BaseAgent {
   constructor(prismaClient?: PrismaClient) {
     super();
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.grader = new ReflectionGrader(this.prisma, this.openai);
     this.corrective = new CorrectiveRAG<KnowledgeDocument>(this.openai, {
       maxAttempts: 1,

@@ -5,8 +5,10 @@
  * Maintains a calibration set and computes empirical quantiles for abstention decisions.
  */
 
-import { PrismaClient } from '@prisma/client';
 import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
+
+type PrismaClient = typeof globalPrisma;
 
 export interface CalibrationEntry {
   query: string;
@@ -24,10 +26,10 @@ export interface ConformalPredictionResult {
 }
 
 export class ConformalPrediction {
-  private prisma: PrismaClient;
-  private alpha: number; // Error rate (e.g., 0.01 for 99% reliability)
+  private readonly prisma: PrismaClient;
+  private readonly alpha: number; // Error rate (e.g., 0.01 for 99% reliability)
   private quantile: number | null = null; // Cached quantile from calibration set
-  private minCalibrationSize: number;
+  private readonly minCalibrationSize: number;
 
   constructor(
     prisma: PrismaClient,
@@ -90,7 +92,7 @@ export class ConformalPrediction {
         return this.quantile;
       }
 
-      const scores = entries.map((e) => e.score);
+      const scores = entries.map((entry: { score: number }) => entry.score);
       const n = scores.length;
       const index = Math.ceil((n + 1) * (1 - this.alpha));
 
@@ -105,12 +107,12 @@ export class ConformalPrediction {
         index: clampedIndex,
       });
 
-      return this.quantile;
+      return this.quantile ?? 0.9;
     } catch (error) {
       logger.error('Failed to compute quantile', { error });
       // Fallback to conservative default
       this.quantile = 0.9;
-      return this.quantile;
+      return this.quantile ?? 0.9;
     }
   }
 
@@ -184,10 +186,10 @@ export class ConformalPrediction {
         };
       }
 
-      const scores = entries.map((e) => e.score);
+      const scores = entries.map((entry: { score: number }) => entry.score);
       const minScore = Math.min(...scores);
       const maxScore = Math.max(...scores);
-      const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+      const avgScore = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
       const quantile = await this.computeQuantile();
 
       return {

@@ -31,7 +31,7 @@ Call `SystemControlAgent.sandboxHealth()` (or use `SystemExecutor.sandboxHealth(
 ## Dependency
 Install the E2B SDK when enabling sandboxing:
 ```bash
-npm install @e2b/sdk
+npm install e2b
 ```
 
 ## Operational Notes

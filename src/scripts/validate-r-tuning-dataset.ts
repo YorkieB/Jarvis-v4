@@ -1,9 +1,9 @@
 /**
  * CLI: Validate R-Tuning dataset quality.
  */
-import { PrismaClient } from '@prisma/client';
 import { DatasetValidator } from '../services/rTuning/datasetValidator';
 import logger from '../utils/logger';
+import { prisma } from '../utils/prisma';
 
 function getArg(name: string, defaultValue?: string): string | undefined {
   const idx = process.argv.indexOf(name);
@@ -16,7 +16,6 @@ function hasFlag(name: string): boolean {
 }
 
 async function main() {
-  const prisma = new PrismaClient();
   const validator = new DatasetValidator(prisma);
   const limit = parseInt(getArg('--limit') || '0', 10);
   const fix = hasFlag('--fix');

@@ -11,15 +11,20 @@ function hasIntersection(listA: string[] | undefined, listB: string[] | undefine
   return listA.some((a) => listB.includes(a));
 }
 
+function isJSONObject(value: unknown): value is JSONObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function evaluateAcl(acl: ACLRule[] | undefined, ctx?: RequestContext): boolean {
   if (!acl || acl.length === 0) return true;
   let allowed = false;
   for (const rule of acl) {
     const userMatch = matchList(ctx?.userId, rule.users);
     const roleMatch = hasIntersection(ctx?.roles, rule.roles);
+    const metadataPath = ctx?.metadata?.path;
     const pathMatch =
-      rule.paths && typeof ctx?.metadata?.path === 'string'
-        ? rule.paths.some((p) => ctx?.metadata?.path?.startsWith(p))
+      rule.paths && typeof metadataPath === 'string'
+        ? rule.paths.some((p) => metadataPath.startsWith(p))
         : false;
     const matched = [userMatch, roleMatch, pathMatch].some(Boolean);
     if (matched) {
@@ -32,40 +37,45 @@ function evaluateAcl(acl: ACLRule[] | undefined, ctx?: RequestContext): boolean 
 
 function validateAgainstSchema(schema: JSONObject | undefined, input: unknown): { valid: boolean; errors?: string[] } {
   if (!schema) return { valid: true };
-  if (typeof schema !== 'object' || Array.isArray(schema) || schema === null) {
+  if (!isJSONObject(schema)) {
     return { valid: false, errors: ['schema must be a JSON object'] };
   }
 
   const errors: string[] = [];
-  const { properties, required } = schema as JSONObject;
+  const { properties, required } = schema;
+  const inputObj = isJSONObject(input) ? input : undefined;
 
-  if (properties && typeof properties === 'object') {
-    Object.entries(properties as JSONObject).forEach(([key, def]) => {
-      const val = (input as JSONObject | undefined)?.[key];
-      if (required && Array.isArray(required) && required.includes(key) && val === undefined) {
-        errors.push(`missing required property: ${key}`);
-        return;
-      }
-      if (val !== undefined && typeof def === 'object' && def !== null) {
-        const expected = (def as JSONObject).type;
-        if (expected && typeof expected === 'string') {
-          const ok =
-            expected === 'array'
-              ? Array.isArray(val)
-              : expected === 'object'
-                ? typeof val === 'object' && val !== null && !Array.isArray(val)
-                : typeof val === expected;
-          if (!ok) errors.push(`property "${key}" expected type ${expected}`);
-        }
-      }
-    });
+  const validateProperty = (key: string, def: JSONValue): void => {
+    const val = inputObj?.[key];
+    if (required && Array.isArray(required) && required.includes(key) && val === undefined) {
+      errors.push(`missing required property: ${key}`);
+      return;
+    }
+    if (!isJSONObject(def)) return;
+    const expected = def.type;
+    if (typeof expected !== 'string') return;
+
+    let matches = false;
+    if (expected === 'array') {
+      matches = Array.isArray(val);
+    } else if (expected === 'object') {
+      matches = isJSONObject(val);
+    } else {
+      matches = typeof val === expected;
+    }
+
+    if (!matches) errors.push(`property "${key}" expected type ${expected}`);
+  };
+
+  if (properties && isJSONObject(properties)) {
+    Object.entries(properties).forEach(([key, def]) => validateProperty(key, def));
   }
 
   return { valid: errors.length === 0, errors: errors.length ? errors : undefined };
 }
 
 export class ToolRegistry {
-  private tools = new Map<string, ToolDefinition>();
+  private readonly tools = new Map<string, ToolDefinition>();
 
   register(tool: ToolDefinition): void {
     if (this.tools.has(tool.name)) {

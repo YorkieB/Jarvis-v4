@@ -38,7 +38,27 @@ export class WebAgent extends BaseAgent {
     const response = await fetch(url);
     const html = await response.text();
 
-    // TODO: Parse HTML and extract text content
-    return html;
+    return this.extractTextContent(html);
+  }
+
+  private extractTextContent(html: string): string {
+    // Remove scripts and styles to avoid noise
+    const withoutScripts = html.replaceAll(/<script[\s\S]*?<\/script>/gi, ' ');
+    const withoutStyles = withoutScripts.replaceAll(/<style[\s\S]*?<\/style>/gi, ' ');
+
+    // Strip remaining tags
+    const withoutTags = withoutStyles.replaceAll(/<[^>]+>/g, ' ');
+
+    // Decode common entities
+    const decoded = withoutTags
+      .replaceAll(/&nbsp;/gi, ' ')
+      .replaceAll(/&amp;/gi, '&')
+      .replaceAll(/&lt;/gi, '<')
+      .replaceAll(/&gt;/gi, '>')
+      .replaceAll(/&quot;/gi, '"')
+      .replaceAll(/&#39;/gi, "'");
+
+    // Collapse whitespace
+    return decoded.replaceAll(/\s+/g, ' ').trim();
   }
 }

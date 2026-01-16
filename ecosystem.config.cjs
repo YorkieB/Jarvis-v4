@@ -90,7 +90,7 @@ module.exports = {
     },
     {
       name: 'self-healing-agent',
-      script: './dist/agents/self-healing/index.js',
+      script: './dist/agents/self-healing/start.js',
       instances: 1,
       env: envVars,
       max_restarts: 10,

@@ -1,15 +1,18 @@
-import { BaseAgent, DelegatedTask, TaskResult } from '../agents/base-agent';
+import { BaseAgent } from '../agents/base-agent';
 import express from 'express';
-import { createServer, Server } from 'http';
+import type { Server } from 'node:http';
+import https from 'node:https';
+import fs from 'node:fs';
 import { WebSocketServer } from 'ws';
 import { addHealthCheck } from '../health';
-import { PrismaClient } from '@prisma/client';
+import { prisma as globalPrisma } from '../utils/prisma';
 import { AgentManagerService } from '../services/agentManagerService';
 import { TaskQueueService } from '../services/taskQueueService';
 import { WorkloadMonitorService } from '../services/workloadMonitorService';
-import { AgentCommunicationService } from '../services/agentCommunicationService';
 import logger from '../utils/logger';
 import { TaskDecomposition } from '../types/agentTypes';
+
+type PrismaClient = typeof globalPrisma;
 
 interface AgentMessage {
   type: string;
@@ -30,33 +33,25 @@ export class Orchestrator extends BaseAgent {
   protected agentType = 'orchestrator';
   protected permissions = ['read:*', 'write:sessions'];
 
-  private agents: Map<string, BaseAgent> = new Map();
+  private readonly agents: Map<string, BaseAgent> = new Map();
   private server!: Server;
   private wss!: WebSocketServer;
-  private prisma: PrismaClient;
-  private agentManager: AgentManagerService;
-  private taskQueue: TaskQueueService;
-  private workloadMonitor: WorkloadMonitorService;
-  private communication: AgentCommunicationService;
+  private readonly prisma: PrismaClient;
+  private readonly agentManager: AgentManagerService;
+  private readonly taskQueue: TaskQueueService;
+  private readonly workloadMonitor: WorkloadMonitorService;
   private orchestratorAgentId?: string;
 
   constructor(prisma?: PrismaClient) {
     super();
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma || globalPrisma;
     this.agentManager = new AgentManagerService(this.prisma);
     this.taskQueue = new TaskQueueService(this.prisma, this.agentManager);
-    this.communication = new AgentCommunicationService();
     this.workloadMonitor = new WorkloadMonitorService(
       this.prisma,
       this.agentManager,
       this.taskQueue,
     );
-
-    // Initialize orchestrator agent in database
-    void this.initializeOrchestratorAgent();
-
-    // Start workload monitoring
-    this.workloadMonitor.startMonitoring(30000);
   }
 
   private async initializeOrchestratorAgent(): Promise<void> {
@@ -90,20 +85,52 @@ export class Orchestrator extends BaseAgent {
   }
 
   async initialize(): Promise<void> {
+    // Initialize orchestrator agent in database
+    await this.initializeOrchestratorAgent();
+
+    // Start workload monitoring
+    this.workloadMonitor.startMonitoring(30000);
+
     // Set up Express server
     const app = express();
+    app.disable('x-powered-by');
+    const HTTPS_ENFORCE = (process.env.HTTPS_ENFORCE || 'true') !== 'false';
+    if (HTTPS_ENFORCE) {
+      app.enable('trust proxy');
+      app.use((req, res, next) => {
+        const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
+        if (proto !== 'https') {
+          const host = req.headers.host;
+          return res.redirect(301, `https://${host}${req.originalUrl}`);
+        }
+        return next();
+      });
+    }
     app.use(express.json());
 
     // Health check endpoints
     addHealthCheck(app);
 
-    this.server = createServer(app);
+    this.server = this.createAppServer(app);
     this.wss = new WebSocketServer({ server: this.server });
 
     // WebSocket for real-time communication
     this.wss.on('connection', (ws) => {
       ws.on('message', async (data) => {
-        const message = JSON.parse(data.toString());
+        let raw: string;
+        if (typeof data === 'string') {
+          raw = data;
+        } else if (data instanceof Buffer) {
+          raw = data.toString('utf8');
+        } else if (ArrayBuffer.isView(data)) {
+          raw = Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString('utf8');
+        } else if (data instanceof ArrayBuffer) {
+          raw = Buffer.from(data).toString('utf8');
+        } else {
+          raw = JSON.stringify(data);
+        }
+
+        const message = JSON.parse(raw);
         const response = await this.routeMessage(message);
         ws.send(JSON.stringify(response));
       });
@@ -134,6 +161,20 @@ export class Orchestrator extends BaseAgent {
     });
   }
 
+  private createAppServer(app: express.Application): Server {
+    const keyPath = process.env.HTTPS_KEY_PATH;
+    const certPath = process.env.HTTPS_CERT_PATH;
+    if (!keyPath || !certPath) {
+      throw new Error('HTTPS_KEY_PATH and HTTPS_CERT_PATH are required for orchestrator HTTPS-only mode');
+    }
+    if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+      throw new Error('Orchestrator HTTPS cert or key path not found');
+    }
+    const key = fs.readFileSync(keyPath);
+    const cert = fs.readFileSync(certPath);
+    logger.info('Starting orchestrator HTTPS server (strict HTTPS-only mode)');
+    return https.createServer({ key, cert }, app) as unknown as Server;
+  }
   async routeMessage(message: AgentMessage): Promise<AgentResponse> {
     const { type, content } = message;
 
@@ -188,7 +229,7 @@ export class Orchestrator extends BaseAgent {
       // Create parent task
       const parentTaskId = await this.taskQueue.createTask(
         message.type,
-        message as Record<string, unknown>,
+        message as unknown as Record<string, unknown>,
         'high',
       );
 
@@ -233,27 +274,27 @@ export class Orchestrator extends BaseAgent {
     message: AgentMessage,
   ): Promise<TaskDecomposition> {
     // Simple decomposition logic - can be enhanced with LLM
-    const subtasks = [];
-
-    if (message.type === 'complex_query') {
-      subtasks.push({
-        type: 'conversation',
-        payload: { content: message.content },
-        priority: 'high' as const,
-      });
-      subtasks.push({
-        type: 'search',
-        payload: { query: message.content },
-        priority: 'medium' as const,
-      });
-    } else {
-      // Default: single subtask
-      subtasks.push({
-        type: message.type,
-        payload: message as Record<string, unknown>,
-        priority: 'medium' as const,
-      });
-    }
+    const subtasks =
+      message.type === 'complex_query'
+        ? [
+            {
+              type: 'conversation',
+              payload: { content: message.content },
+              priority: 'high' as const,
+            },
+            {
+              type: 'search',
+              payload: { query: message.content },
+              priority: 'medium' as const,
+            },
+          ]
+        : [
+            {
+              type: message.type,
+              payload: message as unknown as Record<string, unknown>,
+              priority: 'medium' as const,
+            },
+          ];
 
     return {
       parentTaskId: '', // Will be set by caller
@@ -266,7 +307,7 @@ export class Orchestrator extends BaseAgent {
    */
   private async assignTaskToAgent(
     taskId: string,
-    subtasks: TaskDecomposition['subtasks'],
+    _subtasks: TaskDecomposition['subtasks'],
   ): Promise<void> {
     try {
       const task = await this.taskQueue.getTask(taskId);
@@ -285,16 +326,14 @@ export class Orchestrator extends BaseAgent {
       if (availableAgents.length > 0) {
         // Assign to first available agent
         await this.taskQueue.assignTask(taskId, availableAgents[0].id);
-      } else {
+      } else if (this.orchestratorAgentId) {
         // Spawn new child agent if needed
-        if (this.orchestratorAgentId) {
-          const agentType = this.mapTaskTypeToAgentType(task.type);
-          const childId = await this.agentManager.spawnChildAgent(
-            this.orchestratorAgentId,
-            agentType,
-          );
-          await this.taskQueue.assignTask(taskId, childId);
-        }
+        const agentType = this.mapTaskTypeToAgentType(task.type);
+        const childId = await this.agentManager.spawnChildAgent(
+          this.orchestratorAgentId,
+          agentType,
+        );
+        await this.taskQueue.assignTask(taskId, childId);
       }
     } catch (error) {
       logger.error('Failed to assign task to agent', { error, taskId });
@@ -381,7 +420,7 @@ export class Orchestrator extends BaseAgent {
       // Create task
       const taskId = await this.taskQueue.createTask(
         message.type,
-        message as Record<string, unknown>,
+        message as unknown as Record<string, unknown>,
         'medium',
       );
 

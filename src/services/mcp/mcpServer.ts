@@ -1,6 +1,6 @@
 import logger from '../../utils/logger';
 import { FileSystemResource } from './resources/fileSystemResource';
-import { McpRequest, McpResponse, RequestContext, ResourceHandler } from './types';
+import { JSONObject, McpRequest, McpResponse, RequestContext, ResourceHandler, ToolDefinition } from './types';
 import { ToolRegistry } from './toolRegistry';
 
 export interface McpServerOptions {
@@ -9,9 +9,9 @@ export interface McpServerOptions {
 }
 
 export class McpServer {
-  private resources = new Map<string, ResourceHandler>();
-  private tools: ToolRegistry;
-  private enabled: boolean;
+  private readonly resources = new Map<string, ResourceHandler>();
+  private readonly tools: ToolRegistry;
+  private readonly enabled: boolean;
 
   constructor(options?: McpServerOptions) {
     this.enabled = (process.env.MCP_ENABLED || 'true') === 'true';
@@ -29,7 +29,9 @@ export class McpServer {
     this.resources.set(resource.name, resource);
   }
 
-  registerTool = this.tools.register.bind(this.tools);
+  registerTool(tool: ToolDefinition): void {
+    this.tools.register(tool);
+  }
 
   listTools(): string[] {
     return this.tools.list();
@@ -65,7 +67,8 @@ export class McpServer {
     }
 
     if (request.verb === 'list') {
-      const data = await resource.list(request.uri, ctx);
+      const entries = await resource.list(request.uri, ctx);
+      const data: JSONObject[] = entries.map((entry) => ({ ...entry }));
       return { success: true, data };
     }
     if (request.verb === 'read') {
@@ -73,7 +76,8 @@ export class McpServer {
       return { success: true, data };
     }
     if (request.verb === 'stat') {
-      const data = await resource.stat(request.uri, ctx);
+      const metadata = await resource.stat(request.uri, ctx);
+      const data: JSONObject = { ...metadata };
       return { success: true, data };
     }
     return { success: false, error: 'Unsupported resource verb' };

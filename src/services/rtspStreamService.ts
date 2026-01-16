@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
-import { createServer } from 'http';
+import https from 'https';
+import fs from 'fs';
 import logger from '../utils/logger';
 
 export interface StreamConfig {
@@ -18,7 +19,7 @@ export interface ActiveStream {
 export class RTSPStreamService {
   private streams: Map<string, ActiveStream> = new Map();
   private wsServers: Map<string, WebSocketServer> = new Map();
-  private httpServers: Map<string, ReturnType<typeof createServer>> = new Map();
+  private httpServers: Map<string, ReturnType<typeof https.createServer>> = new Map();
   private basePort: number;
 
   constructor() {
@@ -32,11 +33,19 @@ export class RTSPStreamService {
     }
 
     const port = config.port || this.basePort + this.streams.size;
-    const wsUrl = `ws://localhost:${port}`;
+    const keyPath = process.env.RTSP_HTTPS_KEY_PATH;
+    const certPath = process.env.RTSP_HTTPS_CERT_PATH;
+    if (!keyPath || !certPath) {
+      throw new Error('RTSP_HTTPS_KEY_PATH and RTSP_HTTPS_CERT_PATH are required for RTSP streaming');
+    }
+    if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+      throw new Error('RTSP HTTPS cert or key path not found');
+    }
+    const wsUrl = `wss://localhost:${port}`;
 
     try {
-      const httpServer = createServer();
-      const wss = new WebSocketServer({ server: httpServer });
+      const server = https.createServer({ key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) });
+      const wss = new WebSocketServer({ server });
 
       wss.on('connection', (ws) => {
         logger.info('RTSP stream viewer connected', { cameraId: config.cameraId });
@@ -58,8 +67,13 @@ export class RTSPStreamService {
         });
       });
 
-      httpServer.listen(port, () => {
-        logger.info('RTSP stream server started', { cameraId: config.cameraId, port, rtspUrl: config.rtspUrl });
+      server.listen(port, () => {
+        logger.info('RTSP stream server started', {
+          cameraId: config.cameraId,
+          port,
+          rtspUrl: config.rtspUrl,
+          protocol: useHttps ? 'https' : 'http',
+        });
       });
 
       const stream: ActiveStream = {
@@ -71,7 +85,7 @@ export class RTSPStreamService {
 
       this.streams.set(config.cameraId, stream);
       this.wsServers.set(config.cameraId, wss);
-      this.httpServers.set(config.cameraId, httpServer);
+      this.httpServers.set(config.cameraId, server);
 
       return stream;
     } catch (error) {

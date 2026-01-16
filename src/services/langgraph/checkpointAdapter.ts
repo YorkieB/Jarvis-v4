@@ -1,11 +1,13 @@
-import { PrismaClient } from '@prisma/client';
 import { GraphState } from './types';
+import { prisma as globalPrisma } from '../../utils/prisma';
+
+type PrismaClient = typeof globalPrisma;
 
 export class CheckpointAdapter {
-  private prisma: PrismaClient;
+  private readonly prisma: PrismaClient;
 
   constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma || globalPrisma;
   }
 
   async save(graphId: string, nodeId: string, state: GraphState, runId?: string): Promise<void> {

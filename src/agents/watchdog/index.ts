@@ -4,25 +4,28 @@
  */
 
 import { BaseAgent } from '../base-agent';
-import { PrismaClient } from '@prisma/client';
 import logger from '../../utils/logger';
 import { AgentManagerService } from '../../services/agentManagerService';
 import { TaskQueueService } from '../../services/taskQueueService';
 import { ChildFailureHandler } from '../../services/childFailureHandler';
 import { AgentCommunicationService } from '../../services/agentCommunicationService';
 import { WatchdogService } from '../../services/watchdogService';
+import { prisma as globalPrisma } from '../../utils/prisma';
+import type { AgentMessage } from '../../utils/messageBus';
+
+type PrismaClient = typeof globalPrisma;
 
 export class WatchdogAgent extends BaseAgent {
   protected agentType = 'watchdog';
   protected permissions = ['read:*', 'write:agents', 'read:tasks'];
 
-  private prisma: PrismaClient;
-  private watchdogService: WatchdogService;
-  private communication: AgentCommunicationService;
+  private readonly prisma: PrismaClient;
+  private readonly watchdogService: WatchdogService;
+  private readonly communication: AgentCommunicationService;
 
   constructor(prisma?: PrismaClient) {
     super();
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma || globalPrisma;
 
     // Initialize services
     const agentManager = new AgentManagerService(this.prisma);
@@ -96,7 +99,7 @@ export class WatchdogAgent extends BaseAgent {
   /**
    * Handle emergency messages
    */
-  private async handleEmergency(message: any): Promise<void> {
+  private async handleEmergency(message: AgentMessage): Promise<void> {
     logger.error('🚨 Emergency message received', { message });
 
     if (message.payload?.type === 'self-healing-agent-failure') {

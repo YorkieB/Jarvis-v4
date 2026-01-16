@@ -1,9 +1,10 @@
 import OpenAI from 'openai';
-import { PrismaClient } from '@prisma/client';
 import { ReflectionGrader, ReflectionResult } from './reflectionGrader';
 import { CorrectiveRAG, RetrievalFn } from './correctiveRAG';
 import { getLLMConfig } from '../../config/llmConfig';
-import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
+
+type PrismaClient = typeof globalPrisma;
 
 export interface SelfRAGDocument {
   id?: string;
@@ -33,18 +34,18 @@ export interface SelfRAGResult {
  * SelfRAGService orchestrates assess → retrieve → filter → draft → critique → gate.
  */
 export class SelfRAGService {
-  private prisma: PrismaClient;
-  private openai: OpenAI;
-  private grader: ReflectionGrader;
-  private corrective: CorrectiveRAG<SelfRAGDocument>;
-  private maxRetries: number;
-  private model: string;
-  private temperature: number;
-  private correctiveAttempts: number;
-  private enableWebExpansion: boolean;
+  private readonly prisma: PrismaClient;
+  private readonly openai: OpenAI;
+  private readonly grader: ReflectionGrader;
+  private readonly corrective: CorrectiveRAG<SelfRAGDocument>;
+  private readonly maxRetries: number;
+  private readonly model: string;
+  private readonly temperature: number;
+  private readonly correctiveAttempts: number;
+  private readonly enableWebExpansion: boolean;
 
   constructor(prismaClient?: PrismaClient, openaiClient?: OpenAI, options: SelfRAGOptions = {}) {
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.openai = openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.grader = new ReflectionGrader(this.prisma, this.openai, {
       relThreshold: options.relThreshold,
@@ -76,7 +77,6 @@ export class SelfRAGService {
     retrievalFn: RetrievalFn<SelfRAGDocument> | undefined,
     options?: { queryId?: string },
   ): Promise<SelfRAGResult> {
-    // Assess need for retrieval (RET)
     const assess = await this.grader.score({ query });
     const needRetrieval = assess.pass.RET;
 
@@ -84,40 +84,76 @@ export class SelfRAGService {
     let correctiveMeta: Record<string, unknown> | undefined;
 
     if (needRetrieval && retrievalFn) {
-      docs = await retrievalFn(query);
-      // REL scoring for retrieved docs
-      const rel = await this.grader.score({ query, retrievedDocs: docs, queryId: options?.queryId });
-      if (!rel.pass.REL) {
-        const corrective = await this.corrective.attempt(query, retrievalFn);
-        docs = corrective.docs;
-        if (!docs.length) {
-          return {
-            response: null,
-            abstain: true,
-            reflection: rel,
-            docsUsed: [],
-            metadata: {
-              corrective: {
-                rewrittenQuery: corrective.rewrittenQuery,
-                expandedQuery: corrective.expandedQuery,
-                attempts: corrective.attempts,
-                reason: 'low_relevance_after_corrective',
-              },
-            },
-          };
-        }
-        correctiveMeta = {
+      const retrieval = await this.retrieveWithCorrective(query, retrievalFn, options?.queryId);
+      if (retrieval.aborted) {
+        return {
+          response: null,
+          abstain: true,
+          reflection: retrieval.reflection,
+          docsUsed: [],
+          metadata: retrieval.correctiveMeta
+            ? { corrective: retrieval.correctiveMeta }
+            : undefined,
+        };
+      }
+      docs = retrieval.docs;
+      correctiveMeta = retrieval.correctiveMeta;
+    }
+
+    return this.draftAndCritique(query, docs, options?.queryId, correctiveMeta);
+  }
+
+  private async retrieveWithCorrective(
+    query: string,
+    retrievalFn: RetrievalFn<SelfRAGDocument>,
+    queryId?: string,
+  ): Promise<{
+    docs: SelfRAGDocument[];
+    correctiveMeta?: Record<string, unknown>;
+    reflection?: ReflectionResult;
+    aborted: boolean;
+  }> {
+    const docs = await retrievalFn(query);
+    const rel = await this.grader.score({ query, retrievedDocs: docs, queryId });
+    if (rel.pass.REL) {
+      return { docs, aborted: false };
+    }
+
+    const corrective = await this.corrective.attempt(query, retrievalFn);
+    if (!corrective.docs.length) {
+      return {
+        docs: [],
+        correctiveMeta: {
           rewrittenQuery: corrective.rewrittenQuery,
           expandedQuery: corrective.expandedQuery,
           attempts: corrective.attempts,
-        };
-      }
+          reason: 'low_relevance_after_corrective',
+        },
+        reflection: rel,
+        aborted: true,
+      };
     }
 
-    // Draft and critique loop
+    return {
+      docs: corrective.docs,
+      correctiveMeta: {
+        rewrittenQuery: corrective.rewrittenQuery,
+        expandedQuery: corrective.expandedQuery,
+        attempts: corrective.attempts,
+      },
+      aborted: false,
+    };
+  }
+
+  private async draftAndCritique(
+    query: string,
+    docs: SelfRAGDocument[],
+    queryId?: string,
+    correctiveMeta?: Record<string, unknown>,
+  ): Promise<SelfRAGResult> {
     let attempts = 0;
     let lastReflection: ReflectionResult | undefined;
-    let lastResponse: string | null = null;
+
     while (attempts <= this.maxRetries) {
       attempts += 1;
       const draft = await this.generateDraft(query, docs);
@@ -125,10 +161,9 @@ export class SelfRAGService {
         query,
         retrievedDocs: docs,
         response: draft,
-        queryId: options?.queryId,
+        queryId,
       });
       lastReflection = critique;
-      lastResponse = draft;
 
       if (critique.pass.SUP && critique.pass.USE) {
         return {
@@ -162,12 +197,12 @@ export class SelfRAGService {
     docs: SelfRAGDocument[],
   ): Promise<string> {
     const context =
-      docs && docs.length
+      docs?.length
         ? docs
-            .map(
-              (d, idx) =>
-                `Document ${idx + 1}${d.id ? ` (${d.id})` : ''}: ${d.content}`,
-            )
+            .map((d, idx) => {
+              const idSuffix = d.id ? ` (${d.id})` : '';
+              return `Document ${idx + 1}${idSuffix}: ${d.content}`;
+            })
             .join('\n\n')
         : 'No external documents retrieved.';
 

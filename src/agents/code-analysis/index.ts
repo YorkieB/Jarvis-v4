@@ -4,7 +4,7 @@
  */
 
 import { BaseAgent } from '../base-agent';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import logger from '../../utils/logger';
 import { ErrorDetectionService } from '../../services/errorDetectionService';
 import { AutoFixService } from '../../services/autoFixService';
@@ -12,6 +12,7 @@ import { CodeAnalysisService } from '../../services/codeAnalysisService';
 import { CodeKnowledgeBase } from '../../services/codeKnowledgeBase';
 import { matchErrorPattern } from './patterns';
 import { LspValidatorAdapter } from './lspValidator';
+import { prisma as globalPrisma } from '../../utils/prisma';
 
 export class CodeAnalysisAgent extends BaseAgent {
   protected agentType = 'code-analysis';
@@ -29,7 +30,7 @@ export class CodeAnalysisAgent extends BaseAgent {
 
   constructor(prisma?: PrismaClient) {
     super();
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma || globalPrisma;
     this.errorDetection = new ErrorDetectionService();
     this.knowledgeBase = new CodeKnowledgeBase(this.prisma);
     this.autoFix = new AutoFixService(

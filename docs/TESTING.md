@@ -25,6 +25,6 @@
 - PM2: `pm2 describe watchdog-agent` (or equivalent) to confirm restart policy (max_restarts/min_uptime/restart_delay).
 
 ## Pre-requisites & Safety
-- Ensure `@google-cloud/speech` version resolves (downgrade to a published version like `^7.5.0` before fresh installs) then install optional `@e2b/sdk`.
+- Ensure `@google-cloud/speech` version resolves (downgrade to a published version like `^7.5.0` before fresh installs) then install optional `e2b`.
 - Use temp directories for backup tests; never point to production paths.
 - Keep network off for sandbox tests (`SANDBOX_ALLOW_NETWORK=false`) unless explicitly needed.

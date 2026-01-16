@@ -16,9 +16,9 @@ type E2bSandboxCtor = {
  * Uses dynamic import to avoid hard dependency failures if SDK is unavailable at runtime.
  */
 export class E2bSandboxService implements SandboxService {
-  private apiKey: string;
-  private templateId: string;
-  private defaultTimeoutMs: number;
+  private readonly apiKey: string;
+  private readonly templateId: string;
+  private readonly defaultTimeoutMs: number;
   private sandboxCtor: E2bSandboxCtor | null = null;
 
   constructor(options?: { apiKey?: string; templateId?: string; defaultTimeoutMs?: number }) {
@@ -57,7 +57,7 @@ export class E2bSandboxService implements SandboxService {
 
       const runner = sandbox.run;
       if (typeof runner !== 'function') {
-        throw new Error('E2B sandbox client missing run(command, opts) method');
+        throw new TypeError('E2B sandbox client missing run(command, opts) method');
       }
 
       const result = await runner(opts.command, {
@@ -94,8 +94,8 @@ export class E2bSandboxService implements SandboxService {
       clearTimeout(timeout);
       try {
         await sandbox?.close?.();
-      } catch (closeErr) {
-        logger.warn('Failed to close sandbox', { error: closeErr });
+      } catch (error_) {
+        logger.warn('Failed to close sandbox', { error: error_ });
       }
     }
   }
@@ -103,9 +103,10 @@ export class E2bSandboxService implements SandboxService {
   private async loadClient(): Promise<E2bSandboxCtor> {
     if (this.sandboxCtor) return this.sandboxCtor;
     try {
-      // Prefer @e2b/sdk, fallback to e2b
-      const mod = (await import('@e2b/sdk').catch(async () => import('e2b'))) as any;
-      const SandboxCtor: E2bSandboxCtor | undefined = mod?.Sandbox || mod?.default?.Sandbox || mod?.default;
+      // Use the renamed package `e2b`
+      const mod = (await import('e2b')) as Record<string, unknown>;
+      const sandboxExport = mod.Sandbox ?? (mod.default as Record<string, unknown> | undefined)?.Sandbox ?? mod.default;
+      const SandboxCtor: E2bSandboxCtor | undefined = sandboxExport as E2bSandboxCtor | undefined;
       if (!SandboxCtor?.create) {
         throw new Error('E2B SDK missing Sandbox.create');
       }

@@ -3,16 +3,13 @@ import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { createClient } from '@deepgram/sdk';
 import logger from '../../utils/logger';
 
-// Lazy import to avoid mandatory install when Google fallback is unused
-let GoogleSpeechClient: typeof import('@google-cloud/speech').SpeechClient | null = null;
-
 export class VoiceAgent extends BaseAgent {
   protected agentType = 'voice';
   protected permissions = ['read:audio_settings'];
 
-  private elevenLabs: ElevenLabsClient;
-  private deepgram: ReturnType<typeof createClient>;
-  private googleSpeech: import('@google-cloud/speech').SpeechClient | null = null;
+  private readonly elevenLabs: ElevenLabsClient;
+  private readonly deepgram: ReturnType<typeof createClient>;
+  private readonly googleSpeech: import('@google-cloud/speech').SpeechClient | null = null;
 
   constructor() {
     super();
@@ -32,8 +29,8 @@ export class VoiceAgent extends BaseAgent {
       try {
         // Dynamically require to keep dependency optional
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        GoogleSpeechClient = require('@google-cloud/speech').SpeechClient;
-        this.googleSpeech = new GoogleSpeechClient();
+        const SpeechCtor = require('@google-cloud/speech').SpeechClient;
+        this.googleSpeech = new SpeechCtor();
         logger.info('✅ Google STT fallback initialized');
       } catch (error) {
         logger.warn('⚠️ Google STT fallback not available', { error });

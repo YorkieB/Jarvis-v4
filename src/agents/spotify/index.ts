@@ -1,6 +1,7 @@
 import { BaseAgent } from '../base-agent';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
 
 interface SpotifyTrack {
   id: string;
@@ -34,7 +35,7 @@ export class SpotifyAgent extends BaseAgent {
 
   constructor(prismaClient?: PrismaClient) {
     super();
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.clientId = process.env.SPOTIFY_CLIENT_ID || '';
     this.clientSecret = process.env.SPOTIFY_CLIENT_SECRET || '';
     this.redirectUri =

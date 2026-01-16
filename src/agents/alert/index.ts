@@ -1,6 +1,7 @@
 import { BaseAgent } from '../base-agent';
-import { PrismaClient, Alert } from '@prisma/client';
+import type { Alert, PrismaClient } from '@prisma/client';
 import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
 
 interface TransactionEvent {
   userId: string;
@@ -19,7 +20,7 @@ export class AlertAgent extends BaseAgent {
 
   constructor(prismaClient?: PrismaClient) {
     super();
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.highSpendThreshold =
       Number(process.env.ALERT_HIGH_SPEND_THRESHOLD || '500');
   }

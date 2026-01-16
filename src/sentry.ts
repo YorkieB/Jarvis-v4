@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
 import logger from './utils/logger';
 
 // Initialize Sentry for error tracking and performance monitoring
@@ -26,16 +25,37 @@ export function initSentry() {
     profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
     // Enable performance monitoring
-    integrations: [
-      // Enable HTTP tracking
-      new Sentry.Integrations.Http({ tracing: true }),
+    integrations: (() => {
+      const integrations = [
+        // Enable HTTP tracking
+        new Sentry.Integrations.Http({ tracing: true }),
 
-      // Enable Express.js integration
-      new Sentry.Integrations.Express({ app: undefined }),
+        // Enable Express.js integration
+        new Sentry.Integrations.Express({ app: undefined }),
+      ];
 
-      // Enable profiling for performance insights
-      new ProfilingIntegration(),
-    ],
+      // Load profiling only if available to avoid native binary errors on Windows
+      // and when explicitly enabled (default: enabled).
+      const profilingEnabled =
+        process.env.SENTRY_ENABLE_PROFILING !== 'false' &&
+        process.env.SENTRY_ENABLE_PROFILING !== '0';
+      if (profilingEnabled) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const { ProfilingIntegration } = require('@sentry/profiling-node');
+          integrations.push(new ProfilingIntegration());
+        } catch (error) {
+          logger.warn(
+            'Sentry profiling disabled (native module not available)',
+            { error },
+          );
+        }
+      } else {
+        logger.info('Sentry profiling disabled via env SENTRY_ENABLE_PROFILING');
+      }
+
+      return integrations;
+    })(),
 
     // Filter out sensitive information
     beforeSend(event, _hint) {

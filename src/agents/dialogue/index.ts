@@ -1,8 +1,9 @@
 import { BaseAgent } from '../base-agent';
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
 import { KnowledgeAgent } from '../knowledge';
 import { SelfRAGService } from '../../services/selfRAG/selfRAGService';
 import { buildDialogueGraph } from '../../services/langgraph/flows/dialogueGraph';
@@ -26,7 +27,7 @@ export class DialogueAgent extends BaseAgent {
   constructor(prisma?: PrismaClient) {
     super();
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma || globalPrisma;
     this.knowledgeAgent = new KnowledgeAgent(this.prisma);
     this.selfRAG = new SelfRAGService(this.prisma, this.openai);
     this.checkpoint = new CheckpointAdapter(this.prisma);

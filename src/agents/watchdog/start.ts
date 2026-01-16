@@ -4,35 +4,36 @@
  */
 
 import * as dotenv from 'dotenv';
-import * as path from 'path';
+import * as path from 'node:path';
 import { WatchdogAgent } from './index';
 import logger from '../../utils/logger';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
-async function main() {
-  logger.info('🐕 Starting Watchdog Agent...');
-  try {
-    const agent = new WatchdogAgent();
-    await agent.startMonitoring(30000); // 30 second intervals
-    logger.info('✅ Watchdog Agent started successfully');
+logger.info('🐕 Starting Watchdog Agent...');
+const agent = new WatchdogAgent();
 
-    // Keep process alive
-    process.on('SIGTERM', () => {
-      logger.info('👋 SIGTERM received, shutting down Watchdog Agent');
-      agent.stopMonitoring();
-      process.exit(0);
+setImmediate(() => {
+  void agent
+    .startMonitoring(30000) // 30 second intervals
+    .then(() => {
+      logger.info('✅ Watchdog Agent started successfully');
+    })
+    .catch((error) => {
+      logger.error('Failed to start Watchdog Agent', { error });
+      process.exit(1);
     });
-    process.on('SIGINT', () => {
-      logger.info('👋 SIGINT received, shutting down Watchdog Agent');
-      agent.stopMonitoring();
-      process.exit(0);
-    });
-  } catch (error) {
-    logger.error('Failed to start Watchdog Agent', { error });
-    process.exit(1);
-  }
-}
+});
 
-void main();
+// Keep process alive
+process.on('SIGTERM', () => {
+  logger.info('👋 SIGTERM received, shutting down Watchdog Agent');
+  agent.stopMonitoring();
+  process.exit(0);
+});
+process.on('SIGINT', () => {
+  logger.info('👋 SIGINT received, shutting down Watchdog Agent');
+  agent.stopMonitoring();
+  process.exit(0);
+});

@@ -1,13 +1,14 @@
-import { PrismaClient, BankConnection, Payment } from '@prisma/client';
+import type { PrismaClient, BankConnection, Payment } from '@prisma/client';
 import logger from '../utils/logger';
 import { TrueLayerClient } from './truelayerClient';
+import { prisma as globalPrisma } from '../utils/prisma';
 
 export class PaymentService {
   private prisma: PrismaClient;
   private tl: TrueLayerClient;
 
   constructor(prismaClient?: PrismaClient, tlClient?: TrueLayerClient) {
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.tl = tlClient || new TrueLayerClient();
   }
 

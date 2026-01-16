@@ -1,6 +1,6 @@
-import fs from 'fs/promises';
-import { Stats } from 'fs';
-import path from 'path';
+import fs from 'node:fs/promises';
+import { Stats } from 'node:fs';
+import path from 'node:path';
 import logger from '../../../utils/logger';
 import { RequestContext, ResourceHandler, ResourceListEntry, ResourceMetadata } from '../types';
 
@@ -36,11 +36,17 @@ async function toMetadata(target: string, stats: Stats): Promise<ResourceMetadat
 export class FileSystemResource implements ResourceHandler {
   name = 'filesystem';
   description = 'Guarded filesystem resource for list/read/stat';
-  private allowedRoots: string[];
+  private readonly allowedRoots: string[];
 
   constructor(allowedRoots?: string[]) {
     const envRoots = splitCsv(process.env.MCP_FS_ALLOWED_ROOTS);
-    this.allowedRoots = allowedRoots?.length ? allowedRoots : envRoots.length ? envRoots : [process.cwd()];
+    if (allowedRoots?.length) {
+      this.allowedRoots = allowedRoots;
+    } else if (envRoots.length) {
+      this.allowedRoots = envRoots;
+    } else {
+      this.allowedRoots = [process.cwd()];
+    }
   }
 
   private resolve(target: string): string {

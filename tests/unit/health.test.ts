@@ -13,6 +13,7 @@ describe('Health Check Module', () => {
 
   beforeAll(() => {
     app = express();
+    app.disable('x-powered-by');
     prisma = new PrismaClient();
     setPrismaInstance(prisma);
     app.use(createHealthRouter());

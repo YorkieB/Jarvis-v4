@@ -17,7 +17,7 @@ export const LLM_CONFIG = {
    * Use for: Code generation, SQL queries, JSON formatting, structured output
    */
   deterministic: {
-    temperature: 0.0,
+    temperature: 0,
     maxTokens: 2000,
   } as LLMConfig,
 

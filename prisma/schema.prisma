@@ -21,6 +21,9 @@ model User {
   budgets             Budget[]
   savingsGoals        SavingsGoal[]
   alerts              Alert[]
+  bankConnections     BankConnection[]
+  accounts            Account[]
+  payments            Payment[]
   privacySettings     PrivacySettings?
   destructiveActions  DestructiveAction[]
   
@@ -379,7 +382,7 @@ model Agent {
   updatedAt       DateTime @updatedAt
   tasks           Task[]
   failures        AgentFailure[]
-  monitoredBy     Agent[]  @relation("AgentMonitoring", fields: [id], references: [id])
+  monitoredBy     Agent[]  @relation("AgentMonitoring")
   monitors        Agent[]  @relation("AgentMonitoring")
   
   @@index([agentType])

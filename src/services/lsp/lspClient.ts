@@ -1,5 +1,5 @@
-import { createConnection, Diagnostic, InitializeParams, InitializeResult } from 'vscode-languageserver-protocol';
-import { MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
+import { Diagnostic, InitializeParams, InitializeResult } from 'vscode-languageserver-protocol';
+import { createMessageConnection, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
 import fetch from 'node-fetch';
 import logger from '../../utils/logger';
 
@@ -12,8 +12,8 @@ export interface NormalizedDiagnostic {
 }
 
 export class LspClient {
-  private serverUrl: string;
-  private language: string;
+  private readonly serverUrl: string;
+  private readonly language: string;
   private connection: MessageConnection | null = null;
 
   constructor(serverUrl?: string, language?: string) {
@@ -36,7 +36,7 @@ export class LspClient {
     // Here we stub a JSON-RPC connection expectation; adjust to actual transport as needed.
     const reader = new StreamMessageReader(process.stdin);
     const writer = new StreamMessageWriter(process.stdout);
-    this.connection = createConnection(reader, writer);
+    this.connection = createMessageConnection(reader, writer);
 
     const params: InitializeParams = {
       processId: process.pid,
@@ -45,7 +45,7 @@ export class LspClient {
       workspaceFolders: null,
     };
 
-    await this.connection.sendRequest('initialize', params) as InitializeResult;
+    await this.connection.sendRequest<InitializeResult>('initialize', params);
   }
 
   async didOpen(uri: string, text: string): Promise<void> {

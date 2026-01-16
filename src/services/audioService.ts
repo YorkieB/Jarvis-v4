@@ -10,20 +10,22 @@
  * - Latency tracking with Winston logging
  */
 
-import { Server as HttpServer } from 'http';
+import { Server as HttpServer } from 'node:http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import {
   createClient,
   LiveTranscriptionEvents,
   ListenLiveClient,
 } from '@deepgram/sdk';
-import { SpeechClient } from '@google-cloud/speech';
+import { SpeechClient, protos } from '@google-cloud/speech';
 import OpenAI from 'openai';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import logger from '../utils/logger';
 import VoiceAuthService from './voiceAuthService';
-import { PrismaClient } from '@prisma/client';
+import { prisma as globalPrisma } from '../utils/prisma';
 import { getLLMConfig } from '../config/llmConfig';
+
+type PrismaClient = typeof globalPrisma;
 
 interface DeepgramTranscriptData {
   channel: {
@@ -56,21 +58,21 @@ interface AudioSession {
 }
 
 class AudioStreamingService {
-  private io: SocketIOServer;
-  private deepgram: ReturnType<typeof createClient>;
-  private openai: OpenAI;
-  private elevenlabs: ElevenLabsClient | null;
-  private googleSpeech: SpeechClient | null;
-  private activeSessions: Map<string, AudioSession>;
-  private voiceAuth: VoiceAuthService;
-  private prisma: PrismaClient;
+  private readonly io: SocketIOServer;
+  private readonly deepgram: ReturnType<typeof createClient>;
+  private readonly openai: OpenAI;
+  private readonly elevenlabs: ElevenLabsClient | null;
+  private readonly googleSpeech: SpeechClient | null;
+  private readonly activeSessions: Map<string, AudioSession>;
+  private readonly voiceAuth: VoiceAuthService;
+  private readonly prisma: PrismaClient;
   private readonly VOICE_AUTH_ENABLED =
     process.env.VOICE_AUTH_ENABLED !== 'false'; // Default enabled
   private readonly sttPrimary: 'deepgram' | 'google';
   private readonly sttFailureThreshold: number;
 
   constructor(httpServer: HttpServer, prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma || globalPrisma;
     this.voiceAuth = new VoiceAuthService(this.prisma);
     // Initialize Socket.IO with CORS
     this.io = new SocketIOServer(httpServer, {
@@ -106,18 +108,22 @@ class AudioStreamingService {
     const primary: 'deepgram' | 'google' =
       primaryEnv === 'google' && this.googleSpeech ? 'google' : 'deepgram';
     this.sttPrimary = primary;
-    this.sttFailureThreshold = parseInt(process.env.STT_FAILOVER_THRESHOLD || '2', 10) || 2;
+    this.sttFailureThreshold = Number.parseInt(
+      process.env.STT_FAILOVER_THRESHOLD || '2',
+      10,
+    ) || 2;
 
     // Non-blocking ElevenLabs initialization
     try {
-      if (!process.env.ELEVENLABS_API_KEY) {
-        logger.warn('⚠️  ELEVENLABS_API_KEY not set - TTS will be unavailable');
-        this.elevenlabs = null;
-      } else {
+      const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
+      if (elevenLabsKey) {
         this.elevenlabs = new ElevenLabsClient({
-          apiKey: process.env.ELEVENLABS_API_KEY,
+          apiKey: elevenLabsKey,
         });
         logger.info('✅ ElevenLabs client initialized');
+      } else {
+        logger.warn('⚠️  ELEVENLABS_API_KEY not set - TTS will be unavailable');
+        this.elevenlabs = null;
       }
     } catch (error) {
       logger.error('Failed to initialize ElevenLabs client', { error });
@@ -142,9 +148,130 @@ class AudioStreamingService {
 
       socket.on('start-audio-stream', () => this.handleStartStream(socket));
       socket.on('audio-chunk', (data) => this.handleAudioChunk(socket, data));
-      socket.on('end-audio-stream', () => this.handleEndStream(socket));
-      socket.on('disconnect', () => this.handleDisconnect(socket));
+      socket.on('end-audio-stream', () => void this.handleEndStream(socket));
+      socket.on('disconnect', () => void this.handleDisconnect(socket));
     });
+  }
+
+  private cancelTtsIfActive(session: AudioSession, socket: Socket): boolean {
+    if (!session.ttsInProgress || !session.ttsAbort || session.ttsAbort.signal.aborted) {
+      return false;
+    }
+    session.ttsAbort.abort();
+    session.ttsInProgress = false;
+    socket.emit('tts-cancel');
+    return true;
+  }
+
+  private shouldEarlyProcessTranscript(cleanedTranscript: string, isFinal: boolean): boolean {
+    if (isFinal) return true;
+    if (cleanedTranscript.length <= 8) return false;
+    const lastChar = cleanedTranscript.slice(-1);
+    return lastChar === '.' || lastChar === '?' || lastChar === '!';
+  }
+
+  private async verifyVoiceIfNeeded(
+    session: AudioSession,
+    socket: Socket,
+  ): Promise<boolean> {
+    if (!this.VOICE_AUTH_ENABLED || !session.userId || session.userId === 'anonymous') {
+      return true;
+    }
+
+    const combinedAudio = Buffer.concat(session.audioBuffer);
+    if (combinedAudio.length === 0) return true;
+
+    const verification = await this.voiceAuth.verifyVoice(session.userId, combinedAudio);
+    if (verification.verified) {
+      logger.info('Voice verified', {
+        sessionId: session.sessionId,
+        userId: session.userId,
+        confidence: verification.confidence,
+      });
+      return true;
+    }
+
+    logger.warn('Voice verification failed', {
+      sessionId: session.sessionId,
+      userId: session.userId,
+      confidence: verification.confidence,
+    });
+
+    socket.emit('error', {
+      message:
+        verification.message ||
+        'Voice not recognized. Jarvis only responds to authorized users.',
+    });
+    socket.emit('voice-verification-failed', {
+      confidence: verification.confidence,
+      message: verification.message,
+    });
+    session.audioBuffer = [];
+    return false;
+  }
+
+  private async handleDeepgramTranscript(params: {
+    sessionId: string;
+    session: AudioSession;
+    socket: Socket;
+    startTime: number;
+    data: DeepgramTranscriptData;
+  }): Promise<void> {
+    const { sessionId, session, socket, startTime, data } = params;
+    if (session.sttProvider !== 'deepgram') return;
+
+    const transcript = data.channel.alternatives[0].transcript;
+    const cleanedTranscript = transcript?.trim() || '';
+
+    if (cleanedTranscript.length > 0) {
+      const sessionState = this.activeSessions.get(sessionId);
+      if (sessionState && this.cancelTtsIfActive(sessionState, socket)) {
+        sessionState.turnGuard += 1; // invalidate in-flight turn on barge-in
+      }
+    }
+
+    const shouldProcess = cleanedTranscript
+      && this.shouldEarlyProcessTranscript(cleanedTranscript, data.is_final);
+    if (!shouldProcess) return;
+
+    await this.processFinalTranscript({
+      session,
+      socket,
+      startTime,
+      cleanedTranscript,
+      rawTranscript: transcript,
+      sessionId,
+    });
+  }
+
+  private async processFinalTranscript(params: {
+    session: AudioSession;
+    socket: Socket;
+    startTime: number;
+    cleanedTranscript: string;
+    rawTranscript: string;
+    sessionId: string;
+  }): Promise<void> {
+    const { session, socket, startTime, cleanedTranscript, rawTranscript, sessionId } = params;
+
+    session.latencyMetrics.stt = Date.now() - startTime;
+    session.consecutiveSttFailures = 0;
+
+    logger.info('STT Complete', {
+      sessionId,
+      transcript: cleanedTranscript,
+      latency: session.latencyMetrics.stt,
+    });
+
+    const verified = await this.verifyVoiceIfNeeded(session, socket);
+    if (!verified) return;
+
+    socket.emit('transcription', { transcript: rawTranscript });
+
+    const turnId = session.turnGuard;
+    await this.processConversationTurn(socket, session, cleanedTranscript, turnId);
+
+    session.audioBuffer = [];
   }
 
   private async handleStartStream(socket: Socket): Promise<void> {
@@ -201,103 +328,19 @@ class AudioStreamingService {
         provider: session.sttProvider,
       });
 
-      // Handle Deepgram transcription events
-      deepgramConnection.on(
-        LiveTranscriptionEvents.Transcript,
-        async (data: DeepgramTranscriptData) => {
-          if (session.sttProvider !== 'deepgram') {
-            return; // ignore if Deepgram not current provider
-          }
-          const transcript = data.channel.alternatives[0].transcript;
-
-          const cleanedTranscript = transcript?.trim() || '';
-
-          // If TTS is running and we detect new speech (interim or final), cancel TTS (barge-in)
-          if (cleanedTranscript.length > 0) {
-            const sessionState = this.activeSessions.get(sessionId);
-            if (sessionState?.ttsInProgress && sessionState.ttsAbort && !sessionState.ttsAbort.signal.aborted) {
-              sessionState.ttsAbort.abort();
-              sessionState.ttsInProgress = false;
-              sessionState.turnGuard += 1; // invalidate in-flight turn
-              socket.emit('tts-cancel');
-            }
-          }
-
-          // VAD / early cut: if we have confident interim text, process without waiting for is_final
-          const shouldEarlyProcess =
-            cleanedTranscript.length > 8 &&
-            (cleanedTranscript.endsWith('.') ||
-              cleanedTranscript.endsWith('?') ||
-              cleanedTranscript.endsWith('!'));
-
-          if (cleanedTranscript && (data.is_final || shouldEarlyProcess)) {
-            const sttLatency = Date.now() - startTime;
-            session.latencyMetrics.stt = sttLatency;
-            session.consecutiveSttFailures = 0;
-
-            logger.info('STT Complete', {
-              sessionId,
-              transcript: cleanedTranscript,
-              latency: sttLatency,
-            });
-
-            // Voice verification (if enabled and user is not anonymous)
-            if (
-              this.VOICE_AUTH_ENABLED &&
-              session.userId &&
-              session.userId !== 'anonymous'
-            ) {
-              // Combine audio buffer for verification
-              const combinedAudio = Buffer.concat(session.audioBuffer);
-
-              if (combinedAudio.length > 0) {
-                const verification = await this.voiceAuth.verifyVoice(
-                  session.userId,
-                  combinedAudio,
-                );
-
-                if (!verification.verified) {
-                  logger.warn('Voice verification failed', {
-                    sessionId,
-                    userId: session.userId,
-                    confidence: verification.confidence,
-                  });
-
-                  socket.emit('error', {
-                    message:
-                      verification.message ||
-                      'Voice not recognized. Jarvis only responds to authorized users.',
-                  });
-                  socket.emit('voice-verification-failed', {
-                    confidence: verification.confidence,
-                    message: verification.message,
-                  });
-
-                  // Clear audio buffer
-                  session.audioBuffer = [];
-                  return; // Don't process conversation
-                }
-
-                logger.info('Voice verified', {
-                  sessionId,
-                  userId: session.userId,
-                  confidence: verification.confidence,
-                });
-              }
-            }
-
-            // Emit transcript to client
-            socket.emit('transcription', { transcript });
-
-            // Process through LLM and TTS
-            const turnId = session.turnGuard;
-            await this.processConversationTurn(socket, session, cleanedTranscript, turnId);
-
-            // Clear audio buffer after processing
-            session.audioBuffer = [];
-          }
-        },
-      );
+    // Handle Deepgram transcription events
+    deepgramConnection.on(
+      LiveTranscriptionEvents.Transcript,
+      async (data: DeepgramTranscriptData) => {
+        await this.handleDeepgramTranscript({
+          sessionId,
+          session,
+          socket,
+          startTime,
+          data,
+        });
+      },
+    );
 
       deepgramConnection.on(LiveTranscriptionEvents.Error, (error: Error) => {
         logger.error('Deepgram error', { sessionId, error });
@@ -326,20 +369,21 @@ class AudioStreamingService {
       return;
     }
 
-    // Barge-in: cancel any in-flight TTS when new speech arrives
-    if (session.ttsInProgress && session.ttsAbort && !session.ttsAbort.signal.aborted) {
-      session.ttsAbort.abort();
-      session.ttsInProgress = false;
-      socket.emit('tts-cancel');
+    this.handleBargeInOnAudio(session, socket);
+
+    const audioBuffer = Buffer.isBuffer(audioData) ? audioData : Buffer.from(audioData);
+    this.appendAudioForVerification(session, audioBuffer);
+    this.enforceEnergyBargeIn(session, socket, audioBuffer);
+    this.routeAudioToStt(session, socket, audioBuffer, audioData);
+  }
+
+  private handleBargeInOnAudio(session: AudioSession, socket: Socket): void {
+    if (this.cancelTtsIfActive(session, socket)) {
       session.turnGuard += 1;
     }
+  }
 
-    // Convert to Buffer for voice verification
-    const audioBuffer = Buffer.isBuffer(audioData)
-      ? audioData
-      : Buffer.from(audioData);
-
-    // Store audio chunks for voice verification (keep last 5 seconds)
+  private appendAudioForVerification(session: AudioSession, audioBuffer: Buffer): void {
     session.audioBuffer.push(audioBuffer);
     const maxBufferSize = 16000 * 2 * 5; // 5 seconds at 16kHz, 16-bit
     let totalSize = 0;
@@ -350,20 +394,24 @@ class AudioStreamingService {
         break;
       }
     }
+  }
 
-    // Energy-based fallback VAD: if RMS is high, ensure barge-in is respected
+  private enforceEnergyBargeIn(session: AudioSession, socket: Socket, audioBuffer: Buffer): void {
     const rms = this.computeRms(audioBuffer);
-    if (rms > 0.02 && session.ttsInProgress && session.ttsAbort && !session.ttsAbort.signal.aborted) {
-      session.ttsAbort.abort();
-      session.ttsInProgress = false;
+    if (rms > 0.02 && this.cancelTtsIfActive(session, socket)) {
       session.turnGuard += 1;
-      socket.emit('tts-cancel');
     }
+  }
 
-    // Route audio to current STT provider
+  private routeAudioToStt(
+    session: AudioSession,
+    socket: Socket,
+    audioBuffer: Buffer,
+    originalAudio: Buffer | ArrayBuffer,
+  ): void {
     if (session.sttProvider === 'deepgram') {
       try {
-        const data = Buffer.isBuffer(audioData) ? audioData.buffer : audioData;
+        const data = Buffer.isBuffer(originalAudio) ? originalAudio.buffer : originalAudio;
         session.deepgramConnection.send(data);
       } catch (error) {
         logger.error('Failed to send audio chunk to Deepgram', {
@@ -372,13 +420,17 @@ class AudioStreamingService {
         });
         this.handleSttFailure(session, 'deepgram', socket, 'send-error');
       }
-    } else if (session.sttProvider === 'google' && this.googleSpeech) {
+      return;
+    }
+
+    if (session.sttProvider === 'google' && this.googleSpeech) {
       if (!session.googleActive) {
         this.startGoogleStream(session.sessionId, session, socket, 'primary');
       }
-      if (session.googleStream && (session.googleStream as any).writable) {
+      const googleStream = session.googleStream;
+      if (googleStream?.writable) {
         try {
-          (session.googleStream as any).write(audioBuffer);
+          googleStream.write(audioBuffer);
         } catch (err) {
           logger.error('Failed to send audio to Google STT', { sessionId: session.sessionId, err });
           this.handleSttFailure(session, 'google', socket, 'send-error');
@@ -445,7 +497,8 @@ class AudioStreamingService {
       // Disable google stream if active
       if (session.googleActive && session.googleStream) {
         try {
-          (session.googleStream as any).end();
+          const googleStream = session.googleStream as NodeJS.WritableStream | undefined;
+          googleStream?.end();
         } catch (e) {
           logger.warn('Failed to end Google stream during switch', { sessionId: session.sessionId, e });
         }
@@ -648,9 +701,10 @@ class AudioStreamingService {
   ) {
     if (!this.googleSpeech) return;
     try {
-      const request = {
+      const request: protos.google.cloud.speech.v1.IStreamingRecognitionConfig = {
         config: {
-          encoding: 'WEBM_OPUS',
+          encoding:
+            protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.WEBM_OPUS,
           sampleRateHertz: 16000,
           languageCode: 'en-US',
           enableAutomaticPunctuation: true,
@@ -664,7 +718,7 @@ class AudioStreamingService {
           session.googleActive = false;
           this.handleSttFailure(session, 'google', socket, 'provider-error');
         })
-        .on('data', (data: any) => {
+        .on('data', (data: protos.google.cloud.speech.v1.StreamingRecognizeResponse) => {
           if (session.sttProvider !== 'google') {
             return;
           }
@@ -707,15 +761,16 @@ class AudioStreamingService {
     }
   }
 
-  private handleEndStream(socket: Socket): void {
+  private async handleEndStream(socket: Socket): Promise<void> {
     const session = this.activeSessions.get(socket.id);
 
     if (session) {
       // Close Deepgram connection
-      session.deepgramConnection.finish();
+      this.closeDeepgramConnection(session);
       if (session.googleActive && session.googleStream) {
         try {
-          (session.googleStream as any).end();
+          const googleStream = session.googleStream as NodeJS.WritableStream | undefined;
+          googleStream?.end();
         } catch (e) {
           logger.warn('Failed to end Google STT stream', { sessionId: session.sessionId, e });
         }
@@ -732,14 +787,15 @@ class AudioStreamingService {
     socket.emit('stream-ended');
   }
 
-  private handleDisconnect(socket: Socket): void {
+  private async handleDisconnect(socket: Socket): Promise<void> {
     const session = this.activeSessions.get(socket.id);
 
     if (session) {
-      session.deepgramConnection.finish();
+      this.closeDeepgramConnection(session);
       if (session.googleActive && session.googleStream) {
         try {
-          (session.googleStream as any).end();
+          const googleStream = session.googleStream as NodeJS.WritableStream | undefined;
+          googleStream?.end();
         } catch (e) {
           logger.warn('Failed to end Google STT stream on disconnect', { sessionId: session.sessionId, e });
         }
@@ -757,6 +813,15 @@ class AudioStreamingService {
   // Health check method
   public getActiveSessionCount(): number {
     return this.activeSessions.size;
+  }
+
+  private closeDeepgramConnection(session: AudioSession): void {
+    const dg = session.deepgramConnection as { finishSend?: () => void; finish: () => void };
+    if (typeof dg.finishSend === 'function') {
+      dg.finishSend();
+    } else {
+      dg.finish();
+    }
   }
 }
 

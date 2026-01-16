@@ -1,10 +1,11 @@
 import { BaseAgent } from '../base-agent';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import { SystemExecutor } from '../../services/systemExecutor';
 import { SystemActions } from '../../services/systemActions';
 import { RemediationLibrary, RemediationAction } from '../../services/remediationLibrary';
 import { McpServer } from '../../services/mcp/mcpServer';
 import { McpRequest, RequestContext } from '../../services/mcp/types';
+import { prisma as globalPrisma } from '../../utils/prisma';
 
 interface ExecRequest {
   cmd: string;
@@ -38,7 +39,7 @@ export class SystemControlAgent extends BaseAgent {
 
   constructor(prismaClient?: PrismaClient) {
     super();
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.executor = new SystemExecutor();
     this.actions = new SystemActions(this.executor);
     this.remediation = new RemediationLibrary(this.executor);

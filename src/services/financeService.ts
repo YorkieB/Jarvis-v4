@@ -1,6 +1,7 @@
-import { PrismaClient, Transaction, Account, BankConnection } from '@prisma/client';
+import type { PrismaClient, Transaction, Account, BankConnection } from '@prisma/client';
 import logger from '../utils/logger';
 import { TrueLayerClient, TLAccount, TLTransaction } from './truelayerClient';
+import { prisma as globalPrisma } from '../utils/prisma';
 
 interface SyncOptions {
   from?: string; // ISO date
@@ -12,7 +13,7 @@ export class FinanceService {
   private tl: TrueLayerClient;
 
   constructor(prismaClient?: PrismaClient, tlClient?: TrueLayerClient) {
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.tl = tlClient || new TrueLayerClient();
   }
 

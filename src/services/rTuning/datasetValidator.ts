@@ -1,7 +1,10 @@
-import { PrismaClient, RTuningDataset } from '@prisma/client';
 import OpenAI from 'openai';
 import { UncertaintyService } from '../uncertainty/uncertaintyService';
 import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
+
+type PrismaClient = typeof globalPrisma;
+type RTuningDataset = Awaited<ReturnType<typeof globalPrisma.rTuningDataset.findFirstOrThrow>>;
 
 export interface ValidationResult {
   id?: string;
@@ -25,9 +28,9 @@ export interface ValidationReport {
  * DatasetValidator checks unanswerability, category alignment, and duplicate diversity.
  */
 export class DatasetValidator {
-  private prisma: PrismaClient;
-  private openai: OpenAI;
-  private uncertainty: UncertaintyService;
+  private readonly prisma: PrismaClient;
+  private readonly openai: OpenAI;
+  private readonly uncertainty: UncertaintyService;
   private readonly duplicateThreshold = 0.9; // cosine similarity threshold
 
   constructor(
@@ -35,7 +38,7 @@ export class DatasetValidator {
     openaiClient?: OpenAI,
     uncertaintyService?: UncertaintyService,
   ) {
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.openai = openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.uncertainty = uncertaintyService || new UncertaintyService(this.prisma);
   }
@@ -56,8 +59,8 @@ export class DatasetValidator {
 
       // Duplicate detection
       const embedding = await this.embed(item.question);
-      for (let i = 0; i < embeddings.length; i++) {
-        if (this.cosineSimilarity(embeddings[i], embedding) > this.duplicateThreshold) {
+      for (const existing of embeddings) {
+        if (this.cosineSimilarity(existing, embedding) > this.duplicateThreshold) {
           duplicates.push(item.id);
           result.passed = false;
           result.reasons.push('duplicate_detected');
@@ -73,7 +76,7 @@ export class DatasetValidator {
           isValidated: result.passed,
           validationScore: result.score,
           metadata: {
-            ...(item.metadata || {}),
+            ...item.metadata,
             validationReasons: result.reasons,
           },
         },
@@ -196,8 +199,8 @@ export class DatasetValidator {
 
     for (const item of items) {
       const emb = await this.embed(item.question);
-      for (let i = 0; i < embeddings.length; i++) {
-        if (this.cosineSimilarity(embeddings[i], emb) > this.duplicateThreshold) {
+      for (const existing of embeddings) {
+        if (this.cosineSimilarity(existing, emb) > this.duplicateThreshold) {
           duplicates.push(item.id);
           break;
         }

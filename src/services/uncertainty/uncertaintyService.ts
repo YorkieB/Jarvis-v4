@@ -5,11 +5,13 @@
  * comprehensive uncertainty quantification for LLM responses.
  */
 
-import { PrismaClient } from '@prisma/client';
 import OpenAI from 'openai';
 import { SemanticEntropyCalculator } from './semanticEntropy';
 import { ConformalPrediction } from './conformalPrediction';
 import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
+
+type PrismaClient = typeof globalPrisma;
 
 export interface UncertaintyResult {
   shouldAbstain: boolean;
@@ -24,11 +26,11 @@ export interface UncertaintyResult {
 }
 
 export class UncertaintyService {
-  private semanticEntropy: SemanticEntropyCalculator;
-  private conformalPrediction: ConformalPrediction;
-  private openai: OpenAI;
-  private sampleCount: number;
-  private sampleTemperature: number;
+  private readonly semanticEntropy: SemanticEntropyCalculator;
+  private readonly conformalPrediction: ConformalPrediction;
+  private readonly openai: OpenAI;
+  private readonly sampleCount: number;
+  private readonly sampleTemperature: number;
 
   constructor(
     prisma: PrismaClient,

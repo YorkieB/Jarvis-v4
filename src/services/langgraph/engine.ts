@@ -1,5 +1,12 @@
 import { assertNodeExists, detectCycle } from './policies';
-import { GraphDefinition, GraphPolicies, GraphState, RunResult, TraceEntry } from './types';
+import {
+  GraphDefinition,
+  GraphPolicies,
+  GraphState,
+  RunResult,
+  TraceEntry,
+  NodeResult,
+} from './types';
 
 const DEFAULT_POLICIES: GraphPolicies = {
   maxHops: Number(process.env.LANGGRAPH_MAX_HOPS || 25),
@@ -8,12 +15,12 @@ const DEFAULT_POLICIES: GraphPolicies = {
 };
 
 export class LangGraphEngine {
-  private definition: GraphDefinition;
-  private policies: GraphPolicies;
+  private readonly definition: GraphDefinition;
+  private readonly policies: GraphPolicies;
 
-  constructor(definition: GraphDefinition, policies?: Partial<GraphPolicies>) {
+  constructor(definition: GraphDefinition, policies: Partial<GraphPolicies> = {}) {
     this.definition = definition;
-    this.policies = { ...DEFAULT_POLICIES, ...(policies || {}) };
+    this.policies = { ...DEFAULT_POLICIES, ...policies };
     assertNodeExists(definition, definition.start);
   }
 
@@ -24,10 +31,7 @@ export class LangGraphEngine {
     const trace: TraceEntry[] = [];
     const visited: string[] = [];
 
-    while (true) {
-      if (hops >= this.policies.maxHops) {
-        throw new Error(`LangGraph exceeded max hops (${this.policies.maxHops})`);
-      }
+    while (hops < this.policies.maxHops) {
       assertNodeExists(this.definition, current);
       if (!this.policies.allowCycles && detectCycle(visited, current)) {
         throw new Error(`LangGraph detected cycle at node ${current}`);
@@ -66,10 +70,16 @@ export class LangGraphEngine {
         throw error;
       }
     }
+
+    throw new Error(`LangGraph exceeded max hops (${this.policies.maxHops})`);
   }
 
-  private runWithTimeout(node: GraphDefinition['nodes'][string], state: GraphState, timeoutMs: number) {
-    return new Promise<ReturnType<GraphDefinition['nodes'][string]>>((resolve, reject) => {
+  private runWithTimeout(
+    node: GraphDefinition['nodes'][string],
+    state: GraphState,
+    timeoutMs: number,
+  ): Promise<NodeResult> {
+    return new Promise<NodeResult>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('LangGraph node timeout')), timeoutMs);
       node(state)
         .then((res) => {

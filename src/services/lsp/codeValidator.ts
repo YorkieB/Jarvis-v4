@@ -8,15 +8,19 @@ export interface ValidationResult {
 }
 
 export class CodeValidator {
-  private lsp: LspClient;
-  private blockingSeverity: number;
-  private language: string;
+  private readonly lsp: LspClient;
+  private readonly blockingSeverity: number;
 
   constructor(lspClient?: LspClient) {
     this.lsp = lspClient || new LspClient();
-    this.language = process.env.LSP_LANGUAGE || 'typescript';
     const sev = (process.env.LSP_BLOCKING_SEVERITY || 'error').toLowerCase();
-    this.blockingSeverity = sev === 'warning' ? 2 : sev === 'info' ? 3 : 1; // 1=Error,2=Warning,3=Info
+    if (sev === 'warning') {
+      this.blockingSeverity = 2; // Warning
+    } else if (sev === 'info') {
+      this.blockingSeverity = 3; // Info
+    } else {
+      this.blockingSeverity = 1; // Error/default
+    }
   }
 
   async validate(code: string, uri: string = 'inmemory://code.ts'): Promise<ValidationResult> {

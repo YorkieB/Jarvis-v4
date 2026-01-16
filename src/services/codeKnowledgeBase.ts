@@ -3,10 +3,11 @@
  * Stores and retrieves code fix patterns and solutions
  */
 
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
 import { DetectedError } from './errorDetectionService';
 import { FixCandidate } from './llmCodeFixer';
+import { prisma as globalPrisma } from '../utils/prisma';
 
 export interface SimilarFix {
   fix: string;
@@ -19,7 +20,7 @@ export class CodeKnowledgeBase {
   private prisma: PrismaClient;
 
   constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma || globalPrisma;
   }
 
   /**

@@ -5,26 +5,30 @@ import logger from '../utils/logger';
 import { randomUUID } from 'crypto';
 import * as crypto from 'crypto';
 
-const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = process.env.CAMERA_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
-const IV_LENGTH = 16;
+const ALGORITHM = 'aes-256-gcm';
+const KEY_HEX = process.env.CAMERA_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+const KEY = Buffer.from(KEY_HEX, 'hex');
+const IV_LENGTH = 12;
 
 function encrypt(text: string): string {
   const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  return iv.toString('hex') + ':' + encrypted;
+  const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
+  const ciphertext = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `${iv.toString('hex')}:${tag.toString('hex')}:${ciphertext.toString('hex')}`;
 }
 
 function decrypt(text: string): string {
   const parts = text.split(':');
-  const iv = Buffer.from(parts[0], 'hex');
-  const encrypted = parts[1];
-  const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
+  if (parts.length !== 3) throw new Error('Invalid encrypted payload');
+  const [ivHex, tagHex, dataHex] = parts;
+  const iv = Buffer.from(ivHex, 'hex');
+  const tag = Buffer.from(tagHex, 'hex');
+  const data = Buffer.from(dataHex, 'hex');
+  const decipher = crypto.createDecipheriv(ALGORITHM, KEY, iv);
+  decipher.setAuthTag(tag);
+  const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
+  return decrypted.toString('utf8');
 }
 
 export interface CameraConfig {

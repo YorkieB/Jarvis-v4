@@ -1,4 +1,6 @@
-import { RTuningDataset } from '@prisma/client';
+import { prisma as globalPrisma } from '../../utils/prisma';
+
+type RTuningDataset = Awaited<ReturnType<typeof globalPrisma.rTuningDataset.findFirstOrThrow>>;
 
 export interface TrainingMessage {
   role: 'system' | 'user' | 'assistant';

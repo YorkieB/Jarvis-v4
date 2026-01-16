@@ -1,7 +1,9 @@
-import { PrismaClient } from '@prisma/client';
 import OpenAI from 'openai';
 import { getLLMConfig } from '../../config/llmConfig';
 import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
+
+type PrismaClient = typeof globalPrisma;
 
 export type RTuningCategory =
   | 'future_event'
@@ -27,13 +29,13 @@ export interface GenerationResult {
  * DatasetGenerator creates synthetic unanswerable questions for R-Tuning.
  */
 export class DatasetGenerator {
-  private prisma: PrismaClient;
-  private openai: OpenAI;
+  private readonly prisma: PrismaClient;
+  private readonly openai: OpenAI;
   private readonly refusalText =
     "I don't know. I cannot answer that question.";
 
   constructor(prismaClient?: PrismaClient, openaiClient?: OpenAI) {
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.openai = openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
 
@@ -104,7 +106,7 @@ export class DatasetGenerator {
       const text = completion.choices[0]?.message?.content ?? '';
       const questions = text
         .split('\n')
-        .map((line) => line.trim().replace(/^\d+[\).\s-]+/, ''))
+        .map((line) => line.trim().replace(/^\d+[).\s-]+/, ''))
         .filter((line) => line.length > 0)
         .slice(0, count);
 

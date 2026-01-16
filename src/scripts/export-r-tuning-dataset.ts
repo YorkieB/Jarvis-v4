@@ -3,9 +3,9 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
 import { RefusalTrainer } from '../services/rTuning/refusalTrainer';
 import logger from '../utils/logger';
+import { prisma } from '../utils/prisma';
 
 function getArg(name: string, defaultValue?: string): string | undefined {
   const idx = process.argv.indexOf(name);
@@ -18,15 +18,10 @@ function hasFlag(name: string): boolean {
 }
 
 async function main() {
-  const prisma = new PrismaClient();
   const trainer = new RefusalTrainer();
 
   const format = (getArg('--format', 'jsonl') || 'jsonl').toLowerCase();
   const includeAll = hasFlag('--all');
-  const outArg = getArg(
-    '--out',
-    format === 'json' ? 'data/r-tuning-dataset.json' : 'data/r-tuning-dataset.jsonl',
-  );
 
   const entries = await prisma.rTuningDataset.findMany({
     where: includeAll ? {} : { isValidated: true },
@@ -38,7 +33,9 @@ async function main() {
       ? trainer.exportForLocalTraining(entries)
       : trainer.exportForOpenAIFineTuning(entries);
 
-  const outPath = path.resolve(outArg);
+  const baseDir = path.resolve(process.env.R_TUNING_EXPORT_BASE || 'data');
+  const fileName = format === 'json' ? 'r-tuning-dataset.json' : 'r-tuning-dataset.jsonl';
+  const outPath = path.join(baseDir, fileName);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, content, 'utf8');
 

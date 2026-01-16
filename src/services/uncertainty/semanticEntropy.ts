@@ -23,8 +23,8 @@ export interface SemanticEntropyResult {
 }
 
 export class SemanticEntropyCalculator {
-  private openai: OpenAI;
-  private similarityThreshold: number;
+  private readonly openai: OpenAI;
+  private readonly similarityThreshold: number;
 
   constructor(similarityThreshold: number = 0.85) {
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -59,7 +59,7 @@ export class SemanticEntropyCalculator {
             id: 0,
             responses: responses,
             centroid: await this.generateEmbedding(responses[0]),
-            probability: 1.0,
+            probability: 1,
           },
         ],
         clusterCount: 1,

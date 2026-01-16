@@ -1,6 +1,8 @@
 import OpenAI from 'openai';
-import { PrismaClient } from '@prisma/client';
 import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
+
+type PrismaClient = typeof globalPrisma;
 
 export interface ReflectionScores {
   RET: number;
@@ -35,19 +37,19 @@ interface ReflectionGraderOptions {
  * ReflectionGrader scores RET/REL/SUP/USE via a lightweight LLM (defaults to gpt-4o-mini).
  */
 export class ReflectionGrader {
-  private prisma: PrismaClient;
-  private openai: OpenAI;
-  private relThreshold: number;
-  private supThreshold: number;
-  private useThreshold: number;
-  private model: string;
+  private readonly prisma: PrismaClient;
+  private readonly openai: OpenAI;
+  private readonly relThreshold: number;
+  private readonly supThreshold: number;
+  private readonly useThreshold: number;
+  private readonly model: string;
 
   constructor(
     prismaClient?: PrismaClient,
     openaiClient?: OpenAI,
     options: ReflectionGraderOptions = {},
   ) {
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.openai =
       openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.relThreshold =
@@ -128,11 +130,12 @@ export class ReflectionGrader {
     response?: string,
   ): string {
     const docsText =
-      docs && docs.length
+      docs?.length
         ? docs
-            .map(
-              (d, idx) => `Doc ${idx + 1}${d.id ? ` (${d.id})` : ''}: ${d.content}`,
-            )
+            .map((d, idx) => {
+              const idSuffix = d.id ? ` (${d.id})` : '';
+              return `Doc ${idx + 1}${idSuffix}: ${d.content}`;
+            })
             .join('\n')
         : 'No documents retrieved.';
 
@@ -148,7 +151,7 @@ export class ReflectionGrader {
     try {
       const json = JSON.parse(raw);
       const clamp = (v: any) =>
-        Math.max(0, Math.min(1, typeof v === 'number' ? v : parseFloat(v)));
+        Math.max(0, Math.min(1, typeof v === 'number' ? v : Number.parseFloat(v)));
       return {
         RET: clamp(json.RET ?? 0),
         REL: clamp(json.REL ?? 0),

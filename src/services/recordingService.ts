@@ -159,6 +159,12 @@ export class RecordingService {
     return `${baseUrl}/api/vision/recordings/${id}/download`;
   }
 
+  isPathWithinStorage(filePath: string): boolean {
+    const base = path.resolve(this.storagePath);
+    const target = path.resolve(filePath);
+    return target === base || target.startsWith(`${base}${path.sep}`);
+  }
+
   async cleanupOldRecordings(): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - this.retentionDays);

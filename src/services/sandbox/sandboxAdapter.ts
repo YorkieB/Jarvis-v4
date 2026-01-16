@@ -18,10 +18,10 @@ export interface SandboxPolicyOptions {
 }
 
 export class SandboxAdapter {
-  private sandbox: SandboxService;
-  private allow: string[];
-  private deny: string[];
-  private forceSandbox: boolean;
+  private readonly sandbox: SandboxService;
+  private readonly allow: string[];
+  private readonly deny: string[];
+  private readonly forceSandbox: boolean;
 
   constructor(service?: SandboxService, policy?: SandboxPolicyOptions) {
     this.sandbox = service || new E2bSandboxService();

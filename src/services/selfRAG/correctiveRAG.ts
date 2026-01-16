@@ -22,11 +22,11 @@ interface CorrectiveOptions {
  * CorrectiveRAG rewrites queries and expands retrieval when REL is low.
  */
 export class CorrectiveRAG<TDoc = { content: string }> {
-  private openai: OpenAI;
-  private model: string;
-  private maxAttempts: number;
-  private enableWebExpansion: boolean;
-  private expansionPrompt: string;
+  private readonly openai: OpenAI;
+  private readonly model: string;
+  private readonly maxAttempts: number;
+  private readonly enableWebExpansion: boolean;
+  private readonly expansionPrompt: string;
 
   constructor(openaiClient?: OpenAI, options: CorrectiveOptions = {}) {
     this.openai =

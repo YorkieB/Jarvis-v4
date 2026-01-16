@@ -120,12 +120,14 @@ export class AutoFixService {
           fixCandidate: bestCandidate,
         };
       }
-    } catch (error) {
-      logger.error('Auto-fix failed', { error, errorId: error.id });
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error ? caughtError.message : 'Unknown error';
+      logger.error('Auto-fix failed', { error: caughtError, errorId: error.id });
       return {
         success: false,
         errorId: error.id,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: message,
       };
     }
   }

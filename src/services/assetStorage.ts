@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 export type AssetType = 'image' | 'video';
 export type AssetStatus = 'pending' | 'processing' | 'succeeded' | 'failed';
@@ -27,8 +27,8 @@ export interface StoredAsset {
  * Replace with DB + object storage in production.
  */
 export class AssetStorage {
-  private assets: Map<string, StoredAsset> = new Map();
-  private deliveryBase: string;
+  private readonly assets: Map<string, StoredAsset> = new Map();
+  private readonly deliveryBase: string;
 
   constructor() {
     this.deliveryBase = process.env.MEDIA_DELIVERY_BASE || '';

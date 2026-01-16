@@ -1,6 +1,7 @@
 import { BaseAgent } from '../base-agent';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import logger from '../../utils/logger';
+import { prisma as globalPrisma } from '../../utils/prisma';
 import { FinanceService } from '../../services/financeService';
 import { TrueLayerClient } from '../../services/truelayerClient';
 
@@ -20,7 +21,7 @@ export class FinanceAgent extends BaseAgent {
 
   constructor(prismaClient?: PrismaClient) {
     super();
-    this.prisma = prismaClient || new PrismaClient();
+    this.prisma = prismaClient || globalPrisma;
     this.financeService = new FinanceService(this.prisma);
     this.tl = new TrueLayerClient();
   }

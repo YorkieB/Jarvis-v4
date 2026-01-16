@@ -1,6 +1,5 @@
-import { spawn } from 'child_process';
-import os from 'os';
-import path from 'path';
+import { spawn } from 'node:child_process';
+import os from 'node:os';
 import logger from '../utils/logger';
 import { metrics } from '../utils/metrics';
 import { SandboxAdapter } from './sandbox/sandboxAdapter';
@@ -34,17 +33,34 @@ function splitCsvEnv(value: string | undefined): string[] {
 }
 
 function redactSecrets(text: string): string {
-  return text.replace(/([A-Za-z0-9]{16,})/g, '***');
+  return text.replaceAll(/([A-Za-z0-9]{16,})/g, '***');
+}
+
+function hasDangerousTokens(cmd: string): boolean {
+  // Block common shell metacharacters and command chaining
+  return (
+    /[;&|`><]/.test(cmd) ||
+    cmd.includes('&&') ||
+    cmd.includes('||') ||
+    cmd.includes('$(') ||
+    cmd.includes('${') ||
+    /[\r\n]/.test(cmd)
+  );
+}
+
+function looksLikeSingleCommand(cmd: string): boolean {
+  // Allow basic commands with alphanumerics, underscore, dot, slash, backslash, colon, equals, hyphen, and spaces
+  return /^[\w./:=\\-]+(?: [\w./:=\\-]+)*$/.test(cmd);
 }
 
 export class SystemExecutor {
-  private allow: string[];
-  private deny: string[];
-  private defaultTimeoutMs: number;
-  private sandboxEnabled: boolean;
-  private sandboxAdapter: SandboxAdapter;
-  private sandboxFallbackToHost: boolean;
-  private defaultSandboxNetwork: boolean;
+  private readonly allow: string[];
+  private readonly deny: string[];
+  private readonly defaultTimeoutMs: number;
+  private readonly sandboxEnabled: boolean;
+  private readonly sandboxAdapter: SandboxAdapter;
+  private readonly sandboxFallbackToHost: boolean;
+  private readonly defaultSandboxNetwork: boolean;
 
   constructor() {
     this.allow = splitCsvEnv(process.env.SYSTEM_CONTROL_ALLOW);
@@ -59,7 +75,9 @@ export class SystemExecutor {
 
   private isAllowed(cmd: string): boolean {
     if (this.deny.some((p) => cmd.includes(p))) return false;
-    if (this.allow.length === 0) return true;
+    if (hasDangerousTokens(cmd)) return false;
+    if (!looksLikeSingleCommand(cmd)) return false;
+    if (this.allow.length === 0) return false;
     return this.allow.some((p) => cmd.startsWith(p));
   }
 
@@ -70,7 +88,7 @@ export class SystemExecutor {
 
     if (!this.isAllowed(cmd)) {
       metrics.increment('executor.blocked', { source: source || 'unknown' });
-      throw new Error('Command blocked by policy');
+      throw new Error('Command blocked by policy (allowlist/validation)');
     }
 
     if (this.sandboxEnabled && this.sandboxAdapter.shouldSandbox(cmd)) {
