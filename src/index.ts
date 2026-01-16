@@ -136,7 +136,7 @@ const publicPath = path.resolve(__dirname, '../public');
 if (fs.existsSync(publicPath)) {
   app.use(express.static(publicPath));
   logger.info('✅ Static files served from public directory');
-  
+
   // Serve index.html for root route
   app.get('/', (_req, res) => {
     res.sendFile(path.join(publicPath, 'index.html'));
