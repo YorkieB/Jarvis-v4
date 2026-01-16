@@ -350,7 +350,10 @@ describe('AudioStreamingService - barge-in and failover', () => {
     });
 
     // Should not proceed to conversation turn
-    expect(s.emit).toHaveBeenCalledWith('voice-verification-failed', expect.any(Object));
+    expect(s.emit).toHaveBeenCalledWith(
+      'voice-verification-failed',
+      expect.any(Object),
+    );
     // No llm-response should have been emitted
     expect(s.emit).not.toHaveBeenCalledWith('llm-response', expect.anything());
   });

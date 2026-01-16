@@ -1,8 +1,4 @@
-import {
-  OnvifClient,
-  PTZPosition,
-  StreamProfile,
-} from './onvifClient';
+import { OnvifClient, PTZPosition, StreamProfile } from './onvifClient';
 import { RTSPStreamService } from './rtspStreamService';
 import logger from '../utils/logger';
 import * as crypto from 'node:crypto';
@@ -143,7 +139,7 @@ export class CameraService {
         });
         await client.connect();
         const ptzCapabilities = await client.getCapabilities();
-        capabilities = (ptzCapabilities as unknown) as Record<string, unknown>;
+        capabilities = ptzCapabilities as unknown as Record<string, unknown>;
         await client.disconnect();
       } catch (error) {
         logger.warn('Failed to fetch ONVIF capabilities during add', { error });

@@ -5,12 +5,15 @@
 
 declare module 'onvif' {
   interface OnvifDiscover {
-    on(event: 'device', callback: (device: {
-      hostname: string;
-      port?: number;
-      name?: string;
-      manufacturer?: string;
-    }) => void): void;
+    on(
+      event: 'device',
+      callback: (device: {
+        hostname: string;
+        port?: number;
+        name?: string;
+        manufacturer?: string;
+      }) => void,
+    ): void;
   }
 
   interface OnvifCam {
