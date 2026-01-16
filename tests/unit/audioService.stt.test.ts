@@ -410,13 +410,11 @@ describe('AudioStreamingService - barge-in and failover', () => {
     // Force voice auth enabled and mock verifier
     service.VOICE_AUTH_ENABLED = true;
     service.voiceAuth = {
-      verifyVoice: jest
-        .fn()
-        .mockResolvedValue({
-          verified: false,
-          confidence: 0.2,
-          message: 'No match',
-        }),
+      verifyVoice: jest.fn().mockResolvedValue({
+        verified: false,
+        confidence: 0.2,
+        message: 'No match',
+      }),
     };
 
     await service.processFinalTranscript({
