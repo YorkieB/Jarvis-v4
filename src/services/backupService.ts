@@ -9,6 +9,7 @@ import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import logger from '../utils/logger';
+import { metrics } from '../utils/metrics';
 import * as crypto from 'crypto';
 
 const execAsync = promisify(exec);
@@ -122,10 +123,12 @@ class BackupService {
         size: stats.size,
         checksum,
       });
+      metrics.increment('backup.success');
 
       return backupPath;
     } catch (error) {
       logger.error('Backup creation failed', { error, backupPath });
+      metrics.increment('backup.failure');
       // Clean up partial backup if it exists
       if (fs.existsSync(backupPath)) {
         fs.unlinkSync(backupPath);
@@ -321,8 +324,10 @@ class BackupService {
         deletedCount,
         retentionDays,
       });
+      metrics.increment('backup.cleanup', { deleted: deletedCount });
     } catch (error) {
       logger.error('Backup cleanup failed', { error });
+      metrics.increment('backup.cleanup_failure');
       throw error;
     }
   }

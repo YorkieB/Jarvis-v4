@@ -437,6 +437,27 @@ main {
     justify-content: flex-end;
 }
 
+.pill {
+    padding: 6px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    min-width: 110px;
+    text-align: center;
+}
+.pill.on {
+    background: var(--success-color);
+    color: white;
+    border-color: var(--success-color);
+}
+.pill.off {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
 .user-id-input {
     width: 100%;
     padding: 12px;
@@ -570,4 +591,30 @@ main {
 
 .cancel-btn:hover {
     background: var(--bg-primary);
+}
+
+/* Toast notifications */
+#toastContainer {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 2000;
+}
+
+.toast {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.hide {
+    opacity: 0;
+    transform: translateY(-4px);
 }

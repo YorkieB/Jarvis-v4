@@ -28,7 +28,7 @@ This document provides an overview of the 7 core agents implemented in Batch 1.
 **Location:** `src/agents/voice/index.ts`
 
 - Text-to-speech using ElevenLabs
-- Speech-to-text (Deepgram - TODO)
+- Speech-to-text using Deepgram with Google STT fallback (auto if configured)
 - Voice synthesis with configurable voice settings
 
 ### 4. Knowledge Agent
@@ -38,7 +38,7 @@ This document provides an overview of the 7 core agents implemented in Batch 1.
 - RAG (Retrieval Augmented Generation)
 - Vector embeddings with OpenAI
 - Document ingestion and chunking
-- Semantic search (pgvector integration - TODO)
+- Semantic search via pgvector (store/query embeddings in `KnowledgeBase`)
 
 ### 5. Web Agent
 
@@ -55,7 +55,7 @@ This document provides an overview of the 7 core agents implemented in Batch 1.
 - Spotify playback control
 - Track search
 - Play/pause functionality
-- OAuth integration (TODO)
+- OAuth 2.0 flow with token storage and refresh
 
 ### 7. Self-Healing Agent
 

@@ -8,9 +8,40 @@
 import { AIRulesEnforcer } from '../governance/rules-enforcer';
 import { auditLogger } from '../governance/audit-logger';
 
+export interface TaskPayload {
+  [key: string]: unknown;
+}
+
+export interface TaskResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface DelegatedTask {
+  id: string;
+  type: string;
+  payload: TaskPayload;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  timeoutMs?: number;
+}
+
+export interface ChildAgent {
+  id: string;
+  agentType: string;
+  capabilities: string[];
+  status: 'idle' | 'busy' | 'error';
+  currentWorkload: number;
+}
+
 export abstract class BaseAgent {
   protected abstract agentType: string;
   protected abstract permissions: string[];
+  protected parentId?: string;
+  protected children: Map<string, ChildAgent> = new Map();
+  protected currentWorkload: number = 0;
+  protected maxConcurrentTasks: number = 5;
 
   constructor() {
     this.acknowledgeRules();
@@ -115,5 +146,132 @@ export abstract class BaseAgent {
    */
   protected hasPermission(permission: string): boolean {
     return this.permissions.includes(permission);
+  }
+
+  /**
+   * Spawn a child agent to handle delegated work
+   * This is a placeholder - actual implementation will use AgentManagerService
+   */
+  protected async spawnChildAgent(
+    agentType: string,
+    capabilities: string[],
+  ): Promise<string> {
+    // This will be implemented by AgentManagerService
+    // For now, return a placeholder ID
+    const childId = `${this.agentType}-child-${Date.now()}`;
+    this.children.set(childId, {
+      id: childId,
+      agentType,
+      capabilities,
+      status: 'idle',
+      currentWorkload: 0,
+    });
+    return childId;
+  }
+
+  /**
+   * Delegate a task to a child agent
+   */
+  protected async delegateTask(
+    childId: string,
+    task: DelegatedTask,
+  ): Promise<TaskResult> {
+    const child = this.children.get(childId);
+    if (!child) {
+      throw new Error(`Child agent ${childId} not found`);
+    }
+
+    if (child.status === 'error') {
+      throw new Error(`Child agent ${childId} is in error state`);
+    }
+
+    if (child.currentWorkload >= this.maxConcurrentTasks) {
+      throw new Error(`Child agent ${childId} is at capacity`);
+    }
+
+    // Update workload
+    child.currentWorkload++;
+    child.status = 'busy';
+
+    try {
+      // This will be implemented by TaskQueueService
+      // For now, return a placeholder result
+      const result: TaskResult = {
+        success: true,
+        data: { message: 'Task delegated (placeholder)' },
+      };
+      return result;
+    } finally {
+      child.currentWorkload--;
+      child.status = child.currentWorkload > 0 ? 'busy' : 'idle';
+    }
+  }
+
+  /**
+   * Aggregate results from multiple child agents
+   */
+  protected async aggregateResults(
+    results: TaskResult[],
+  ): Promise<TaskResult> {
+    const successful = results.filter((r) => r.success);
+    const failed = results.filter((r) => !r.success);
+
+    if (failed.length === 0) {
+      return {
+        success: true,
+        data: successful.map((r) => r.data),
+        metadata: {
+          total: results.length,
+          successful: successful.length,
+          failed: 0,
+        },
+      };
+    }
+
+    if (successful.length === 0) {
+      return {
+        success: false,
+        error: 'All child tasks failed',
+        metadata: {
+          total: results.length,
+          successful: 0,
+          failed: failed.length,
+          errors: failed.map((r) => r.error),
+        },
+      };
+    }
+
+    // Partial success
+    return {
+      success: true,
+      data: successful.map((r) => r.data),
+      metadata: {
+        total: results.length,
+        successful: successful.length,
+        failed: failed.length,
+        errors: failed.map((r) => r.error),
+      },
+    };
+  }
+
+  /**
+   * Get current workload
+   */
+  getWorkload(): number {
+    return this.currentWorkload;
+  }
+
+  /**
+   * Check if agent can accept more tasks
+   */
+  canAcceptTask(): boolean {
+    return this.currentWorkload < this.maxConcurrentTasks;
+  }
+
+  /**
+   * Get child agents
+   */
+  getChildren(): ChildAgent[] {
+    return Array.from(this.children.values());
   }
 }

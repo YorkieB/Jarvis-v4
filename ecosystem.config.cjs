@@ -93,6 +93,18 @@ module.exports = {
       script: './dist/agents/self-healing/index.js',
       instances: 1,
       env: envVars,
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 5000,
+    },
+    {
+      name: 'watchdog-agent',
+      script: './dist/agents/watchdog/start.js',
+      instances: 1,
+      env: envVars,
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 5000,
     },
 
     // Batch 2: Personal Finance

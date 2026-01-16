@@ -4,6 +4,8 @@
 
 Jarvis v4 includes voice-based authentication that ensures Jarvis only responds to authorized users. When someone else tries to speak to Jarvis, their requests are rejected.
 
+The voiceprint pipeline now defaults to an onboard ECAPA ONNX encoder (CPU, ~192-dim embeddings), falling back to an external embedding endpoint if configured, and finally to a deterministic PCM feature extractor.
+
 ## How It Works
 
 ### Voice Enrollment
@@ -61,14 +63,20 @@ Response:
 
 - `VOICE_AUTH_ENABLED` - Enable/disable voice auth (default: `true`)
 - `DEEPGRAM_API_KEY` - Required for voice processing
+- `SPEAKER_ENCODER_PROVIDER` - `onnx` (default) to use built-in ECAPA encoder; set to `external` to skip ONNX
+- `SPEAKER_ENCODER_PATH` - Path to ECAPA ONNX file (default: `models/speaker/ecapa.onnx`)
+- `SPEAKER_EMBEDDING_DIM` - Target embedding dimension (default: `192`, aligns with ECAPA + pgvector schema)
+- The ECAPA ONNX model is not bundled; download it and place it at `models/speaker/ecapa.onnx` (or point `SPEAKER_ENCODER_PATH` to your file).
 
 ### Database
 
 Voiceprints are stored in the `Voiceprint` table with:
 - `userId` - Unique user identifier
-- `embedding` - 512-dimensional voiceprint vector (pgvector)
+- `embedding` - 192-dimensional voiceprint vector (pgvector)
 - `confidence` - Minimum confidence threshold (default: 0.85)
 - `isActive` - Whether voiceprint is active
+
+Note: After migrating to the 192-dim ECAPA encoder, users should re-enroll to refresh stored embeddings.
 
 ## Security Features
 
@@ -97,6 +105,7 @@ Voice verification happens automatically during audio streaming. No additional c
 - Ensure you've enrolled your voice first
 - Check that audio quality is good (minimize background noise)
 - Try re-enrolling with clearer audio samples
+- Confirm the ONNX model file exists at `SPEAKER_ENCODER_PATH`; the pipeline falls back to external endpoint and deterministic PCM if ONNX is unavailable
 
 **Enrollment fails:**
 - Ensure at least 3 samples are recorded

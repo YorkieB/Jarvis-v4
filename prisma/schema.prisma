@@ -108,10 +108,13 @@ model Transaction {
   description String
   category    String
   date        DateTime
+  accountId   String?
+  account     Account? @relation(fields: [accountId], references: [id])
   createdAt   DateTime @default(now())
   
   @@index([userId, date])
   @@index([category])
+  @@index([accountId])
 }
 
 model Budget {
@@ -140,6 +143,67 @@ model SavingsGoal {
   createdAt     DateTime @default(now())
   
   @@index([userId, status])
+}
+
+// Bank connections and accounts (TrueLayer)
+model BankConnection {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  provider       String   // e.g., 'truelayer'
+  accessToken    String
+  refreshToken   String
+  scope          String?
+  expiresAt      DateTime
+  connectedAt    DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  accounts       Account[]
+  payments       Payment[]
+
+  @@index([userId, provider])
+}
+
+model Account {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  bankConnectionId   String
+  bankConnection     BankConnection @relation(fields: [bankConnectionId], references: [id])
+  providerAccountId  String
+  name               String?
+  iban               String?
+  sortCode           String?
+  accountNumber      String?
+  currency           String
+  balance            Float    @default(0)
+  meta               Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  transactions       Transaction[]
+
+  @@unique([bankConnectionId, providerAccountId])
+  @@index([userId])
+  @@index([bankConnectionId])
+}
+
+model Payment {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  bankConnectionId  String
+  bankConnection    BankConnection @relation(fields: [bankConnectionId], references: [id])
+  providerPaymentId String
+  amount            Float
+  currency          String
+  status            String   // 'created','pending','executed','failed','cancelled'
+  reference         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([bankConnectionId])
+  @@index([providerPaymentId])
+  @@index([status])
 }
 
 model Alert {
@@ -275,7 +339,7 @@ model Voiceprint {
   id          String   @id @default(uuid())
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id])
-  embedding   Unsupported("vector(512)")  // Voiceprint embedding vector
+  embedding   Unsupported("vector(192)")  // Voiceprint embedding vector
   audioSample String?  // Path to enrollment audio sample (optional)
   enrolledAt  DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -283,4 +347,249 @@ model Voiceprint {
   confidence  Float    @default(0.85)  // Minimum confidence threshold (0-1)
   
   @@index([embedding(ops: raw("vector_cosine_ops"))])
+}
+
+// Spotify OAuth Tokens
+model SpotifyToken {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  scope        String?
+  tokenType    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Hierarchical Agent Delegation System
+model Agent {
+  id              String   @id @default(uuid())
+  agentType       String
+  parentId        String?
+  parent          Agent?   @relation("AgentHierarchy", fields: [parentId], references: [id])
+  children        Agent[]  @relation("AgentHierarchy")
+  capabilities    String[]
+  maxConcurrentTasks Int   @default(5)
+  currentWorkload Int     @default(0)
+  status          String   @default("idle") // "idle", "busy", "error", "stopped"
+  healthScore     Int      @default(100) // 0-100
+  lastHeartbeat   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tasks           Task[]
+  failures        AgentFailure[]
+  monitoredBy     Agent[]  @relation("AgentMonitoring", fields: [id], references: [id])
+  monitors        Agent[]  @relation("AgentMonitoring")
+  
+  @@index([agentType])
+  @@index([parentId])
+  @@index([status])
+  @@index([healthScore])
+}
+
+model Task {
+  id              String   @id @default(uuid())
+  type            String
+  priority        String   @default("medium") // "low", "medium", "high", "critical"
+  payload         Json
+  assignedAgentId String?
+  assignedAgent   Agent?   @relation(fields: [assignedAgentId], references: [id])
+  parentTaskId    String?
+  parentTask      Task?    @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+  subtasks        Task[]   @relation("TaskHierarchy")
+  status          String   @default("pending") // "pending", "assigned", "in_progress", "completed", "failed", "cancelled"
+  result          Json?
+  error           String?
+  retryCount      Int      @default(0)
+  timeoutMs       Int?
+  createdAt       DateTime @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+  
+  @@index([type])
+  @@index([status])
+  @@index([priority])
+  @@index([assignedAgentId])
+  @@index([parentTaskId])
+  @@index([createdAt])
+}
+
+model AgentFailure {
+  id            String   @id @default(uuid())
+  agentId       String
+  agent         Agent    @relation(fields: [agentId], references: [id])
+  parentId      String?
+  failureType   String   // "crash", "timeout", "error", "unresponsive", "logic_error"
+  failureReason String?
+  tasksAffected String[] // Task IDs that were interrupted
+  detectedBy    String?  // Agent ID that detected the failure
+  recovered     Boolean  @default(false)
+  recoveryTime  DateTime?
+  recoveryMethod String? // "restart", "replace", "manual", "watchdog"
+  createdAt     DateTime @default(now())
+  
+  @@index([agentId])
+  @@index([parentId])
+  @@index([failureType])
+  @@index([recovered])
+  @@index([createdAt])
+}
+
+// Code Self-Healing System
+model CodeFix {
+  id            String   @id @default(uuid())
+  errorType     String   // "syntax", "type", "runtime", "logic", "linting"
+  errorMessage  String
+  filePath      String
+  lineNumber    Int?
+  codeSnippet   String   // Code around error
+  fixApplied    String   // The fix that was applied
+  fixStatus     String   // "success", "failed", "pending"
+  verified      Boolean  @default(false)
+  testResults   Json?    // Test results after fix
+  createdAt     DateTime @default(now())
+  appliedAt     DateTime?
+  
+  @@index([errorType])
+  @@index([filePath])
+  @@index([fixStatus])
+  @@index([createdAt])
+}
+
+// Batch: Visual Guidance System
+model Camera {
+  id            String   @id @default(uuid())
+  name          String
+  protocol      String   // 'onvif' | 'rtsp'
+  ipAddress     String?
+  rtspUrl       String?
+  username      String?
+  password      String   @db.Text // encrypted
+  model         String?
+  capabilities  Json?    // PTZ, zoom range, etc.
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  streams       Stream[]
+  recordings    Recording[]
+  detections    Detection[]
+  
+  @@index([protocol])
+  @@index([isActive])
+}
+
+model Stream {
+  id          String   @id @default(uuid())
+  cameraId    String
+  camera      Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  streamUrl   String
+  status      String   // 'active' | 'inactive' | 'error'
+  viewers     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([cameraId])
+  @@index([status])
+}
+
+model Recording {
+  id          String   @id @default(uuid())
+  cameraId    String
+  camera      Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  filePath    String
+  startTime   DateTime
+  endTime     DateTime?
+  duration    Int?     // seconds
+  sizeBytes   Int?
+  status      String   // 'recording' | 'completed' | 'failed'
+  createdAt   DateTime @default(now())
+  
+  @@index([cameraId])
+  @@index([status])
+  @@index([startTime])
+}
+
+model Detection {
+  id          String   @id @default(uuid())
+  cameraId    String
+  camera      Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  objectType  String   // 'person', 'vehicle', etc.
+  confidence  Float
+  bbox        Json     // {x, y, width, height}
+  frameTime   DateTime
+  trackingId  String?  // for multi-frame tracking
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  
+  @@index([cameraId])
+  @@index([objectType])
+  @@index([frameTime])
+  @@index([trackingId])
+}
+
+// Phase 1: Uncertainty Quantification
+model ConformalCalibration {
+  id          String   @id @default(uuid())
+  query       String   @db.Text
+  response    String   @db.Text
+  groundTruth String?  @db.Text
+  score       Float
+  timestamp   DateTime @default(now())
+  
+  @@index([score])
+}
+
+model ReflectionScore {
+  id          String   @id @default(uuid())
+  queryId     String
+  tokenType   String   // 'RET' | 'REL' | 'SUP' | 'USE'
+  score       Float
+  threshold   Float
+  passed      Boolean
+  timestamp   DateTime @default(now())
+  
+  @@index([queryId])
+}
+
+model GraphCheckpoint {
+  id          String   @id @default(uuid())
+  graphId     String
+  nodeId      String
+  state       Json
+  runId       String? // optional grouping id
+  timestamp   DateTime @default(now())
+  
+  @@index([graphId])
+  @@index([runId])
+}
+
+// Phase 1.3: R-Tuning Preparation
+model RTuningDataset {
+  id               String   @id @default(uuid())
+  question         String   @db.Text
+  category         String   // 'future_event' | 'fake_entity' | 'out_of_scope' | 'impossible' | 'ambiguous'
+  expectedResponse String   @db.Text // Refusal text e.g. "I don't know"
+  metadata         Json?    // Additional context (source, difficulty, etc.)
+  isValidated      Boolean  @default(false)
+  validationScore  Float?   // Quality score 0-1
+  createdAt        DateTime @default(now())
+
+  @@index([category])
+  @@index([isValidated])
+}
+
+model RTuningTrainingRun {
+  id             String   @id @default(uuid())
+  datasetSize    Int
+  modelName      String
+  trainingConfig Json    // LoRA params, learning rate, etc.
+  status         String  // 'pending' | 'training' | 'completed' | 'failed'
+  checkpointPath String? // Path to fine-tuned model weights
+  metrics        Json?   // Training metrics (loss, accuracy, etc.)
+  createdAt      DateTime @default(now())
+  completedAt    DateTime?
+
+  @@index([status])
 }

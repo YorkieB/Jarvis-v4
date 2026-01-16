@@ -2,7 +2,11 @@ import { BaseAgent } from '../base-agent';
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { PrismaClient } from '@prisma/client';
-import logger from '../utils/logger';
+import logger from '../../utils/logger';
+import { KnowledgeAgent } from '../knowledge';
+import { SelfRAGService } from '../../services/selfRAG/selfRAGService';
+import { buildDialogueGraph } from '../../services/langgraph/flows/dialogueGraph';
+import { CheckpointAdapter } from '../../services/langgraph/checkpointAdapter';
 
 export class DialogueAgent extends BaseAgent {
   protected agentType = 'dialogue';
@@ -10,6 +14,9 @@ export class DialogueAgent extends BaseAgent {
 
   private openai: OpenAI;
   private prisma: PrismaClient;
+  private knowledgeAgent: KnowledgeAgent;
+  private selfRAG: SelfRAGService;
+  private checkpoint: CheckpointAdapter;
   // Keep in-memory cache for active conversations (performance optimization)
   private conversationHistory: Map<string, ChatCompletionMessageParam[]> =
     new Map();
@@ -20,6 +27,9 @@ export class DialogueAgent extends BaseAgent {
     super();
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.prisma = prisma || new PrismaClient();
+    this.knowledgeAgent = new KnowledgeAgent(this.prisma);
+    this.selfRAG = new SelfRAGService(this.prisma, this.openai);
+    this.checkpoint = new CheckpointAdapter(this.prisma);
   }
 
   /**
@@ -142,24 +152,25 @@ export class DialogueAgent extends BaseAgent {
       // Save user message to database
       await this.saveMessage(convId, 'user', input);
 
-      // RULE 2: Grounding in context (conversation history)
-      await this.callLLM(input, {
-        context: history,
-      });
+      // LangGraph dialogue flow (wrapping Self-RAG + retrieval)
+      const graph = buildDialogueGraph(this.knowledgeAgent, this.selfRAG, convId);
+      let responseText: string | undefined;
+      try {
+        const state = await graph.run({ input });
+        responseText = (state.response as string | undefined) ?? "I don't know. I cannot answer that.";
+        // Save checkpoint for traceability
+        await this.checkpoint.save(convId, 'draft', state, sessionId);
+      } catch (err) {
+        logger.warn('Dialogue graph failed, falling back to direct Self-RAG', { err });
+        const selfRAGResult = await this.selfRAG.run(
+          input,
+          (q) => this.knowledgeAgent.retrieveRelevantDocs(q, 5),
+        );
+        responseText =
+          selfRAGResult.response ?? "I don't know. I cannot answer that.";
+      }
 
-      // Call OpenAI with full context
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are Jarvis, a helpful AI assistant.',
-          },
-          ...history,
-        ],
-      });
-
-      const assistantMessage = completion.choices[0].message.content!;
+      const assistantMessage = responseText;
 
       // Update history
       history.push({ role: 'assistant', content: assistantMessage });

@@ -12,6 +12,7 @@ class JarvisApp {
         this.recognition = null;
         this.isConnected = false;
         this.userId = localStorage.getItem('jarvis_userId') || null;
+        this.continuousMode = localStorage.getItem('jarvis_continuous') === 'true';
 
         // Voice enrollment state
         this.enrollmentSamples = [];
@@ -37,6 +38,12 @@ class JarvisApp {
         this.submitEnrollmentBtn = document.getElementById('submitEnrollmentBtn');
         this.cancelEnrollmentBtn = document.getElementById('cancelEnrollmentBtn');
         this.closeEnrollmentModal = document.getElementById('closeEnrollmentModal');
+        this.continuousToggle = document.getElementById('continuousToggle');
+        this.continuousStatus = document.getElementById('continuousStatus');
+        this.sttStatus = document.getElementById('sttStatus');
+        this.toastContainer = document.createElement('div');
+        this.toastContainer.id = 'toastContainer';
+        document.body.appendChild(this.toastContainer);
 
         this.init();
     }
@@ -48,6 +55,8 @@ class JarvisApp {
         this.setupVoiceEnrollment();
         this.checkBrowserSupport();
         this.checkVoiceEnrollmentStatus();
+
+        console.log('Continuous voice mode:', this.continuousMode ? 'ON' : 'OFF');
     }
 
     setupSocketIO() {
@@ -57,11 +66,20 @@ class JarvisApp {
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionAttempts: 5,
+            auth: {}
         };
 
         // Add userId to query if available
         if (this.userId) {
             socketOptions.query = { userId: this.userId };
+        }
+
+        const tenantToken = localStorage.getItem('jarvis_tenant_token');
+        if (tenantToken) {
+            socketOptions.auth.tenantToken = tenantToken;
+        }
+        if (this.userId) {
+            socketOptions.auth.userId = this.userId;
         }
 
         this.socket = io(socketOptions);
@@ -105,6 +123,37 @@ class JarvisApp {
             this.playAudioChunk(data.audio);
         });
 
+        this.socket.on('audio-complete', () => {
+            console.log('✅ TTS complete');
+            this.updateVoiceStatus('Response finished', false);
+            this.voiceButton.classList.remove('recording');
+            this.isRecording = false;
+
+            if (this.continuousMode) {
+                // Auto-restart recording for continuous conversation
+                setTimeout(() => {
+                    if (!this.isRecording) {
+                        this.startRecording();
+                    }
+                }, 50);
+            }
+        });
+
+        this.socket.on('tts-cancel', () => {
+            console.log('⏹️ TTS canceled (barge-in)');
+            this.updateVoiceStatus('Listening...', true);
+            this.stopAudioPlayback();
+            if (this.continuousMode && !this.isRecording) {
+                setTimeout(() => this.startRecording(), 20);
+            }
+        });
+
+        this.socket.on('voice-error', (data) => {
+            console.warn('Voice error:', data);
+            this.addMessage('system', `Voice playback issue: ${data?.message || 'Unknown error'}`);
+            this.updateVoiceStatus('Voice issue', false);
+        });
+
         this.socket.on('stream-ended', () => {
             console.log('✅ Stream ended');
             this.updateVoiceStatus('Stream completed', false);
@@ -125,6 +174,35 @@ class JarvisApp {
             this.updateVoiceStatus('Voice verification failed', false);
             this.stopRecording();
         });
+
+        this.socket.on('stt-provider-changed', (data) => {
+            const provider = data?.provider || 'unknown';
+            const reason = data?.reason || 'failover';
+            this.addMessage('system', `Switched speech recognizer to ${provider} (${reason}).`);
+            this.updateVoiceStatus(`Using ${provider.toUpperCase()} STT`, true);
+            this.updateSttStatus(provider);
+            if (reason !== 'initial') {
+                this.showToast(`Switched to ${provider.toUpperCase()} STT (${reason})`);
+            }
+        });
+    }
+
+    updateSttStatus(provider) {
+        if (!this.sttStatus) return;
+        const label = (provider || 'unknown').toUpperCase();
+        this.sttStatus.textContent = `STT: ${label}`;
+    }
+
+    showToast(message) {
+        if (!this.toastContainer) return;
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.textContent = message;
+        this.toastContainer.appendChild(el);
+        setTimeout(() => {
+            el.classList.add('hide');
+            setTimeout(() => el.remove(), 300);
+        }, 2500);
     }
 
     setupEventListeners() {
@@ -155,6 +233,15 @@ class JarvisApp {
             });
         }
 
+        // Continuous mode toggle
+        if (this.continuousToggle) {
+            this.continuousToggle.addEventListener('click', () => {
+                this.setContinuousMode(!this.continuousMode);
+                this.refreshContinuousStatus();
+            });
+            this.refreshContinuousStatus();
+        }
+
         // Enrollment modal controls
         if (this.closeEnrollmentModal) {
             this.closeEnrollmentModal.addEventListener('click', () => {
@@ -167,6 +254,15 @@ class JarvisApp {
                 this.hideEnrollmentModal();
             });
         }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            this.stopRecording();
+            this.stopAudioPlayback();
+            if (this.socket) {
+                this.socket.disconnect();
+            }
+        });
     }
 
     setupVoiceEnrollment() {
@@ -201,7 +297,9 @@ class JarvisApp {
         if (!this.userId) return;
 
         try {
-            const response = await fetch(`/api/voice/status/${this.userId}`);
+            const tenantToken = localStorage.getItem('jarvis_tenant_token');
+            const headers = tenantToken ? { 'x-tenant-token': tenantToken } : {};
+            const response = await fetch(`/api/voice/status/${this.userId}`, { headers });
             const data = await response.json();
 
             if (data.hasVoiceprint) {
@@ -358,10 +456,12 @@ class JarvisApp {
                 })
             );
 
+            const tenantToken = localStorage.getItem('jarvis_tenant_token');
             const response = await fetch('/api/voice/enroll', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(tenantToken ? { 'x-tenant-token': tenantToken } : {}),
                 },
                 body: JSON.stringify({
                     userId,
@@ -510,6 +610,9 @@ class JarvisApp {
                 stream.getTracks().forEach(track => track.stop());
                 this.socket.emit('end-audio-stream');
                 console.log('🛑 Recording stopped');
+                if (!this.continuousMode) {
+                    this.updateVoiceStatus('Stream completed', false);
+                }
             };
 
             // Start recording
@@ -557,12 +660,43 @@ class JarvisApp {
         try {
             const audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
             const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
-            audio.play().catch(error => {
+            if (!this.audioPlayer) {
+                this.audioPlayer = new Audio();
+            }
+            this.audioPlayer.src = audioUrl;
+            this.audioPlayer.play().catch(error => {
                 console.error('Error playing audio:', error);
             });
         } catch (error) {
             console.error('Error processing audio chunk:', error);
+        }
+    }
+
+    stopAudioPlayback() {
+        if (this.audioPlayer) {
+            try {
+                this.audioPlayer.pause();
+                this.audioPlayer.currentTime = 0;
+            } catch (e) {
+                console.warn('Failed to stop audio player', e);
+            }
+        }
+    }
+
+    setContinuousMode(enabled) {
+        this.continuousMode = enabled;
+        localStorage.setItem('jarvis_continuous', enabled ? 'true' : 'false');
+        console.log('Continuous voice mode set to', enabled);
+        this.refreshContinuousStatus();
+    }
+
+    refreshContinuousStatus() {
+        if (this.continuousStatus) {
+            this.continuousStatus.textContent = this.continuousMode ? 'Continuous: ON' : 'Continuous: OFF';
+            this.continuousStatus.className = this.continuousMode ? 'pill on' : 'pill off';
+        }
+        if (this.continuousToggle) {
+            this.continuousToggle.textContent = this.continuousMode ? 'Disable Continuous' : 'Enable Continuous';
         }
     }
 

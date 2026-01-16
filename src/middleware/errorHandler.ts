@@ -1,6 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { Sentry } from '../sentry';
 import logger from '../utils/logger';
+import { ErrorDetectionService } from '../services/errorDetectionService';
+
+// Global error detection service instance
+let errorDetectionService: ErrorDetectionService | null = null;
+
+export function setErrorDetectionService(service: ErrorDetectionService): void {
+  errorDetectionService = service;
+}
 
 // Custom error class for application errors
 export class AppError extends Error {
@@ -43,6 +51,16 @@ export function errorHandler(
     ip: req.ip,
   });
 
+  // Detect error for code self-healing (if enabled)
+  if (errorDetectionService && process.env.CODE_AUTO_FIX_ENABLED !== 'false') {
+    // Only detect runtime errors (not operational errors)
+    if (!(err instanceof AppError && err.isOperational)) {
+      void errorDetectionService.detectRuntimeError(err, err.stack).catch((detectError) => {
+        logger.warn('Failed to detect error for auto-fix', { detectError });
+      });
+    }
+  }
+
   // Send error to Sentry for non-operational errors
   if (!(err instanceof AppError && err.isOperational)) {
     Sentry.captureException(err, {
@@ -76,6 +94,14 @@ export function handleUnhandledRejection() {
       message: reason.message,
       stack: reason.stack,
     });
+
+    // Detect error for code self-healing
+    if (errorDetectionService && process.env.CODE_AUTO_FIX_ENABLED !== 'false') {
+      void errorDetectionService.detectRuntimeError(reason, reason.stack).catch((detectError) => {
+        logger.warn('Failed to detect unhandled rejection for auto-fix', { detectError });
+      });
+    }
+
     Sentry.captureException(reason);
   });
 }
@@ -87,6 +113,14 @@ export function handleUncaughtException() {
       message: error.message,
       stack: error.stack,
     });
+
+    // Detect error for code self-healing (before exit)
+    if (errorDetectionService && process.env.CODE_AUTO_FIX_ENABLED !== 'false') {
+      void errorDetectionService.detectRuntimeError(error, error.stack).catch((detectError) => {
+        logger.warn('Failed to detect uncaught exception for auto-fix', { detectError });
+      });
+    }
+
     Sentry.captureException(error);
     // Exit process after logging
     process.exit(1);

@@ -1,10 +1,16 @@
 import { BaseAgent } from '../base-agent';
 import OpenAI from 'openai';
+import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
+import logger from '../../utils/logger';
+import { ReflectionGrader } from '../../services/selfRAG/reflectionGrader';
+import { CorrectiveRAG } from '../../services/selfRAG/correctiveRAG';
 
 interface KnowledgeDocument {
+  id: string;
   content: string;
-  embedding: number[];
   metadata?: Record<string, unknown>;
+  similarity?: number;
 }
 
 export class KnowledgeAgent extends BaseAgent {
@@ -12,25 +18,59 @@ export class KnowledgeAgent extends BaseAgent {
   protected permissions = ['read:knowledge_base', 'write:knowledge_base'];
 
   private openai: OpenAI;
+  private prisma: PrismaClient;
+  private grader: ReflectionGrader;
+  private corrective: CorrectiveRAG<KnowledgeDocument>;
 
-  constructor() {
+  constructor(prismaClient?: PrismaClient) {
     super();
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    this.prisma = prismaClient || new PrismaClient();
+    this.grader = new ReflectionGrader(this.prisma, this.openai);
+    this.corrective = new CorrectiveRAG<KnowledgeDocument>(this.openai, {
+      maxAttempts: 1,
+    });
   }
 
   async retrieveRelevantDocs(
     query: string,
-    _limit: number = 5,
+    limit: number = 5,
+    useCorrective: boolean = true,
   ): Promise<KnowledgeDocument[]> {
-    // Generate embedding for query
-    await this.generateEmbedding(query);
+    const docs = await this.fetchVectorDocs(query, limit);
+    if (!docs.length) return [];
 
-    // TODO: Query pgvector database
-    // SELECT * FROM knowledge_base
-    // ORDER BY embedding <-> $1::vector
-    // LIMIT $2
+    const rel = await this.grader.score({ query, retrievedDocs: docs });
+    const relPass =
+      rel?.pass?.REL ??
+      rel.scores.REL >= Number(process.env.SELF_RAG_REL_THRESHOLD || 0.5);
 
-    return [];
+    if (!relPass && useCorrective) {
+      const corrective = await this.corrective.attempt(query, (q) =>
+        this.fetchVectorDocs(q, limit),
+      );
+      if (!corrective.docs.length) {
+        return [];
+      }
+      return corrective.docs.map((d) => ({
+        ...d,
+        metadata: {
+          ...(d.metadata || {}),
+          correctiveQuery: corrective.rewrittenQuery,
+          correctiveExpandedQuery: corrective.expandedQuery,
+          correctiveAttempts: corrective.attempts,
+        },
+      }));
+    }
+
+    return docs.map((doc) => ({
+      ...doc,
+      metadata: {
+        ...(doc.metadata || {}),
+        relScore: rel.scores.REL,
+        relPass: rel.pass.REL,
+      },
+    }));
   }
 
   async generateEmbedding(text: string): Promise<number[]> {
@@ -44,18 +84,29 @@ export class KnowledgeAgent extends BaseAgent {
 
   async ingestDocument(
     content: string,
-    _metadata: Record<string, unknown>,
+    metadata: Record<string, unknown> = {},
   ): Promise<void> {
-    // Chunk document
     const chunks = this.chunkDocument(content);
 
-    // Generate embeddings for each chunk
     for (const chunk of chunks) {
-      await this.generateEmbedding(chunk);
+      const embedding = await this.generateEmbedding(chunk);
+      const embeddingString = `[${embedding.join(',')}]`;
+      const id = randomUUID();
 
-      // TODO: Store in database with pgvector
-      // INSERT INTO knowledge_base (content, embedding, metadata)
-      // VALUES ($1, $2::vector, $3)
+      try {
+        await this.prisma.$executeRawUnsafe(
+          `
+          INSERT INTO "KnowledgeBase" (id, content, embedding, metadata, "createdAt")
+          VALUES ($1, $2, $3::vector, $4, NOW())
+        `,
+          id,
+          chunk,
+          embeddingString,
+          metadata,
+        );
+      } catch (error) {
+        logger.error('KnowledgeAgent: failed to store chunk', { error });
+      }
     }
   }
 
@@ -68,5 +119,44 @@ export class KnowledgeAgent extends BaseAgent {
     }
 
     return chunks;
+  }
+
+  private async fetchVectorDocs(
+    query: string,
+    limit: number,
+  ): Promise<KnowledgeDocument[]> {
+    const embedding = await this.generateEmbedding(query);
+    const embeddingString = `[${embedding.join(',')}]`;
+
+    try {
+      const results = await this.prisma.$queryRawUnsafe<
+        Array<{
+          id: string;
+          content: string;
+          metadata: Record<string, unknown> | null;
+          similarity: number;
+        }>
+      >(
+        `
+        SELECT id, content, metadata,
+               1 - (embedding <=> $1::vector) AS similarity
+        FROM "KnowledgeBase"
+        ORDER BY embedding <=> $1::vector
+        LIMIT $2
+      `,
+        embeddingString,
+        limit,
+      );
+
+      return results.map((row) => ({
+        id: row.id,
+        content: row.content,
+        metadata: row.metadata || undefined,
+        similarity: row.similarity,
+      }));
+    } catch (error) {
+      logger.error('KnowledgeAgent: pgvector query failed', { error });
+      return [];
+    }
   }
 }

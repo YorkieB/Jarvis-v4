@@ -15,10 +15,15 @@
                 <button id="enrollVoiceBtn" class="enroll-button" title="Enroll your voice">
                     🎤 Enroll Voice
                 </button>
+                <button id="continuousToggle" class="enroll-button" title="Toggle continuous conversation">
+                    🔄 Enable Continuous
+                </button>
                 <div class="status" id="connectionStatus">
                     <span class="status-dot"></span>
                     <span class="status-text">Connecting...</span>
                 </div>
+                <div id="continuousStatus" class="pill off" aria-label="Continuous mode status">Continuous: OFF</div>
+                <div id="sttStatus" class="pill" aria-label="Current STT provider">STT: Deepgram</div>
             </div>
         </header>
 
