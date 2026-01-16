@@ -206,12 +206,18 @@ describe('AudioStreamingService - barge-in and failover', () => {
     const dgOn = jest.fn();
     const deepgramConnection = { on: dgOn, send: jest.fn(), finish: jest.fn() };
     const createClient = require('@deepgram/sdk').createClient as jest.Mock;
-    createClient.mockReturnValue({ listen: { live: jest.fn(() => deepgramConnection) } });
+    createClient.mockReturnValue({
+      listen: { live: jest.fn(() => deepgramConnection) },
+    });
 
     const server = http.createServer();
     const svc = new AudioStreamingService(server as any, prismaMock) as any;
 
-    const s: any = { id: 's-early', emit: jest.fn(), data: { userId: 'user-1' } };
+    const s: any = {
+      id: 's-early',
+      emit: jest.fn(),
+      data: { userId: 'user-1' },
+    };
     // Trigger start to register handlers
     await (svc as any).handleStartStream(s);
 
@@ -232,7 +238,11 @@ describe('AudioStreamingService - barge-in and failover', () => {
   });
 
   it('blocks processing when voice verification fails', async () => {
-    const s: any = { id: 's-verify', emit: jest.fn(), data: { userId: 'user-2' } };
+    const s: any = {
+      id: 's-verify',
+      emit: jest.fn(),
+      data: { userId: 'user-2' },
+    };
     const session: any = {
       sessionId: 's-verify',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
@@ -249,7 +259,13 @@ describe('AudioStreamingService - barge-in and failover', () => {
     // Force voice auth enabled and mock verifier
     (service as any).VOICE_AUTH_ENABLED = true;
     (service as any).voiceAuth = {
-      verifyVoice: jest.fn().mockResolvedValue({ verified: false, confidence: 0.2, message: 'No match' }),
+      verifyVoice: jest
+        .fn()
+        .mockResolvedValue({
+          verified: false,
+          confidence: 0.2,
+          message: 'No match',
+        }),
     };
 
     await (service as any).processFinalTranscript({
@@ -262,7 +278,10 @@ describe('AudioStreamingService - barge-in and failover', () => {
     });
 
     // Should not proceed to conversation turn
-    expect(s.emit).toHaveBeenCalledWith('voice-verification-failed', expect.any(Object));
+    expect(s.emit).toHaveBeenCalledWith(
+      'voice-verification-failed',
+      expect.any(Object),
+    );
     // No llm-response should have been emitted
     expect(s.emit).not.toHaveBeenCalledWith('llm-response', expect.anything());
   });
@@ -271,7 +290,11 @@ describe('AudioStreamingService - barge-in and failover', () => {
     process.env.STT_FAILOVER_THRESHOLD = '3';
     const server = http.createServer();
     const svc = new AudioStreamingService(server as any, prismaMock) as any;
-    const s: any = { id: 's-thresh', emit: jest.fn(), data: { userId: 'user-1' } };
+    const s: any = {
+      id: 's-thresh',
+      emit: jest.fn(),
+      data: { userId: 'user-1' },
+    };
     const sess: any = {
       sessionId: 's-thresh',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
@@ -335,7 +358,12 @@ describe('AudioStreamingService - barge-in and failover', () => {
     const err = new Error('dg error');
     // Directly invoke the error handler registered in handleStartStream would be complex.
     // Instead, simulate what it does: emit error and call handleSttFailure.
-    (service as any).handleSttFailure(session, 'deepgram', socket, 'provider-error');
+    (service as any).handleSttFailure(
+      session,
+      'deepgram',
+      socket,
+      'provider-error',
+    );
 
     expect(spied).toHaveBeenCalled();
   });
