@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Skip auto-push during rebase, merge, or cherry-pick
+if [ -d "$(git rev-parse --git-path rebase-merge)" ] || \
+   [ -d "$(git rev-parse --git-path rebase-apply)" ] || \
+   [ -f "$(git rev-parse --git-path MERGE_HEAD)" ] || \
+   [ -f "$(git rev-parse --git-path CHERRY_PICK_HEAD)" ]; then
+  exit 0
+fi
+
+echo "🚀 Auto-pushing to remote..."
+
+# Get the current branch name
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+if [ -z "$branch" ]; then
+  echo "⚠️  Unable to determine current branch. Skipping auto-push."
+  exit 0
+fi
+
+# Push to remote
+if git push origin "$branch" --quiet 2>&1; then
+  echo "✅ Successfully pushed to origin/$branch"
+else
+  echo "⚠️  Failed to push to remote. You may need to push manually."
+  echo "   Run: git push origin $branch"
+  # Don't fail the commit even if push fails
+fi
+
+exit 0
