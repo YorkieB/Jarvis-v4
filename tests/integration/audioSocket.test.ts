@@ -1,8 +1,15 @@
-import http from 'http';
-import { AddressInfo } from 'net';
+import https from 'node:https';
+import { Server as HttpServer } from 'node:http';
+import fs from 'node:fs';
+import { AddressInfo } from 'node:net';
+import path from 'node:path';
 import { io as Client } from 'socket.io-client';
 import AudioStreamingService from '../../src/services/audioService';
+import { prisma as globalPrisma } from '../../src/utils/prisma';
+import { createClient } from '@deepgram/sdk';
 
+type PrismaClient = typeof globalPrisma;
+type StreamStartedPayload = { sessionId: string };
 // Mock external deps to avoid network calls
 jest.mock('@deepgram/sdk', () => ({
   createClient: jest.fn(() => ({
@@ -38,17 +45,18 @@ jest.mock('@elevenlabs/elevenlabs-js', () => ({
 }));
 
 describe('AudioStreamingService Socket auth integration', () => {
-  const prismaMock: any = {};
-  let server: http.Server;
+  const prismaMock: Partial<PrismaClient> = {};
+  let server: HttpServer;
   let service: AudioStreamingService;
   let baseURL: string;
   let deepgramSendMock: jest.Mock;
+  let tlsOptions: { ca: Buffer };
 
   beforeAll((done) => {
     process.env.TENANT_TOKEN = 'test-tenant';
     // capture send mock to assert audio chunk forwarding
     deepgramSendMock = jest.fn();
-    (require('@deepgram/sdk').createClient as jest.Mock).mockReturnValue({
+    jest.mocked(createClient).mockReturnValue({
       listen: {
         live: jest.fn(() => ({
           on: jest.fn(),
@@ -56,13 +64,25 @@ describe('AudioStreamingService Socket auth integration', () => {
           finish: jest.fn(),
         })),
       },
-    });
+    } as unknown as ReturnType<typeof createClient>);
 
-    server = http.createServer();
-    service = new AudioStreamingService(server as any, prismaMock) as any;
+    const key = fs.readFileSync(
+      path.resolve(__dirname, '../../certs/server.key'),
+    );
+    const cert = fs.readFileSync(
+      path.resolve(__dirname, '../../certs/server.crt'),
+    );
+    tlsOptions = { ca: cert };
+    server = https.createServer({ key, cert });
+    // Service instantiation sets up Socket.IO handlers on the server
+    service = new AudioStreamingService(
+      server as HttpServer,
+      prismaMock as PrismaClient,
+    );
+    expect(service).toBeInstanceOf(AudioStreamingService);
     server.listen(() => {
       const { port } = server.address() as AddressInfo;
-      baseURL = `http://localhost:${port}`;
+      baseURL = `https://localhost:${port}`;
       done();
     });
   });
@@ -75,8 +95,9 @@ describe('AudioStreamingService Socket auth integration', () => {
     const client = Client(baseURL, {
       transports: ['websocket'],
       auth: { userId: 'user-1' },
+      transportOptions: { websocket: tlsOptions },
     });
-    client.on('connect_error', (err: any) => {
+    client.on('connect_error', (err: Error) => {
       expect(err.message).toMatch(/invalid tenant token/i);
       client.close();
       done();
@@ -87,6 +108,7 @@ describe('AudioStreamingService Socket auth integration', () => {
     const client = Client(baseURL, {
       transports: ['websocket'],
       auth: { tenantToken: 'test-tenant', userId: 'user-1' },
+      transportOptions: { websocket: tlsOptions },
       timeout: 2000,
     });
 
@@ -94,19 +116,19 @@ describe('AudioStreamingService Socket auth integration', () => {
       client.emit('start-audio-stream');
     });
 
-    client.on('stream-started', (data: any) => {
+    client.on('stream-started', (data: StreamStartedPayload) => {
       expect(data).toHaveProperty('sessionId');
       client.close();
       done();
     });
 
-    client.on('error', (err: any) => {
+    client.on('error', (err: Error) => {
       // Fail fast if server emits error
       client.close();
       done(err);
     });
 
-    client.on('connect_error', (err: any) => {
+    client.on('connect_error', (err: Error) => {
       client.close();
       done(err);
     });
@@ -117,6 +139,7 @@ describe('AudioStreamingService Socket auth integration', () => {
     const client = Client(baseURL, {
       transports: ['websocket'],
       auth: { tenantToken: 'test-tenant', userId: 'user-2' },
+      transportOptions: { websocket: tlsOptions },
       timeout: 2000,
     });
 
@@ -134,12 +157,12 @@ describe('AudioStreamingService Socket auth integration', () => {
       }, 50);
     });
 
-    client.on('connect_error', (err: any) => {
+    client.on('connect_error', (err: Error) => {
       client.close();
       done(err);
     });
 
-    client.on('error', (err: any) => {
+    client.on('error', (err: Error) => {
       client.close();
       done(err);
     });

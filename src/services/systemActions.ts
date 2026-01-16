@@ -1,9 +1,8 @@
-import os from 'os';
-import fs from 'fs/promises';
-import path from 'path';
-import net from 'net';
+import os from 'node:os';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import net from 'node:net';
 import { SystemExecutor } from './systemExecutor';
-import logger from '../utils/logger';
 
 interface RegistryOptions {
   path: string;
@@ -12,7 +11,7 @@ interface RegistryOptions {
 }
 
 export class SystemActions {
-  private executor: SystemExecutor;
+  private readonly executor: SystemExecutor;
 
   constructor(executor?: SystemExecutor) {
     this.executor = executor || new SystemExecutor();

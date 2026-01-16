@@ -1,6 +1,27 @@
 import { CheckpointAdapter } from '../../src/services/langgraph/checkpointAdapter';
+import { prisma as globalPrisma } from '../../src/utils/prisma';
 
-class FakePrisma {
+type PrismaClient = typeof globalPrisma;
+
+interface MockPrismaClient {
+  graphCheckpoint: {
+    create: (args: {
+      data: { graphId: string; nodeId: string; state: unknown; runId?: string };
+    }) => Promise<void>;
+    findFirst: (args: {
+      where: { graphId: string; runId?: string };
+      orderBy?: { timestamp: 'desc' };
+    }) => Promise<{
+      graphId: string;
+      nodeId: string;
+      state: unknown;
+      runId?: string;
+      timestamp: Date;
+    } | null>;
+  };
+}
+
+class FakePrisma implements MockPrismaClient {
   records: Array<{
     graphId: string;
     nodeId: string;
@@ -20,8 +41,10 @@ class FakePrisma {
     },
     findFirst: async ({
       where,
+      orderBy: _orderBy,
     }: {
       where: { graphId: string; runId?: string };
+      orderBy?: { timestamp: 'desc' };
     }) => {
       const filtered = this.records.filter(
         (r) =>
@@ -39,7 +62,7 @@ class FakePrisma {
 describe('CheckpointAdapter', () => {
   it('loads latest checkpoint scoped by runId', async () => {
     const prisma = new FakePrisma();
-    const adapter = new CheckpointAdapter(prisma as any);
+    const adapter = new CheckpointAdapter(prisma as unknown as PrismaClient);
 
     await adapter.save('graph-1', 'node-a', { step: 1 }, 'run-A');
     await adapter.save('graph-1', 'node-b', { step: 2 }, 'run-A');

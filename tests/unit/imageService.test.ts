@@ -28,8 +28,7 @@ describe('ImageService', () => {
       image: 'https://img',
     });
     const mockFetch = jest.fn().mockResolvedValue({ ok: true, json: mockJson });
-    // @ts-expect-error test override
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     await svc.generate({ prompt: 'a cat', style: 'dreamy', seed: 123 });
 

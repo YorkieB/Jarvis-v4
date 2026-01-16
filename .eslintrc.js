@@ -12,6 +12,7 @@ module.exports = {
     node: true,
     es2022: true,
   },
+  ignorePatterns: ['public/**', 'dist/**', 'node_modules/**'],
   rules: {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',

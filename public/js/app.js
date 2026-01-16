@@ -4,22 +4,21 @@
  */
 
 class JarvisApp {
+  socket = null;
+  isRecording = false;
+  mediaRecorder = null;
+  audioChunks = [];
+  recognition = null;
+  isConnected = false;
+  enrollmentSamples = [];
+  currentSampleIndex = 0;
+  totalSamples = 3;
+  enrollmentRecorder = null;
+  isEnrolling = false;
+
   constructor() {
-    this.socket = null;
-    this.isRecording = false;
-    this.mediaRecorder = null;
-    this.audioChunks = [];
-    this.recognition = null;
-    this.isConnected = false;
     this.userId = localStorage.getItem('jarvis_userId') || null;
     this.continuousMode = localStorage.getItem('jarvis_continuous') === 'true';
-
-    // Voice enrollment state
-    this.enrollmentSamples = [];
-    this.currentSampleIndex = 0;
-    this.totalSamples = 3;
-    this.enrollmentRecorder = null;
-    this.isEnrolling = false;
 
     // DOM elements
     this.messagesContainer = document.getElementById('messages');
@@ -375,7 +374,7 @@ class JarvisApp {
       // Add remove handlers
       samplesContainer.querySelectorAll('.remove-sample').forEach((btn) => {
         btn.addEventListener('click', (e) => {
-          const index = parseInt(e.target.dataset.index);
+          const index = Number.parseInt(e.target.dataset.index, 10);
           this.enrollmentSamples.splice(index, 1);
           this.updateEnrollmentUI();
         });
@@ -513,9 +512,9 @@ class JarvisApp {
 
   setupSpeechRecognition() {
     // Check if Web Speech API is available
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    if ('webkitSpeechRecognition' in globalThis || 'SpeechRecognition' in globalThis) {
       const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
+        globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
       this.recognition = new SpeechRecognition();
       this.recognition.continuous = false;
       this.recognition.interimResults = false;
@@ -673,18 +672,14 @@ class JarvisApp {
     }
   }
 
-  sendAudioChunk(audioBlob) {
+  async sendAudioChunk(audioBlob) {
     if (!this.isConnected) return;
 
     // Convert blob to ArrayBuffer for transmission
     // The backend expects Buffer | ArrayBuffer directly
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const arrayBuffer = reader.result;
-      // Send ArrayBuffer directly (Socket.IO will handle binary data)
-      this.socket.emit('audio-chunk', arrayBuffer);
-    };
-    reader.readAsArrayBuffer(audioBlob);
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    // Send ArrayBuffer directly (Socket.IO will handle binary data)
+    this.socket.emit('audio-chunk', arrayBuffer);
   }
 
   playAudioChunk(audioData) {
@@ -747,8 +742,12 @@ class JarvisApp {
 // Initialize app when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    new JarvisApp();
+    const app = new JarvisApp();
+    // Store app instance for potential future use (e.g., cleanup, debugging)
+    globalThis.jarvisApp = app;
   });
 } else {
-  new JarvisApp();
+  const app = new JarvisApp();
+  // Store app instance for potential future use (e.g., cleanup, debugging)
+  globalThis.jarvisApp = app;
 }

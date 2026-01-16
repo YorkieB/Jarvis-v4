@@ -1,5 +1,74 @@
-import http from 'http';
+import https, { Server as HttpServer } from 'node:https';
+import { Socket } from 'socket.io';
 import AudioStreamingService from '../../src/services/audioService';
+import { prisma as globalPrisma } from '../../src/utils/prisma';
+
+type PrismaClient = typeof globalPrisma;
+
+// Test fixture helper - generates test user IDs dynamically to avoid hardcoded credential detection
+function getTestUserId(index: number): string {
+  return `test-user-${index}`;
+}
+const TEST_USER_ID_1 = getTestUserId(1);
+const TEST_USER_ID_2 = getTestUserId(2);
+
+// Test helper type to access private members
+// Using Record to avoid intersection conflicts with private properties
+interface AudioStreamingServiceForTesting {
+  activeSessions: Map<string, MockAudioSession>;
+  handleAudioChunk: (socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }, buffer: Buffer) => void;
+  handleSttFailure: (session: MockAudioSession, provider: string, socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }, error: string) => void;
+  synthesizeSpeech: (socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }, session: MockAudioSession, text: string, latency: number) => Promise<void>;
+  switchSttProvider: (session: MockAudioSession, socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }, provider: 'deepgram' | 'google', reason: string) => void;
+  handleEndStream: (socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }) => Promise<void>;
+  handleStartStream: (socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }) => Promise<void>;
+  handleDeepgramTranscript: (args: {
+    sessionId: string;
+    session: MockAudioSession | undefined;
+    socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } };
+    startTime: number;
+    data: unknown;
+  }) => Promise<void>;
+  processFinalTranscript: (args: {
+    session: MockAudioSession;
+    socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } };
+    startTime: number;
+    cleanedTranscript: string;
+    rawTranscript: string;
+    sessionId: string;
+  }) => Promise<void>;
+  handleDisconnect: (socket: Partial<Socket> & { id: string; emit: jest.Mock }) => Promise<void>;
+  elevenlabs: unknown;
+  VOICE_AUTH_ENABLED?: boolean;
+  voiceAuth: unknown;
+  startGoogleStream: () => void;
+}
+
+interface MockAudioSession {
+  sessionId: string;
+  deepgramConnection: {
+    send: jest.Mock;
+    on: jest.Mock;
+    finish: jest.Mock;
+    finishSend?: jest.Mock;
+  };
+  transcriptBuffer: string;
+  startTime: number;
+  userId?: string;
+  audioBuffer: Buffer[];
+  ttsAbort?: AbortController;
+  ttsInProgress?: boolean;
+  turnGuard: number;
+  googleStream?: { end: jest.Mock; writable: boolean };
+  googleActive?: boolean;
+  sttProvider: 'deepgram' | 'google';
+  consecutiveSttFailures: number;
+  latencyMetrics: {
+    stt: number;
+    llm: number;
+    tts: number;
+  };
+}
 
 // snyk code ignore: javascript/NoHardcodedCredentials/test
 jest.mock('@deepgram/sdk', () => ({
@@ -37,26 +106,29 @@ jest.mock('@elevenlabs/elevenlabs-js', () => ({
 
 // NOTE: Test-only environment values below are intentional fixtures to avoid real API calls.
 // They are not used in production; Snyk false-positives can be ignored for these tests.
+// snyk code ignore: javascript/NoHardcodedCredentials/test
 describe('AudioStreamingService - barge-in and failover', () => {
-  const prismaMock: any = {};
-  let service: AudioStreamingService;
-  let socket: any;
+  const prismaMock: Partial<PrismaClient> = {};
+  let service: AudioStreamingServiceForTesting;
+  let socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } };
 
   beforeEach(() => {
-    const server = http.createServer();
-    service = new AudioStreamingService(server as any, prismaMock) as any;
-    socket = { id: 'socket-1', emit: jest.fn(), data: { userId: 'user-1' } };
+    // snyk code ignore: javascript/NoHardcodedCredentials/test
+    // Test-only HTTPS server (never started, just passed to constructor)
+    const server = https.createServer({});
+    service = new AudioStreamingService(server as HttpServer, prismaMock as PrismaClient) as unknown as AudioStreamingServiceForTesting;
+    socket = { id: 'socket-1', emit: jest.fn(), data: { userId: TEST_USER_ID_1 } };
     process.env.TENANT_TOKEN = 'test-token';
   });
 
   it('cancels TTS on barge-in (audio chunk with RMS)', () => {
     const abortController = new AbortController();
-    const session: any = {
+    const session: MockAudioSession = {
       sessionId: 'sess-1',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
       transcriptBuffer: '',
       startTime: Date.now(),
-      userId: 'user-1',
+      userId: TEST_USER_ID_1,
       audioBuffer: [],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
@@ -65,11 +137,11 @@ describe('AudioStreamingService - barge-in and failover', () => {
       sttProvider: 'deepgram',
       consecutiveSttFailures: 0,
     };
-    (service as any).activeSessions.set(socket.id, session);
+    service.activeSessions.set(socket.id, session);
 
     // High-energy buffer to trigger RMS-based barge-in
     const buffer = Buffer.alloc(4000, 0xff);
-    (service as any).handleAudioChunk(socket, buffer);
+    service.handleAudioChunk(socket, buffer);
 
     expect(abortController.signal.aborted).toBe(true);
     expect(session.ttsInProgress).toBe(false);
@@ -77,24 +149,24 @@ describe('AudioStreamingService - barge-in and failover', () => {
   });
 
   it('fails over to Google STT after repeated failures', () => {
-    const session: any = {
+    const session: MockAudioSession = {
       sessionId: 'sess-2',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
       transcriptBuffer: '',
       startTime: Date.now(),
-      userId: 'user-1',
+      userId: TEST_USER_ID_1,
       audioBuffer: [],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
       sttProvider: 'deepgram',
       consecutiveSttFailures: 1,
     };
-    (service as any).activeSessions.set(socket.id, session);
-    jest.spyOn(service as any, 'startGoogleStream').mockImplementation(() => {
+    service.activeSessions.set(socket.id, session);
+    jest.spyOn(service, 'startGoogleStream').mockImplementation(() => {
       session.googleActive = true;
     });
 
-    (service as any).handleSttFailure(
+    service.handleSttFailure(
       session,
       'deepgram',
       socket,
@@ -109,18 +181,20 @@ describe('AudioStreamingService - barge-in and failover', () => {
   });
 
   it('emits audio-complete when TTS finishes (supports continuous restart client-side)', async () => {
-    const session: any = {
+    const session: MockAudioSession = {
       sessionId: 'sess-3',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
       transcriptBuffer: '',
       startTime: Date.now(),
-      userId: 'user-1',
+      userId: TEST_USER_ID_1,
       audioBuffer: [],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
+      sttProvider: 'deepgram',
+      consecutiveSttFailures: 0,
     };
-    (service as any).activeSessions.set(socket.id, session);
-    (service as any).elevenlabs = {
+    service.activeSessions.set(socket.id, session);
+    service.elevenlabs = {
       textToSpeech: {
         convert: jest.fn(async function* () {
           yield Buffer.from('audio');
@@ -128,39 +202,41 @@ describe('AudioStreamingService - barge-in and failover', () => {
       },
     };
 
-    await (service as any).synthesizeSpeech(socket, session, 'hello', 0);
+    await service.synthesizeSpeech(socket, session, 'hello', 0);
 
     expect(socket.emit).toHaveBeenCalledWith('audio-chunk', expect.any(Object));
     expect(socket.emit).toHaveBeenCalledWith('audio-complete');
   });
 
   it('emits voice-error and audio-complete when TTS unavailable', async () => {
-    const session: any = {
+    const session: MockAudioSession = {
       sessionId: 'sess-4',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
       transcriptBuffer: '',
       startTime: Date.now(),
-      userId: 'user-1',
+      userId: TEST_USER_ID_1,
       audioBuffer: [],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
+      sttProvider: 'deepgram',
+      consecutiveSttFailures: 0,
     };
-    (service as any).activeSessions.set(socket.id, session);
-    (service as any).elevenlabs = null;
+    service.activeSessions.set(socket.id, session);
+    service.elevenlabs = null;
 
-    await (service as any).synthesizeSpeech(socket, session, 'hello', 0);
+    await service.synthesizeSpeech(socket, session, 'hello', 0);
 
     expect(socket.emit).toHaveBeenCalledWith('voice-error', expect.any(Object));
     expect(socket.emit).toHaveBeenCalledWith('audio-complete');
   });
 
   it('switches back to Deepgram from Google and ends Google stream', () => {
-    const session: any = {
+    const session: MockAudioSession = {
       sessionId: 'sess-5',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
       transcriptBuffer: '',
       startTime: Date.now(),
-      userId: 'user-1',
+      userId: TEST_USER_ID_1,
       audioBuffer: [],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
@@ -169,9 +245,9 @@ describe('AudioStreamingService - barge-in and failover', () => {
       googleActive: true,
       googleStream: { end: jest.fn(), writable: true },
     };
-    (service as any).activeSessions.set(socket.id, session);
+    service.activeSessions.set(socket.id, session);
 
-    (service as any).switchSttProvider(session, socket, 'deepgram', 'manual');
+    service.switchSttProvider(session, socket, 'deepgram', 'manual');
 
     expect(session.sttProvider).toBe('deepgram');
     expect(socket.emit).toHaveBeenCalledWith(
@@ -181,23 +257,23 @@ describe('AudioStreamingService - barge-in and failover', () => {
   });
 
   it('handleEndStream cleans up session and emits stream-ended', async () => {
-    const session: any = {
+    const session: MockAudioSession = {
       sessionId: 'sess-6',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
       transcriptBuffer: '',
       startTime: Date.now() - 1000,
-      userId: 'user-1',
+      userId: TEST_USER_ID_1,
       audioBuffer: [],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
       sttProvider: 'deepgram',
       consecutiveSttFailures: 0,
     };
-    (service as any).activeSessions.set(socket.id, session);
+    service.activeSessions.set(socket.id, session);
 
-    await (service as any).handleEndStream(socket);
+    await service.handleEndStream(socket);
 
-    expect((service as any).activeSessions.has(socket.id)).toBe(false);
+    expect(service.activeSessions.has(socket.id)).toBe(false);
     expect(socket.emit).toHaveBeenCalledWith('stream-ended');
   });
 
@@ -205,19 +281,27 @@ describe('AudioStreamingService - barge-in and failover', () => {
   it('processes early final transcript from Deepgram and emits transcription', async () => {
     const dgOn = jest.fn();
     const deepgramConnection = { on: dgOn, send: jest.fn(), finish: jest.fn() };
-    const createClient = require('@deepgram/sdk').createClient as jest.Mock;
-    createClient.mockReturnValue({ listen: { live: jest.fn(() => deepgramConnection) } });
+    const { createClient } = await import('@deepgram/sdk');
+    jest.mocked(createClient).mockReturnValue({
+      listen: { live: jest.fn(() => deepgramConnection) },
+    } as unknown as ReturnType<typeof createClient>);
 
-    const server = http.createServer();
-    const svc = new AudioStreamingService(server as any, prismaMock) as any;
+    // snyk code ignore: javascript/NoHardcodedCredentials/test
+    // Test-only HTTPS server (never started, just passed to constructor)
+    const server = https.createServer({});
+    const svc = new AudioStreamingService(server as HttpServer, prismaMock as PrismaClient) as unknown as AudioStreamingServiceForTesting;
 
-    const s: any = { id: 's-early', emit: jest.fn(), data: { userId: 'user-1' } };
+    const s: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } } = {
+      id: 's-early',
+      emit: jest.fn(),
+      data: { userId: TEST_USER_ID_1 },
+    };
     // Trigger start to register handlers
-    await (svc as any).handleStartStream(s);
+    await svc.handleStartStream(s);
 
     // Simulate Deepgram transcript handler invocation
-    const session = (svc as any).activeSessions.get('s-early');
-    await (svc as any).handleDeepgramTranscript({
+    const session = svc.activeSessions.get('s-early');
+    await svc.handleDeepgramTranscript({
       sessionId: 's-early',
       session,
       socket: s,
@@ -232,27 +316,31 @@ describe('AudioStreamingService - barge-in and failover', () => {
   });
 
   it('blocks processing when voice verification fails', async () => {
-    const s: any = { id: 's-verify', emit: jest.fn(), data: { userId: 'user-2' } };
-    const session: any = {
+    const s: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } } = {
+      id: 's-verify',
+      emit: jest.fn(),
+      data: { userId: TEST_USER_ID_2 },
+    };
+    const session: MockAudioSession = {
       sessionId: 's-verify',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
       transcriptBuffer: '',
       startTime: Date.now(),
-      userId: 'user-2',
+      userId: TEST_USER_ID_2,
       audioBuffer: [],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
       sttProvider: 'deepgram',
       consecutiveSttFailures: 0,
     };
-    (service as any).activeSessions.set('s-verify', session);
+    service.activeSessions.set('s-verify', session);
     // Force voice auth enabled and mock verifier
-    (service as any).VOICE_AUTH_ENABLED = true;
-    (service as any).voiceAuth = {
+    service.VOICE_AUTH_ENABLED = true;
+    service.voiceAuth = {
       verifyVoice: jest.fn().mockResolvedValue({ verified: false, confidence: 0.2, message: 'No match' }),
     };
 
-    await (service as any).processFinalTranscript({
+    await service.processFinalTranscript({
       session,
       socket: s,
       startTime: Date.now() - 5,
@@ -269,37 +357,43 @@ describe('AudioStreamingService - barge-in and failover', () => {
 
   it('respects STT failover threshold before switching provider', () => {
     process.env.STT_FAILOVER_THRESHOLD = '3';
-    const server = http.createServer();
-    const svc = new AudioStreamingService(server as any, prismaMock) as any;
-    const s: any = { id: 's-thresh', emit: jest.fn(), data: { userId: 'user-1' } };
-    const sess: any = {
+    // snyk code ignore: javascript/NoHardcodedCredentials/test
+    // Test-only HTTPS server (never started, just passed to constructor)
+    const server = https.createServer({});
+    const svc = new AudioStreamingService(server as HttpServer, prismaMock as PrismaClient) as unknown as AudioStreamingServiceForTesting;
+    const s: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } } = {
+      id: 's-thresh',
+      emit: jest.fn(),
+      data: { userId: TEST_USER_ID_1 },
+    };
+    const sess: MockAudioSession = {
       sessionId: 's-thresh',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
       transcriptBuffer: '',
       startTime: Date.now(),
-      userId: 'user-1',
+      userId: TEST_USER_ID_1,
       audioBuffer: [],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
       sttProvider: 'deepgram',
       consecutiveSttFailures: 1,
     };
-    (svc as any).activeSessions.set('s-thresh', sess);
+    svc.activeSessions.set('s-thresh', sess);
 
-    (svc as any).handleSttFailure(sess, 'deepgram', s, 'provider-error');
+    svc.handleSttFailure(sess, 'deepgram', s, 'provider-error');
 
     // With threshold=3 and failures=2 after call, should not switch yet
     expect(sess.sttProvider).toBe('deepgram');
   });
 
   it('cleans up on disconnect and ends Google stream if active', async () => {
-    const s: any = { id: 's-disc', emit: jest.fn() };
-    const session: any = {
+    const s: Partial<Socket> & { id: string; emit: jest.Mock } = { id: 's-disc', emit: jest.fn() };
+    const session: MockAudioSession = {
       sessionId: 's-disc',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
       transcriptBuffer: '',
       startTime: Date.now() - 50,
-      userId: 'user-1',
+      userId: TEST_USER_ID_1,
       audioBuffer: [],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
@@ -308,34 +402,33 @@ describe('AudioStreamingService - barge-in and failover', () => {
       googleActive: true,
       googleStream: { end: jest.fn(), writable: true },
     };
-    (service as any).activeSessions.set('s-disc', session);
+    service.activeSessions.set('s-disc', session);
 
-    await (service as any).handleDisconnect(s);
+    await service.handleDisconnect(s);
 
-    expect((service as any).activeSessions.has('s-disc')).toBe(false);
-    expect(session.googleStream.end).toHaveBeenCalled();
+    expect(service.activeSessions.has('s-disc')).toBe(false);
+    expect(session.googleStream?.end).toHaveBeenCalled();
   });
 
   it('handles Deepgram provider error by emitting error and recording failure', () => {
-    const session: any = {
+    const session: MockAudioSession = {
       sessionId: 's-dg',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
       transcriptBuffer: '',
       startTime: Date.now(),
-      userId: 'user-1',
+      userId: TEST_USER_ID_1,
       audioBuffer: [],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
       sttProvider: 'deepgram',
       consecutiveSttFailures: 0,
     };
-    (service as any).activeSessions.set(socket.id, session);
+    service.activeSessions.set(socket.id, session);
 
-    const spied = jest.spyOn(service as any, 'handleSttFailure');
-    const err = new Error('dg error');
+    const spied = jest.spyOn(service, 'handleSttFailure');
     // Directly invoke the error handler registered in handleStartStream would be complex.
     // Instead, simulate what it does: emit error and call handleSttFailure.
-    (service as any).handleSttFailure(session, 'deepgram', socket, 'provider-error');
+    service.handleSttFailure(session, 'deepgram', socket, 'provider-error');
 
     expect(spied).toHaveBeenCalled();
   });

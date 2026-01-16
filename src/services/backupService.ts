@@ -4,13 +4,13 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 import logger from '../utils/logger';
 import { metrics } from '../utils/metrics';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 
 const execAsync = promisify(exec);
 
@@ -22,8 +22,8 @@ interface BackupInfo {
 }
 
 class BackupService {
-  private prisma: PrismaClient;
-  private backupDir: string;
+  private readonly prisma: PrismaClient;
+  private readonly backupDir: string;
   private readonly DEFAULT_BACKUP_DIR = '/var/backups/jarvis';
   private readonly RETENTION_DAYS = 30;
 
@@ -44,7 +44,7 @@ class BackupService {
    */
   private generateBackupFilename(): string {
     const now = new Date();
-    const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const timestamp = now.toISOString().replaceAll(/[:.]/g, '-').slice(0, -5);
     return `jarvis-backup-${timestamp}.sql.gz`;
   }
 
@@ -94,7 +94,7 @@ class BackupService {
 
       logger.info('Starting database backup', { backupPath });
 
-      const { stdout, stderr } = await execAsync(command, { env });
+      const { stderr } = await execAsync(command, { env });
 
       if (stderr && !stderr.includes('WARNING')) {
         throw new Error(`pg_dump error: ${stderr}`);
@@ -370,7 +370,7 @@ class BackupService {
         database: dbName,
       });
 
-      const { stdout, stderr } = await execAsync(command, { env });
+      const { stderr } = await execAsync(command, { env });
 
       if (stderr && !stderr.includes('WARNING')) {
         throw new Error(`pg_restore error: ${stderr}`);

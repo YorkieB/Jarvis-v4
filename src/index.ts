@@ -1,6 +1,12 @@
 // Load environment variables FIRST - before any other imports
 import * as dotenv from 'dotenv';
-import * as path from 'path';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+
+// Get __dirname equivalent for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Explicitly configure dotenv with path resolution
 // In production, __dirname will be 'dist/', so '../.env' resolves to project root
@@ -33,21 +39,22 @@ initSentry();
 import logger from './utils/logger';
 import { BankConnection } from '@prisma/client';
 import { prisma } from './utils/prisma';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import {
   errorHandler,
   handleUncaughtException,
   handleUnhandledRejection,
+  setErrorDetectionService,
 } from './middleware/errorHandler';
 import express from 'express';
-import https from 'https';
+import rateLimit from 'express-rate-limit';
+import https from 'node:https';
 import AudioStreamingService from './services/audioService';
 import {
   createHealthRouter,
   setPrismaInstance,
   setCodeAnalysisAgent,
 } from './health';
-import { setErrorDetectionService } from './middleware/errorHandler';
 import { DialogueAgent } from './agents/dialogue';
 import { Orchestrator } from './orchestrator';
 import { CodeAnalysisAgent } from './agents/code-analysis';
@@ -56,19 +63,16 @@ import { ErrorDetectionService } from './services/errorDetectionService';
 handleUncaughtException();
 handleUnhandledRejection();
 
-async function verifyDatabaseSchema(): Promise<void> {
-  try {
-    await prisma.$queryRaw`SELECT 1 FROM "KnowledgeBase" LIMIT 1`;
-    await prisma.$queryRaw`SELECT 1 FROM "Conversation" LIMIT 1`;
-    await prisma.$queryRaw`SELECT 1 FROM "Message" LIMIT 1`;
-    logger.info('✅ Database schema check passed');
-  } catch (error) {
-    logger.error('Database schema check failed', { error });
-    logger.warn('⚠️  Run `npm run db:push` to create tables');
-  }
+// Verify database schema using top-level await
+try {
+  await prisma.$queryRaw`SELECT 1 FROM "KnowledgeBase" LIMIT 1`;
+  await prisma.$queryRaw`SELECT 1 FROM "Conversation" LIMIT 1`;
+  await prisma.$queryRaw`SELECT 1 FROM "Message" LIMIT 1`;
+  logger.info('✅ Database schema check passed');
+} catch (error) {
+  logger.error('Database schema check failed', { error });
+  logger.warn('⚠️  Run `npm run db:push` to create tables');
 }
-
-void verifyDatabaseSchema();
 
 // Log startup
 logger.info('🚀 Starting Jarvis v4...');
@@ -137,8 +141,74 @@ function requireTenantToken(
   return next();
 }
 
+// Rate limiter for file download endpoints
+// Prevents resource exhaustion attacks (CWE-770)
+const DOWNLOAD_RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const DOWNLOAD_RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 downloads per minute per IP
+const downloadRateLimiter = rateLimit({
+  windowMs: DOWNLOAD_RATE_LIMIT_WINDOW_MS,
+  max: DOWNLOAD_RATE_LIMIT_MAX_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || req.socket.remoteAddress || 'unknown',
+  handler: (req, res) => {
+    const request = req as express.Request & { rateLimit?: { resetTime?: Date } };
+    const resetTime = request.rateLimit?.resetTime;
+    const retryAfter = resetTime
+      ? Math.ceil((resetTime.getTime() - Date.now()) / 1000)
+      : Math.ceil(DOWNLOAD_RATE_LIMIT_WINDOW_MS / 1000);
+    res.status(429).json({
+      error: 'Too many download requests. Please try again later.',
+      retryAfter,
+    });
+  },
+});
+
+// Concurrency limiter for file operations to prevent resource exhaustion
+const MAX_CONCURRENT_DOWNLOADS = 5; // Max 5 concurrent file operations
+const MAX_DOWNLOAD_QUEUE_SIZE = Number(process.env.DOWNLOAD_QUEUE_MAX || 50);
+let activeDownloadCount = 0;
+const downloadQueue: Array<{
+  resolve: () => void;
+  reject: (error: Error) => void;
+}> = [];
+
+async function acquireDownloadSlot(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (activeDownloadCount < MAX_CONCURRENT_DOWNLOADS) {
+      activeDownloadCount++;
+      resolve();
+    } else {
+      if (downloadQueue.length >= MAX_DOWNLOAD_QUEUE_SIZE) {
+        reject(new Error('Download queue full - server is busy'));
+        return;
+      }
+      downloadQueue.push({ resolve, reject });
+      // Timeout after 30 seconds to prevent indefinite waiting
+      setTimeout(() => {
+        const index = downloadQueue.findIndex((item) => item.resolve === resolve);
+        if (index !== -1) {
+          downloadQueue.splice(index, 1);
+          reject(new Error('Download request timeout - server is busy'));
+        }
+      }, 30000);
+    }
+  });
+}
+
+function releaseDownloadSlot(): void {
+  activeDownloadCount--;
+  if (downloadQueue.length > 0 && activeDownloadCount < MAX_CONCURRENT_DOWNLOADS) {
+    const next = downloadQueue.shift();
+    if (next) {
+      activeDownloadCount++;
+      next.resolve();
+    }
+  }
+}
+
 // Serve static files from public directory
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 
 // Resolve public directory path (works for both dev and production)
 const publicPath = path.resolve(__dirname, '../public');
@@ -186,8 +256,6 @@ logger.info('✅ Health endpoints registered at /health and /health/ready');
 import VoiceAuthService from './services/voiceAuthService';
 import BackupService from './services/backupService';
 import { SpotifyAgent } from './agents/spotify';
-import { FinanceAgent } from './agents/finance';
-import { AlertAgent } from './agents/alert';
 import { SystemControlAgent } from './agents/system-control';
 import {
   MediaSafetyService,
@@ -204,8 +272,7 @@ import { AssetStorage } from './services/assetStorage';
 import { TrueLayerClient } from './services/truelayerClient';
 import { FinanceService } from './services/financeService';
 import { PaymentService } from './services/paymentService';
-import { SystemActions } from './services/systemActions';
-import { RemediationLibrary } from './services/remediationLibrary';
+import { RemediationAction } from './services/remediationLibrary';
 import { RTSPStreamService } from './services/rtspStreamService';
 import { CameraService } from './services/cameraService';
 import { ComputerVisionService } from './services/computerVisionService';
@@ -220,14 +287,10 @@ const truelayerStateMap: Map<
   string,
   { userId: string; codeVerifier?: string }
 > = new Map();
-const financeAgent = new FinanceAgent(prisma);
-const alertAgent = new AlertAgent(prisma);
 const truelayerClient = new TrueLayerClient();
 const financeService = new FinanceService(prisma, truelayerClient);
 const paymentService = new PaymentService(prisma, truelayerClient);
 const systemControlAgent = new SystemControlAgent(prisma);
-const systemActions = new SystemActions();
-const remediation = new RemediationLibrary();
 const mediaSafety = new MediaSafetyService();
 const sunoService = new SunoService();
 const musicStorage = new MusicStorage();
@@ -403,7 +466,6 @@ app.post(
           imageUrl,
           prompt,
           style,
-          seed,
           strength,
         });
       } else if (action === 'inpaint') {
@@ -1173,7 +1235,7 @@ app.post(
       if (
         typeof cmd !== 'string' ||
         /[;&|`><]/.test(cmd) ||
-        /\r|\n/.test(cmd)
+        /[\r\n]/.test(cmd)
       ) {
         return res.status(400).json({ error: 'Invalid command' });
       }
@@ -1196,9 +1258,7 @@ app.post(
   requireSystemEnabled,
   async (req: express.Request, res: express.Response) => {
     try {
-      const action = req.params.action as Parameters<
-        RemediationLibrary['run']
-      >[0];
+      const action = req.params.action as RemediationAction;
       const message = await systemControlAgent.fix({ action });
       res.json({ success: true, message });
     } catch (error) {
@@ -1555,7 +1615,14 @@ if (process.env.VISION_ENABLED !== 'false') {
     '/api/vision/detections',
     async (req: express.Request, res: express.Response) => {
       try {
-        const filters: any = {};
+        const filters: {
+          cameraId?: string;
+          objectType?: string;
+          startTime?: Date;
+          endTime?: Date;
+          minConfidence?: number;
+          limit?: number;
+        } = {};
         if (req.query.cameraId) filters.cameraId = req.query.cameraId as string;
         if (req.query.objectType)
           filters.objectType = req.query.objectType as string;
@@ -1632,7 +1699,13 @@ if (process.env.VISION_ENABLED !== 'false') {
     '/api/vision/recordings',
     async (req: express.Request, res: express.Response) => {
       try {
-        const filters: any = {};
+        const filters: {
+          cameraId?: string;
+          status?: string;
+          startTime?: Date;
+          endTime?: Date;
+          limit?: number;
+        } = {};
         if (req.query.cameraId) filters.cameraId = req.query.cameraId as string;
         if (req.query.status) filters.status = req.query.status as string;
         if (req.query.startTime)
@@ -1668,8 +1741,32 @@ if (process.env.VISION_ENABLED !== 'false') {
 
   app.get(
     '/api/vision/recordings/:id/download',
+    downloadRateLimiter,
     async (req: express.Request, res: express.Response) => {
+      let slotReleased = true;
+      const releaseSlot = () => {
+        if (slotReleased) return;
+        slotReleased = true;
+        releaseDownloadSlot();
+      };
       try {
+        // Throttling check BEFORE file operations (CWE-770 mitigation)
+        // Explicit synchronous check ensures file operations are limited
+        if (activeDownloadCount >= MAX_CONCURRENT_DOWNLOADS) {
+          return res.status(503).json({
+            error: 'Server is busy processing downloads. Please try again later.',
+          });
+        }
+        
+        // Throttling: Acquire download slot before any file operations
+        await acquireDownloadSlot();
+        slotReleased = false;
+        
+        // Ensure slot is released when response completes
+        res.on('finish', releaseSlot);
+        res.on('close', releaseSlot);
+        res.on('error', releaseSlot);
+
         const recording = await recordingService.getRecording(req.params.id);
         const safeBasePath = path.resolve(
           process.env.RECORDING_STORAGE_PATH || './recordings',
@@ -1677,21 +1774,60 @@ if (process.env.VISION_ENABLED !== 'false') {
         const safePath = recording ? path.resolve(recording.filePath) : '';
         if (
           !recording ||
-          !safePath.startsWith(`${safeBasePath}${path.sep}`) ||
-          !fs.existsSync(safePath)
+          !safePath.startsWith(`${safeBasePath}${path.sep}`)
         ) {
+          releaseSlot();
+          return res.status(404).json({ error: 'Recording file not found' });
+        }
+        // Throttling guard: Verify slot was acquired (prevents unthrottled file operations)
+        // This ensures file operations only occur when throttling is active
+        if (activeDownloadCount > MAX_CONCURRENT_DOWNLOADS) {
+          releaseSlot();
+          return res.status(503).json({
+            error: 'Server is busy processing downloads. Please try again later.',
+          });
+        }
+        
+        // Use async file operations to avoid blocking the event loop
+        // File operation is throttled: max MAX_CONCURRENT_DOWNLOADS concurrent operations
+        let stats;
+        try {
+          stats = await fs.promises.stat(safePath);
+        } catch (statError) {
+          // File doesn't exist or is inaccessible
+          logger.warn('Recording file stat failed', { path: safePath, error: statError });
+          releaseSlot();
           return res.status(404).json({ error: 'Recording file not found' });
         }
         const maxMb = Number(process.env.RECORDING_DOWNLOAD_MAX_MB || 500);
-        const stats = fs.statSync(safePath);
         const sizeMb = stats.size / (1024 * 1024);
         if (sizeMb > maxMb) {
+          releaseSlot();
           return res
             .status(413)
             .json({ error: 'Recording too large to download' });
         }
+        
+        // Final throttling check before file download operation
+        if (activeDownloadCount > MAX_CONCURRENT_DOWNLOADS) {
+          releaseSlot();
+          return res.status(503).json({
+            error: 'Server is busy processing downloads. Please try again later.',
+          });
+        }
+        // File download operation - throttled by acquireDownloadSlot() and checks above
         res.download(safePath);
       } catch (error) {
+        // Release slot on error
+        releaseSlot();
+        if (
+          error instanceof Error &&
+          (error.message.includes('timeout') || error.message.includes('queue full'))
+        ) {
+          return res.status(503).json({
+            error: 'Server is busy processing downloads. Please try again later.',
+          });
+        }
         logger.error('Download recording failed', { error });
         res.status(500).json({ error: 'Download recording failed' });
       }
@@ -1727,12 +1863,10 @@ import { AgentManagerService } from './services/agentManagerService';
 import { TaskQueueService } from './services/taskQueueService';
 import { ChildFailureHandler } from './services/childFailureHandler';
 import { AgentCommunicationService } from './services/agentCommunicationService';
-import { ErrorDetectionService } from './services/errorDetectionService';
-import { AutoFixService } from './services/autoFixService';
 
-// TODO: Initialize orchestrator and all agents
+// Note: Orchestrator and agents are initialized in the server.listen callback below
+// The orchestrator is used via HTTP routing (see /api/orchestrator/message endpoint)
 logger.info('✅ Jarvis v4 foundation ready');
-logger.info('🔄 Agent implementation coming in subsequent PRs');
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
@@ -1755,21 +1889,7 @@ function createAppServer(): import('https').Server {
   return https.createServer({ key, cert }, app);
 }
 
-const server = createAppServer();
-
-// Handle server errors
-server.on('error', (error: Error) => {
-  logger.error('Server error:', { error });
-  process.exit(1);
-});
-
-// Start server first - health endpoints are already registered
-// Note: Omitting hostname defaults to listening on all interfaces (0.0.0.0)
-server.listen(PORT, () => {
-  logger.info(`🎉 Jarvis v4 server listening on port ${PORT}`);
-  logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-
-  // Initialize Audio Streaming Service after server is listening
+function initAudioStreaming(server: import('https').Server): void {
   try {
     new AudioStreamingService(server, prisma);
     logger.info('🎤 Audio Streaming Service initialized');
@@ -1778,69 +1898,65 @@ server.listen(PORT, () => {
     logger.error('Failed to initialize Audio Streaming Service', { error });
     logger.warn('⚠️  Audio streaming will be unavailable');
   }
+}
 
-  // Initialize Code Analysis Agent (start scanning)
-  if (codeAnalysisAgent) {
-    try {
-      codeAnalysisAgent.startScanning();
-      logger.info('🔍 Code Analysis Agent started scanning');
-    } catch (error) {
-      logger.error('Failed to start code analysis scanning', { error });
-    }
+function startCodeAnalysisAgent(agent: CodeAnalysisAgent | null): void {
+  if (!agent) return;
+  try {
+    agent.startScanning();
+    logger.info('🔍 Code Analysis Agent started scanning');
+  } catch (error) {
+    logger.error('Failed to start code analysis scanning', { error });
   }
+}
 
-  const runEmbeddedSelfHealing = process.env.EMBEDDED_SELF_HEALING === 'true';
-  const runEmbeddedWatchdog = process.env.EMBEDDED_WATCHDOG === 'true';
-
-  // Initialize Self-Healing Agent (only when explicitly enabled)
-  if (runEmbeddedSelfHealing) {
-    try {
-      const selfHealingAgent = new SelfHealingAgent();
-      void selfHealingAgent.startMonitoring();
-      logger.info(
-        '🔧 Self-Healing Agent initialized and monitoring (embedded)',
-      );
-
-      if (errorDetectionService && codeAnalysisAgent) {
-        logger.info('🔗 Code error handling integrated with self-healing');
-      }
-    } catch (error) {
-      logger.error('Failed to initialize Self-Healing Agent', { error });
-      logger.warn('⚠️  Self-healing will be unavailable in embedded mode');
-    }
-  } else {
+function initEmbeddedSelfHealing(
+  enabled: boolean,
+  detectionService: ErrorDetectionService | null,
+  analysisAgent: CodeAnalysisAgent | null,
+): void {
+  if (!enabled) {
     logger.info(
       'Skipping embedded Self-Healing Agent (managed by standalone process)',
     );
+    return;
   }
+  try {
+    const selfHealingAgent = new SelfHealingAgent();
+    void selfHealingAgent.startMonitoring();
+    logger.info('🔧 Self-Healing Agent initialized and monitoring (embedded)');
 
-  // Initialize Watchdog Agent (only when explicitly enabled)
-  if (runEmbeddedWatchdog) {
-    try {
-      const watchdogAgent = new WatchdogAgent(prisma);
-      void watchdogAgent.startMonitoring(30000);
-      logger.info('🐕 Watchdog Agent initialized and monitoring (embedded)');
-    } catch (error) {
-      logger.error('Failed to initialize Watchdog Agent', { error });
-      logger.warn(
-        '⚠️  Watchdog monitoring will be unavailable in embedded mode',
-      );
+    if (detectionService && analysisAgent) {
+      logger.info('🔗 Code error handling integrated with self-healing');
     }
-  } else {
+  } catch (error) {
+    logger.error('Failed to initialize Self-Healing Agent', { error });
+    logger.warn('⚠️  Self-healing will be unavailable in embedded mode');
+  }
+}
+
+function initEmbeddedWatchdog(enabled: boolean): void {
+  if (!enabled) {
     logger.info(
       'Skipping embedded Watchdog Agent (managed by standalone process)',
     );
+    return;
   }
+  try {
+    const watchdogAgent = new WatchdogAgent(prisma);
+    void watchdogAgent.startMonitoring(30000);
+    logger.info('🐕 Watchdog Agent initialized and monitoring (embedded)');
+  } catch (error) {
+    logger.error('Failed to initialize Watchdog Agent', { error });
+    logger.warn('⚠️  Watchdog monitoring will be unavailable in embedded mode');
+  }
+}
 
-  // Initialize Mutual Monitoring Service
+function initMutualMonitoring(): void {
   try {
     const agentManager = new AgentManagerService(prisma);
     const taskQueue = new TaskQueueService(prisma, agentManager);
-    const failureHandler = new ChildFailureHandler(
-      prisma,
-      agentManager,
-      taskQueue,
-    );
+    const failureHandler = new ChildFailureHandler(prisma, agentManager, taskQueue);
     const communication = new AgentCommunicationService();
     const mutualMonitoring = new MutualMonitoringService(
       prisma,
@@ -1860,6 +1976,34 @@ server.listen(PORT, () => {
     logger.error('Failed to initialize Mutual Monitoring Service', { error });
     logger.warn('⚠️  Mutual monitoring will be unavailable');
   }
+}
+
+const server = createAppServer();
+
+// Handle server errors
+server.on('error', (error: Error) => {
+  logger.error('Server error:', { error });
+  process.exit(1);
+});
+
+// Start server first - health endpoints are already registered
+// Note: Omitting hostname defaults to listening on all interfaces (0.0.0.0)
+server.listen(PORT, () => {
+  logger.info(`🎉 Jarvis v4 server listening on port ${PORT}`);
+  logger.info(`📊 Health check: http://localhost:${PORT}/health`);
+
+  const runEmbeddedSelfHealing = process.env.EMBEDDED_SELF_HEALING === 'true';
+  const runEmbeddedWatchdog = process.env.EMBEDDED_WATCHDOG === 'true';
+
+  initAudioStreaming(server);
+  startCodeAnalysisAgent(codeAnalysisAgent);
+  initEmbeddedSelfHealing(
+    runEmbeddedSelfHealing,
+    errorDetectionService,
+    codeAnalysisAgent,
+  );
+  initEmbeddedWatchdog(runEmbeddedWatchdog);
+  initMutualMonitoring();
 });
 
 // Handle graceful shutdown

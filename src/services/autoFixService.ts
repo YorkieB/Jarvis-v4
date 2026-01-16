@@ -28,13 +28,13 @@ export interface AutoFixOptions {
 }
 
 export class AutoFixService {
-  private errorDetection: ErrorDetectionService;
-  private llmFixer: LLMCodeFixer;
-  private codePatcher: CodePatcher;
-  private verification: CodeVerificationService;
-  private knowledgeBase: CodeKnowledgeBase;
+  private readonly errorDetection: ErrorDetectionService;
+  private readonly llmFixer: LLMCodeFixer;
+  private readonly codePatcher: CodePatcher;
+  private readonly verification: CodeVerificationService;
+  private readonly knowledgeBase: CodeKnowledgeBase;
   private readonly defaultOptions: Required<AutoFixOptions> = {
-    confidenceThreshold: parseFloat(
+    confidenceThreshold: Number.parseFloat(
       process.env.CODE_FIX_CONFIDENCE_THRESHOLD || '0.8',
     ),
     autoApply: process.env.CODE_AUTO_FIX_ENABLED !== 'false',
