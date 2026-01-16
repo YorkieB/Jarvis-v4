@@ -1,5 +1,7 @@
 # Jarvis v4 - Multi-Agent AI Assistant
 
+> **Note:** This repository uses auto-push on commit. Changes are automatically pushed to remote after each commit.
+
 ## ⚠️ CRITICAL: For All AI Systems Working on This Project
 
 **Before performing ANY work on this codebase, you MUST:**
