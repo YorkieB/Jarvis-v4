@@ -152,7 +152,9 @@ const downloadRateLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => req.ip || req.socket.remoteAddress || 'unknown',
   handler: (req, res) => {
-    const request = req as express.Request & { rateLimit?: { resetTime?: Date } };
+    const request = req as express.Request & {
+      rateLimit?: { resetTime?: Date };
+    };
     const resetTime = request.rateLimit?.resetTime;
     const retryAfter = resetTime
       ? Math.ceil((resetTime.getTime() - Date.now()) / 1000)
@@ -186,7 +188,9 @@ async function acquireDownloadSlot(): Promise<void> {
       downloadQueue.push({ resolve, reject });
       // Timeout after 30 seconds to prevent indefinite waiting
       setTimeout(() => {
-        const index = downloadQueue.findIndex((item) => item.resolve === resolve);
+        const index = downloadQueue.findIndex(
+          (item) => item.resolve === resolve,
+        );
         if (index !== -1) {
           downloadQueue.splice(index, 1);
           reject(new Error('Download request timeout - server is busy'));
@@ -198,7 +202,10 @@ async function acquireDownloadSlot(): Promise<void> {
 
 function releaseDownloadSlot(): void {
   activeDownloadCount--;
-  if (downloadQueue.length > 0 && activeDownloadCount < MAX_CONCURRENT_DOWNLOADS) {
+  if (
+    downloadQueue.length > 0 &&
+    activeDownloadCount < MAX_CONCURRENT_DOWNLOADS
+  ) {
     const next = downloadQueue.shift();
     if (next) {
       activeDownloadCount++;
@@ -1754,14 +1761,15 @@ if (process.env.VISION_ENABLED !== 'false') {
         // Explicit synchronous check ensures file operations are limited
         if (activeDownloadCount >= MAX_CONCURRENT_DOWNLOADS) {
           return res.status(503).json({
-            error: 'Server is busy processing downloads. Please try again later.',
+            error:
+              'Server is busy processing downloads. Please try again later.',
           });
         }
-        
+
         // Throttling: Acquire download slot before any file operations
         await acquireDownloadSlot();
         slotReleased = false;
-        
+
         // Ensure slot is released when response completes
         res.on('finish', releaseSlot);
         res.on('close', releaseSlot);
@@ -1772,10 +1780,7 @@ if (process.env.VISION_ENABLED !== 'false') {
           process.env.RECORDING_STORAGE_PATH || './recordings',
         );
         const safePath = recording ? path.resolve(recording.filePath) : '';
-        if (
-          !recording ||
-          !safePath.startsWith(`${safeBasePath}${path.sep}`)
-        ) {
+        if (!recording || !safePath.startsWith(`${safeBasePath}${path.sep}`)) {
           releaseSlot();
           return res.status(404).json({ error: 'Recording file not found' });
         }
@@ -1784,10 +1789,11 @@ if (process.env.VISION_ENABLED !== 'false') {
         if (activeDownloadCount > MAX_CONCURRENT_DOWNLOADS) {
           releaseSlot();
           return res.status(503).json({
-            error: 'Server is busy processing downloads. Please try again later.',
+            error:
+              'Server is busy processing downloads. Please try again later.',
           });
         }
-        
+
         // Use async file operations to avoid blocking the event loop
         // File operation is throttled: max MAX_CONCURRENT_DOWNLOADS concurrent operations
         let stats;
@@ -1795,7 +1801,10 @@ if (process.env.VISION_ENABLED !== 'false') {
           stats = await fs.promises.stat(safePath);
         } catch (statError) {
           // File doesn't exist or is inaccessible
-          logger.warn('Recording file stat failed', { path: safePath, error: statError });
+          logger.warn('Recording file stat failed', {
+            path: safePath,
+            error: statError,
+          });
           releaseSlot();
           return res.status(404).json({ error: 'Recording file not found' });
         }
@@ -1807,12 +1816,13 @@ if (process.env.VISION_ENABLED !== 'false') {
             .status(413)
             .json({ error: 'Recording too large to download' });
         }
-        
+
         // Final throttling check before file download operation
         if (activeDownloadCount > MAX_CONCURRENT_DOWNLOADS) {
           releaseSlot();
           return res.status(503).json({
-            error: 'Server is busy processing downloads. Please try again later.',
+            error:
+              'Server is busy processing downloads. Please try again later.',
           });
         }
         // File download operation - throttled by acquireDownloadSlot() and checks above
@@ -1822,10 +1832,12 @@ if (process.env.VISION_ENABLED !== 'false') {
         releaseSlot();
         if (
           error instanceof Error &&
-          (error.message.includes('timeout') || error.message.includes('queue full'))
+          (error.message.includes('timeout') ||
+            error.message.includes('queue full'))
         ) {
           return res.status(503).json({
-            error: 'Server is busy processing downloads. Please try again later.',
+            error:
+              'Server is busy processing downloads. Please try again later.',
           });
         }
         logger.error('Download recording failed', { error });
@@ -1956,7 +1968,11 @@ function initMutualMonitoring(): void {
   try {
     const agentManager = new AgentManagerService(prisma);
     const taskQueue = new TaskQueueService(prisma, agentManager);
-    const failureHandler = new ChildFailureHandler(prisma, agentManager, taskQueue);
+    const failureHandler = new ChildFailureHandler(
+      prisma,
+      agentManager,
+      taskQueue,
+    );
     const communication = new AgentCommunicationService();
     const mutualMonitoring = new MutualMonitoringService(
       prisma,

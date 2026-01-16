@@ -512,7 +512,10 @@ class JarvisApp {
 
   setupSpeechRecognition() {
     // Check if Web Speech API is available
-    if ('webkitSpeechRecognition' in globalThis || 'SpeechRecognition' in globalThis) {
+    if (
+      'webkitSpeechRecognition' in globalThis ||
+      'SpeechRecognition' in globalThis
+    ) {
       const SpeechRecognition =
         globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
       this.recognition = new SpeechRecognition();

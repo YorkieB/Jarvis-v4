@@ -68,4 +68,3 @@ describe('errorHandler auto-fix integration', () => {
     expect(detectRuntimeError).not.toHaveBeenCalled();
   });
 });
-

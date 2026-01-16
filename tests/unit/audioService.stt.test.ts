@@ -16,28 +16,84 @@ const TEST_USER_ID_2 = getTestUserId(2);
 // Using Record to avoid intersection conflicts with private properties
 interface AudioStreamingServiceForTesting {
   activeSessions: Map<string, MockAudioSession>;
-  handleAudioChunk: (socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }, buffer: Buffer) => void;
-  handleSttFailure: (session: MockAudioSession, provider: string, socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }, error: string) => void;
-  synthesizeSpeech: (socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }, session: MockAudioSession, text: string, latency: number) => Promise<void>;
-  switchSttProvider: (session: MockAudioSession, socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }, provider: 'deepgram' | 'google', reason: string) => void;
-  handleEndStream: (socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }) => Promise<void>;
-  handleStartStream: (socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } }) => Promise<void>;
+  handleAudioChunk: (
+    socket: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    },
+    buffer: Buffer,
+  ) => void;
+  handleSttFailure: (
+    session: MockAudioSession,
+    provider: string,
+    socket: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    },
+    error: string,
+  ) => void;
+  synthesizeSpeech: (
+    socket: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    },
+    session: MockAudioSession,
+    text: string,
+    latency: number,
+  ) => Promise<void>;
+  switchSttProvider: (
+    session: MockAudioSession,
+    socket: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    },
+    provider: 'deepgram' | 'google',
+    reason: string,
+  ) => void;
+  handleEndStream: (
+    socket: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    },
+  ) => Promise<void>;
+  handleStartStream: (
+    socket: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    },
+  ) => Promise<void>;
   handleDeepgramTranscript: (args: {
     sessionId: string;
     session: MockAudioSession | undefined;
-    socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } };
+    socket: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    };
     startTime: number;
     data: unknown;
   }) => Promise<void>;
   processFinalTranscript: (args: {
     session: MockAudioSession;
-    socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } };
+    socket: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    };
     startTime: number;
     cleanedTranscript: string;
     rawTranscript: string;
     sessionId: string;
   }) => Promise<void>;
-  handleDisconnect: (socket: Partial<Socket> & { id: string; emit: jest.Mock }) => Promise<void>;
+  handleDisconnect: (
+    socket: Partial<Socket> & { id: string; emit: jest.Mock },
+  ) => Promise<void>;
   elevenlabs: unknown;
   VOICE_AUTH_ENABLED?: boolean;
   voiceAuth: unknown;
@@ -110,14 +166,25 @@ jest.mock('@elevenlabs/elevenlabs-js', () => ({
 describe('AudioStreamingService - barge-in and failover', () => {
   const prismaMock: Partial<PrismaClient> = {};
   let service: AudioStreamingServiceForTesting;
-  let socket: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } };
+  let socket: Partial<Socket> & {
+    id: string;
+    emit: jest.Mock;
+    data: { userId: string };
+  };
 
   beforeEach(() => {
     // snyk code ignore: javascript/NoHardcodedCredentials/test
     // Test-only HTTPS server (never started, just passed to constructor)
     const server = https.createServer({});
-    service = new AudioStreamingService(server as HttpServer, prismaMock as PrismaClient) as unknown as AudioStreamingServiceForTesting;
-    socket = { id: 'socket-1', emit: jest.fn(), data: { userId: TEST_USER_ID_1 } };
+    service = new AudioStreamingService(
+      server as HttpServer,
+      prismaMock as PrismaClient,
+    ) as unknown as AudioStreamingServiceForTesting;
+    socket = {
+      id: 'socket-1',
+      emit: jest.fn(),
+      data: { userId: TEST_USER_ID_1 },
+    };
     process.env.TENANT_TOKEN = 'test-token';
   });
 
@@ -166,12 +233,7 @@ describe('AudioStreamingService - barge-in and failover', () => {
       session.googleActive = true;
     });
 
-    service.handleSttFailure(
-      session,
-      'deepgram',
-      socket,
-      'test-error',
-    );
+    service.handleSttFailure(session, 'deepgram', socket, 'test-error');
 
     expect(session.sttProvider).toBe('google');
     expect(socket.emit).toHaveBeenCalledWith(
@@ -289,9 +351,16 @@ describe('AudioStreamingService - barge-in and failover', () => {
     // snyk code ignore: javascript/NoHardcodedCredentials/test
     // Test-only HTTPS server (never started, just passed to constructor)
     const server = https.createServer({});
-    const svc = new AudioStreamingService(server as HttpServer, prismaMock as PrismaClient) as unknown as AudioStreamingServiceForTesting;
+    const svc = new AudioStreamingService(
+      server as HttpServer,
+      prismaMock as PrismaClient,
+    ) as unknown as AudioStreamingServiceForTesting;
 
-    const s: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } } = {
+    const s: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    } = {
       id: 's-early',
       emit: jest.fn(),
       data: { userId: TEST_USER_ID_1 },
@@ -316,7 +385,11 @@ describe('AudioStreamingService - barge-in and failover', () => {
   });
 
   it('blocks processing when voice verification fails', async () => {
-    const s: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } } = {
+    const s: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    } = {
       id: 's-verify',
       emit: jest.fn(),
       data: { userId: TEST_USER_ID_2 },
@@ -337,7 +410,13 @@ describe('AudioStreamingService - barge-in and failover', () => {
     // Force voice auth enabled and mock verifier
     service.VOICE_AUTH_ENABLED = true;
     service.voiceAuth = {
-      verifyVoice: jest.fn().mockResolvedValue({ verified: false, confidence: 0.2, message: 'No match' }),
+      verifyVoice: jest
+        .fn()
+        .mockResolvedValue({
+          verified: false,
+          confidence: 0.2,
+          message: 'No match',
+        }),
     };
 
     await service.processFinalTranscript({
@@ -363,8 +442,15 @@ describe('AudioStreamingService - barge-in and failover', () => {
     // snyk code ignore: javascript/NoHardcodedCredentials/test
     // Test-only HTTPS server (never started, just passed to constructor)
     const server = https.createServer({});
-    const svc = new AudioStreamingService(server as HttpServer, prismaMock as PrismaClient) as unknown as AudioStreamingServiceForTesting;
-    const s: Partial<Socket> & { id: string; emit: jest.Mock; data: { userId: string } } = {
+    const svc = new AudioStreamingService(
+      server as HttpServer,
+      prismaMock as PrismaClient,
+    ) as unknown as AudioStreamingServiceForTesting;
+    const s: Partial<Socket> & {
+      id: string;
+      emit: jest.Mock;
+      data: { userId: string };
+    } = {
       id: 's-thresh',
       emit: jest.fn(),
       data: { userId: TEST_USER_ID_1 },
@@ -390,7 +476,10 @@ describe('AudioStreamingService - barge-in and failover', () => {
   });
 
   it('cleans up on disconnect and ends Google stream if active', async () => {
-    const s: Partial<Socket> & { id: string; emit: jest.Mock } = { id: 's-disc', emit: jest.fn() };
+    const s: Partial<Socket> & { id: string; emit: jest.Mock } = {
+      id: 's-disc',
+      emit: jest.fn(),
+    };
     const session: MockAudioSession = {
       sessionId: 's-disc',
       deepgramConnection: { send: jest.fn(), on: jest.fn(), finish: jest.fn() },
