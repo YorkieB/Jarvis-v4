@@ -1,15 +1,14 @@
-import { PrismaClient } from '@prisma/client';
 import {
   OnvifClient,
-  OnvifCameraInfo,
   PTZPosition,
-  PTZCapabilities,
   StreamProfile,
 } from './onvifClient';
-import { RTSPStreamService, StreamConfig } from './rtspStreamService';
+import { RTSPStreamService } from './rtspStreamService';
 import logger from '../utils/logger';
-import { randomUUID } from 'crypto';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
+import { prisma as globalPrisma } from '../utils/prisma';
+
+type PrismaClient = typeof globalPrisma;
 
 const ALGORITHM = 'aes-256-gcm';
 const KEY_HEX =
@@ -58,10 +57,25 @@ export interface DiscoveredCamera {
   manufacturer?: string;
 }
 
+interface OnvifDevice {
+  hostname: string;
+  port?: number;
+  name?: string;
+  manufacturer?: string;
+}
+
+interface OnvifDiscover {
+  on(event: 'device', callback: (device: OnvifDevice) => void): void;
+}
+
+interface OnvifCam {
+  Discover?: OnvifDiscover;
+}
+
 export class CameraService {
-  private prisma: PrismaClient;
-  private onvifClients: Map<string, OnvifClient> = new Map();
-  private rtspService: RTSPStreamService;
+  private readonly prisma: PrismaClient;
+  private readonly onvifClients: Map<string, OnvifClient> = new Map();
+  private readonly rtspService: RTSPStreamService;
 
   constructor(prisma: PrismaClient, rtspService: RTSPStreamService) {
     this.prisma = prisma;
@@ -72,29 +86,37 @@ export class CameraService {
     const timeout = Number(process.env.ONVIF_DISCOVERY_TIMEOUT || timeoutMs);
     logger.info('Starting ONVIF camera discovery', { timeout });
 
+    let Cam: OnvifCam | undefined;
+    try {
+      const onvifModule = (await import('onvif')) as
+        | { Cam?: OnvifCam; default?: { Cam?: OnvifCam } }
+        | { default: OnvifCam }
+        | OnvifCam;
+      Cam =
+        ('Cam' in onvifModule && onvifModule.Cam) ||
+        ('default' in onvifModule &&
+          onvifModule.default &&
+          'Cam' in onvifModule.default &&
+          onvifModule.default.Cam) ||
+        (onvifModule as OnvifCam);
+    } catch (error) {
+      logger.warn('ONVIF module not available for discovery', { error });
+      return [];
+    }
+
+    const discover = Cam?.Discover;
+    if (!discover) {
+      logger.warn('ONVIF Discover not available');
+      return [];
+    }
+
     return new Promise((resolve) => {
-      let Cam: any;
-      try {
-        const onvifModule = require('onvif');
-        Cam = onvifModule.Cam || onvifModule.default?.Cam || onvifModule;
-      } catch (error) {
-        logger.warn('ONVIF module not available for discovery', { error });
-        resolve([]);
-        return;
-      }
-
-      if (!Cam || !Cam.Discover) {
-        logger.warn('ONVIF Discover not available');
-        resolve([]);
-        return;
-      }
-
       const discovered: DiscoveredCamera[] = [];
 
-      Cam.Discover.on('device', (device: any) => {
+      discover.on('device', (device: OnvifDevice) => {
         discovered.push({
           hostname: device.hostname,
-          port: device.port || 80,
+          port: device.port ?? 80,
           name: device.name,
           manufacturer: device.manufacturer,
         });
@@ -120,7 +142,8 @@ export class CameraService {
           password: config.password,
         });
         await client.connect();
-        capabilities = await client.getCapabilities();
+        const ptzCapabilities = await client.getCapabilities();
+        capabilities = (ptzCapabilities as unknown) as Record<string, unknown>;
         await client.disconnect();
       } catch (error) {
         logger.warn('Failed to fetch ONVIF capabilities during add', { error });
@@ -136,7 +159,7 @@ export class CameraService {
         username: config.username,
         password: encryptedPassword,
         model: config.model,
-        capabilities: capabilities as any,
+        capabilities,
         isActive: true,
       },
     });
@@ -172,14 +195,14 @@ export class CameraService {
       },
     });
 
-    return cameras.map((c) => ({
+    return cameras.map((c: (typeof cameras)[number]) => ({
       ...c,
       password: undefined,
     }));
   }
 
   async updateCamera(id: string, updates: Partial<CameraConfig>) {
-    const data: any = { ...updates };
+    const data: Partial<CameraConfig> = { ...updates };
     if (updates.password) {
       data.password = encrypt(updates.password);
     }
@@ -228,10 +251,10 @@ export class CameraService {
   }
 
   async getONVIFClient(id: string): Promise<OnvifClient | null> {
-    let client = this.onvifClients.get(id);
+    let client = this.onvifClients.get(id) ?? null;
     if (!client) {
       await this.connectCamera(id);
-      client = this.onvifClients.get(id) || null;
+      client = this.onvifClients.get(id) ?? null;
     }
     return client;
   }

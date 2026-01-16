@@ -21,6 +21,6 @@
       "@governance/*": ["src/governance/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "*.d.ts"],
   "exclude": ["node_modules", "dist", "tests"]
 }

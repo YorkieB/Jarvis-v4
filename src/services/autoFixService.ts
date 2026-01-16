@@ -6,7 +6,7 @@
 import logger from '../utils/logger';
 import { ErrorDetectionService, DetectedError } from './errorDetectionService';
 import { LLMCodeFixer, FixCandidate } from './llmCodeFixer';
-import { CodePatcher, PatchResult } from './codePatcher';
+import { CodePatcher } from './codePatcher';
 import { CodeVerificationService } from './codeVerificationService';
 import { CodeKnowledgeBase } from './codeKnowledgeBase';
 
