@@ -6,7 +6,11 @@ import BackupService from '../../src/services/backupService';
 jest.mock('child_process', () => {
   const realFs = require('fs') as typeof fs;
   return {
-    exec: (cmd: string, _opts: unknown, cb: (err: unknown, stdout: string, stderr: string) => void) => {
+    exec: (
+      cmd: string,
+      _opts: unknown,
+      cb: (err: unknown, stdout: string, stderr: string) => void,
+    ) => {
       const match = cmd.match(/-f\s+(\S+)\.tmp.*>\s+(\S+)/);
       if (match) {
         const tmpPath = match[1];
@@ -25,7 +29,10 @@ describe('BackupService (integration-mocked)', () => {
   let prisma: any;
 
   beforeEach(() => {
-    process.env = { ...originalEnv, DATABASE_URL: 'postgresql://user:pass@localhost:5432/jarvis' };
+    process.env = {
+      ...originalEnv,
+      DATABASE_URL: 'postgresql://user:pass@localhost:5432/jarvis',
+    };
     backupDir = fs.mkdtempSync(path.join(os.tmpdir(), 'backup-svc-'));
     prisma = {
       conversation: { findMany: jest.fn().mockResolvedValue([]) },
@@ -58,7 +65,11 @@ describe('BackupService (integration-mocked)', () => {
 
     const oldPath = path.join(backupDir, 'jarvis-backup-old.sql.gz');
     fs.writeFileSync(oldPath, 'old');
-    fs.utimesSync(oldPath, new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), new Date(Date.now() - 3 * 24 * 60 * 60 * 1000));
+    fs.utimesSync(
+      oldPath,
+      new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    );
 
     const freshPath = path.join(backupDir, 'jarvis-backup-new.sql.gz');
     fs.writeFileSync(freshPath, 'new');

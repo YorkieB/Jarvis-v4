@@ -80,7 +80,9 @@ export class CodeAnalysisAgent extends BaseAgent {
       logger.info('Starting codebase scan');
 
       // Analyze all TypeScript files
-      const results = await this.codeAnalysis.analyzeDirectory(this.srcDirectory);
+      const results = await this.codeAnalysis.analyzeDirectory(
+        this.srcDirectory,
+      );
 
       // Detect errors from analysis results
       for (const result of results) {
@@ -141,7 +143,8 @@ export class CodeAnalysisAgent extends BaseAgent {
       if (result.hasErrors) {
         logger.warn('Errors found in file', {
           filePath,
-          errorCount: result.issues.filter((i) => i.severity === 'error').length,
+          errorCount: result.issues.filter((i) => i.severity === 'error')
+            .length,
         });
       }
 

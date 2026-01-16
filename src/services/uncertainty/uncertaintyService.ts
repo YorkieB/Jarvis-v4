@@ -1,6 +1,6 @@
 /**
  * Unified Uncertainty Service
- * 
+ *
  * Integrates Semantic Entropy and Conformal Prediction to provide
  * comprehensive uncertainty quantification for LLM responses.
  */
@@ -46,13 +46,13 @@ export class UncertaintyService {
 
   /**
    * Evaluate uncertainty for a query-response pair
-   * 
+   *
    * This method:
    * 1. Generates multiple candidate responses (for semantic entropy)
    * 2. Calculates semantic entropy over clusters
    * 3. Uses semantic entropy as non-conformity score for conformal prediction
    * 4. Returns unified uncertainty result
-   * 
+   *
    * @param query - User query
    * @param response - Generated response (optional, will generate if not provided)
    * @param model - OpenAI model to use (default: gpt-4)
@@ -90,7 +90,8 @@ export class UncertaintyService {
         1 - entropyResult.entropy / Math.log2(entropyResult.clusterCount || 1),
       );
 
-      const reason = conformalResult.reason + 
+      const reason =
+        conformalResult.reason +
         (entropyResult.clusterCount > 1
           ? `; Semantic entropy: ${entropyResult.entropy.toFixed(3)} (${entropyResult.clusterCount} clusters)`
           : '; Low semantic entropy (all responses cluster together)');
@@ -143,7 +144,8 @@ export class UncertaintyService {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful AI assistant. Provide accurate and concise answers.',
+            content:
+              'You are a helpful AI assistant. Provide accurate and concise answers.',
           },
           {
             role: 'user',

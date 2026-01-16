@@ -80,7 +80,9 @@ export class RecordingService {
     }
 
     const endTime = new Date();
-    const duration = Math.floor((endTime.getTime() - recording.startTime.getTime()) / 1000);
+    const duration = Math.floor(
+      (endTime.getTime() - recording.startTime.getTime()) / 1000,
+    );
 
     let sizeBytes: number | null = null;
     if (fs.existsSync(recording.filePath)) {
@@ -186,11 +188,17 @@ export class RecordingService {
         await this.prisma.recording.delete({ where: { id: recording.id } });
         deletedCount++;
       } catch (error) {
-        logger.error('Failed to delete old recording', { id: recording.id, error });
+        logger.error('Failed to delete old recording', {
+          id: recording.id,
+          error,
+        });
       }
     }
 
-    logger.info('Cleanup completed', { deletedCount, retentionDays: this.retentionDays });
+    logger.info('Cleanup completed', {
+      deletedCount,
+      retentionDays: this.retentionDays,
+    });
     return deletedCount;
   }
 }

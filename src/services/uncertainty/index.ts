@@ -1,6 +1,6 @@
 /**
  * Uncertainty Quantification Services
- * 
+ *
  * Exports all uncertainty-related services for easy importing
  */
 

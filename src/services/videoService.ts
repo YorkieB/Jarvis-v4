@@ -39,7 +39,10 @@ export class VideoService {
 
   async generate(options: VideoGenerateOptions): Promise<VideoJob> {
     if (!this.apiKey) throw new Error('Missing VIDEO_API_KEY');
-    const duration = Math.min(options.durationSeconds || this.maxDuration, this.maxDuration);
+    const duration = Math.min(
+      options.durationSeconds || this.maxDuration,
+      this.maxDuration,
+    );
     const payload = { prompt: options.prompt, style: options.style, duration };
     return this.call('/v1/video/generate', payload);
   }
@@ -48,7 +51,11 @@ export class VideoService {
     return this.call(`/v1/video/${id}`, undefined, 'GET');
   }
 
-  private async call(path: string, body?: unknown, method: 'POST' | 'GET' = 'POST'): Promise<VideoJob> {
+  private async call(
+    path: string,
+    body?: unknown,
+    method: 'POST' | 'GET' = 'POST',
+  ): Promise<VideoJob> {
     const controller = new AbortController();
     const to = setTimeout(() => controller.abort(), this.timeoutMs);
     try {

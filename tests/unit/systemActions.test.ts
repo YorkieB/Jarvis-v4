@@ -16,4 +16,3 @@ describe('SystemActions', () => {
     ).rejects.toThrow();
   });
 });
-

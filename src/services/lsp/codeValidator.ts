@@ -23,18 +23,27 @@ export class CodeValidator {
     }
   }
 
-  async validate(code: string, uri: string = 'inmemory://code.ts'): Promise<ValidationResult> {
+  async validate(
+    code: string,
+    uri: string = 'inmemory://code.ts',
+  ): Promise<ValidationResult> {
     try {
       await this.lsp.initialize();
       await this.lsp.didOpen(uri, code);
       const diags = await this.lsp.diagnostics(uri);
 
-      const errors = diags.filter((d) => (d.severity ?? 1) <= this.blockingSeverity);
-      const warnings = diags.filter((d) => (d.severity ?? 1) > this.blockingSeverity);
+      const errors = diags.filter(
+        (d) => (d.severity ?? 1) <= this.blockingSeverity,
+      );
+      const warnings = diags.filter(
+        (d) => (d.severity ?? 1) > this.blockingSeverity,
+      );
 
       return { errors, warnings, all: diags };
     } catch (error) {
-      logger.warn('LSP validation failed; continuing without blocking', { error });
+      logger.warn('LSP validation failed; continuing without blocking', {
+        error,
+      });
       return { errors: [], warnings: [], all: [] };
     }
   }

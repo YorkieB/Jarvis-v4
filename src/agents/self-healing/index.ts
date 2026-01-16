@@ -139,7 +139,10 @@ export class SelfHealingAgent extends BaseAgent {
     // Check max restart limit
     const timeSinceLastRestart = Date.now() - health.lastRestartTime;
     const oneHour = 60 * 60 * 1000;
-    if (timeSinceLastRestart < oneHour && health.restartCount >= this.config.maxRestarts) {
+    if (
+      timeSinceLastRestart < oneHour &&
+      health.restartCount >= this.config.maxRestarts
+    ) {
       logger.error(
         `Max restart limit reached for ${agentName}. Manual intervention required.`,
       );
@@ -171,9 +174,12 @@ export class SelfHealingAgent extends BaseAgent {
       Math.pow(this.config.backoffMultiplier, health.consecutiveFailures - 1) *
       1000; // Start with 1 second
 
-    setTimeout(() => {
-      void this.restartAgent(agentName);
-    }, Math.min(backoffDelay, 30000)); // Cap at 30 seconds
+    setTimeout(
+      () => {
+        void this.restartAgent(agentName);
+      },
+      Math.min(backoffDelay, 30000),
+    ); // Cap at 30 seconds
   }
 
   private async restartAgent(agentName: string): Promise<void> {
@@ -252,10 +258,13 @@ export class SelfHealingAgent extends BaseAgent {
       const maxInterval = this.monitoringInterval * 3; // 90 seconds
 
       if (timeSinceHeartbeat > maxInterval) {
-        logger.error('🚨 CRITICAL: Self-healing agent self-monitoring detected potential failure', {
-          timeSinceHeartbeat,
-          maxInterval,
-        });
+        logger.error(
+          '🚨 CRITICAL: Self-healing agent self-monitoring detected potential failure',
+          {
+            timeSinceHeartbeat,
+            maxInterval,
+          },
+        );
 
         // Attempt self-recovery
         void this.attemptSelfRecovery();
@@ -278,7 +287,9 @@ export class SelfHealingAgent extends BaseAgent {
         return new Promise((resolve) => {
           pm2.restart('self-healing-agent', (err) => {
             if (err) {
-              logger.error('Failed to restart self-healing agent', { error: err });
+              logger.error('Failed to restart self-healing agent', {
+                error: err,
+              });
             } else {
               logger.info('Self-healing agent restarted successfully');
             }

@@ -1,7 +1,10 @@
 /**
  * CLI: Generate R-Tuning dataset of unanswerable questions.
  */
-import { DatasetGenerator, RTuningCategory } from '../services/rTuning/datasetGenerator';
+import {
+  DatasetGenerator,
+  RTuningCategory,
+} from '../services/rTuning/datasetGenerator';
 import logger from '../utils/logger';
 
 function getArg(name: string, defaultValue?: string): string | undefined {
@@ -22,7 +25,10 @@ async function main() {
   if (categories && categories.length > 0) {
     let totalCreated = 0;
     for (const category of categories) {
-      const items = await generator.generateCategory(category, Math.floor(targetSize / categories.length));
+      const items = await generator.generateCategory(
+        category,
+        Math.floor(targetSize / categories.length),
+      );
       const created = await generator.saveItems(items);
       totalCreated += created;
       logger.info(`Category ${category}: created ${created} items`);

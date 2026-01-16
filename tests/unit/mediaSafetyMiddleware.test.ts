@@ -1,7 +1,12 @@
 import { mediaSafetyMiddleware } from '../../src/middleware/mediaSafety';
-import { MediaSafetyService, MediaSafetyDecision } from '../../src/services/mediaSafetyService';
+import {
+  MediaSafetyService,
+  MediaSafetyDecision,
+} from '../../src/services/mediaSafetyService';
 
-function mockDecision(action: MediaSafetyDecision['action']): MediaSafetyDecision {
+function mockDecision(
+  action: MediaSafetyDecision['action'],
+): MediaSafetyDecision {
   return {
     action,
     reason: 'test',

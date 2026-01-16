@@ -1,12 +1,22 @@
 import logger from '../../utils/logger';
-import { ACLRule, McpToolResult, RequestContext, ToolDefinition, JSONValue, JSONObject } from './types';
+import {
+  ACLRule,
+  McpToolResult,
+  RequestContext,
+  ToolDefinition,
+  JSONValue,
+  JSONObject,
+} from './types';
 
 function matchList(target?: string, list?: string[]): boolean {
   if (!target || !list || list.length === 0) return false;
   return list.includes(target);
 }
 
-function hasIntersection(listA: string[] | undefined, listB: string[] | undefined): boolean {
+function hasIntersection(
+  listA: string[] | undefined,
+  listB: string[] | undefined,
+): boolean {
   if (!listA || !listB) return false;
   return listA.some((a) => listB.includes(a));
 }
@@ -15,7 +25,10 @@ function isJSONObject(value: unknown): value is JSONObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function evaluateAcl(acl: ACLRule[] | undefined, ctx?: RequestContext): boolean {
+function evaluateAcl(
+  acl: ACLRule[] | undefined,
+  ctx?: RequestContext,
+): boolean {
   if (!acl || acl.length === 0) return true;
   let allowed = false;
   for (const rule of acl) {
@@ -35,7 +48,10 @@ function evaluateAcl(acl: ACLRule[] | undefined, ctx?: RequestContext): boolean 
   return allowed;
 }
 
-function validateAgainstSchema(schema: JSONObject | undefined, input: unknown): { valid: boolean; errors?: string[] } {
+function validateAgainstSchema(
+  schema: JSONObject | undefined,
+  input: unknown,
+): { valid: boolean; errors?: string[] } {
   if (!schema) return { valid: true };
   if (!isJSONObject(schema)) {
     return { valid: false, errors: ['schema must be a JSON object'] };
@@ -47,7 +63,12 @@ function validateAgainstSchema(schema: JSONObject | undefined, input: unknown): 
 
   const validateProperty = (key: string, def: JSONValue): void => {
     const val = inputObj?.[key];
-    if (required && Array.isArray(required) && required.includes(key) && val === undefined) {
+    if (
+      required &&
+      Array.isArray(required) &&
+      required.includes(key) &&
+      val === undefined
+    ) {
       errors.push(`missing required property: ${key}`);
       return;
     }
@@ -68,10 +89,15 @@ function validateAgainstSchema(schema: JSONObject | undefined, input: unknown): 
   };
 
   if (properties && isJSONObject(properties)) {
-    Object.entries(properties).forEach(([key, def]) => validateProperty(key, def));
+    Object.entries(properties).forEach(([key, def]) =>
+      validateProperty(key, def),
+    );
   }
 
-  return { valid: errors.length === 0, errors: errors.length ? errors : undefined };
+  return {
+    valid: errors.length === 0,
+    errors: errors.length ? errors : undefined,
+  };
 }
 
 export class ToolRegistry {
@@ -89,7 +115,11 @@ export class ToolRegistry {
     return Array.from(this.tools.keys());
   }
 
-  async invoke(name: string, input: unknown, ctx?: RequestContext): Promise<McpToolResult> {
+  async invoke(
+    name: string,
+    input: unknown,
+    ctx?: RequestContext,
+  ): Promise<McpToolResult> {
     const tool = this.tools.get(name);
     if (!tool) {
       return { success: false, error: `Tool not found: ${name}` };
@@ -99,9 +129,15 @@ export class ToolRegistry {
       return { success: false, error: 'Access denied by ACL' };
     }
 
-    const schemaValidation = validateAgainstSchema(tool.schema, input as JSONValue);
+    const schemaValidation = validateAgainstSchema(
+      tool.schema,
+      input as JSONValue,
+    );
     if (!schemaValidation.valid) {
-      return { success: false, error: `Schema validation failed: ${schemaValidation.errors?.join('; ')}` };
+      return {
+        success: false,
+        error: `Schema validation failed: ${schemaValidation.errors?.join('; ')}`,
+      };
     }
 
     return tool.handler(input, ctx);

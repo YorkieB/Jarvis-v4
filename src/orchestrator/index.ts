@@ -98,7 +98,8 @@ export class Orchestrator extends BaseAgent {
     if (HTTPS_ENFORCE) {
       app.enable('trust proxy');
       app.use((req, res, next) => {
-        const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
+        const proto =
+          (req.headers['x-forwarded-proto'] as string) || req.protocol;
         if (proto !== 'https') {
           const host = req.headers.host;
           return res.redirect(301, `https://${host}${req.originalUrl}`);
@@ -123,7 +124,11 @@ export class Orchestrator extends BaseAgent {
         } else if (data instanceof Buffer) {
           raw = data.toString('utf8');
         } else if (ArrayBuffer.isView(data)) {
-          raw = Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString('utf8');
+          raw = Buffer.from(
+            data.buffer,
+            data.byteOffset,
+            data.byteLength,
+          ).toString('utf8');
         } else if (data instanceof ArrayBuffer) {
           raw = Buffer.from(data).toString('utf8');
         } else {
@@ -140,10 +145,7 @@ export class Orchestrator extends BaseAgent {
     app.post('/api/message', async (req, res) => {
       // Extract userId from headers, auth token, or request body
       // For now, using placeholder - in production, extract from JWT/session
-      const userId =
-        req.headers['x-user-id'] ||
-        req.body.userId ||
-        'anonymous';
+      const userId = req.headers['x-user-id'] || req.body.userId || 'anonymous';
 
       const messageWithUserId = {
         ...req.body,
@@ -165,7 +167,9 @@ export class Orchestrator extends BaseAgent {
     const keyPath = process.env.HTTPS_KEY_PATH;
     const certPath = process.env.HTTPS_CERT_PATH;
     if (!keyPath || !certPath) {
-      throw new Error('HTTPS_KEY_PATH and HTTPS_CERT_PATH are required for orchestrator HTTPS-only mode');
+      throw new Error(
+        'HTTPS_KEY_PATH and HTTPS_CERT_PATH are required for orchestrator HTTPS-only mode',
+      );
     }
     if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
       throw new Error('Orchestrator HTTPS cert or key path not found');
@@ -180,7 +184,7 @@ export class Orchestrator extends BaseAgent {
 
     // Check if task should be decomposed
     const shouldDecompose = await this.shouldDecomposeTask(type, content);
-    
+
     if (shouldDecompose) {
       return await this.decomposeAndDelegate(message);
     }
@@ -319,9 +323,8 @@ export class Orchestrator extends BaseAgent {
       const requiredCapabilities = this.getRequiredCapabilities(task.type);
 
       // Find available agents
-      const availableAgents = await this.agentManager.findAvailableAgents(
-        requiredCapabilities,
-      );
+      const availableAgents =
+        await this.agentManager.findAvailableAgents(requiredCapabilities);
 
       if (availableAgents.length > 0) {
         // Assign to first available agent

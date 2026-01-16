@@ -2,7 +2,10 @@ import { BaseAgent } from '../base-agent';
 import type { PrismaClient } from '@prisma/client';
 import { SystemExecutor } from '../../services/systemExecutor';
 import { SystemActions } from '../../services/systemActions';
-import { RemediationLibrary, RemediationAction } from '../../services/remediationLibrary';
+import {
+  RemediationLibrary,
+  RemediationAction,
+} from '../../services/remediationLibrary';
 import { McpServer } from '../../services/mcp/mcpServer';
 import { McpRequest, RequestContext } from '../../services/mcp/types';
 import { prisma as globalPrisma } from '../../utils/prisma';
@@ -47,7 +50,10 @@ export class SystemControlAgent extends BaseAgent {
   }
 
   async exec(request: ExecRequest) {
-    return this.executor.execute({ ...request, source: request.source || 'agent' });
+    return this.executor.execute({
+      ...request,
+      source: request.source || 'agent',
+    });
   }
 
   async fix(request: FixRequest) {
@@ -56,7 +62,10 @@ export class SystemControlAgent extends BaseAgent {
 
   async registry(request: RegistryRequest) {
     if (request.mode === 'read') {
-      return this.actions.registryRead({ path: request.path, name: request.name });
+      return this.actions.registryRead({
+        path: request.path,
+        name: request.name,
+      });
     }
     return this.actions.registryWrite({
       path: request.path,
@@ -85,7 +94,11 @@ export class SystemControlAgent extends BaseAgent {
     return response;
   }
 
-  async readMcpResource(path: string, verb: 'list' | 'read' | 'stat', ctx?: RequestContext) {
+  async readMcpResource(
+    path: string,
+    verb: 'list' | 'read' | 'stat',
+    ctx?: RequestContext,
+  ) {
     const request: McpRequest = { kind: 'resource', verb, uri: path };
     const response = await this.mcp.handle(request, ctx);
     return response;
@@ -95,4 +108,3 @@ export class SystemControlAgent extends BaseAgent {
     return this.executor.sandboxHealth();
   }
 }
-

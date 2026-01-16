@@ -12,6 +12,7 @@ This document summarizes the implementation of enhanced health checks and self-h
 ### 1. Enhanced Health Checks (`src/health.ts`)
 
 **Added Features:**
+
 - ✅ Database connectivity check using Prisma
 - ✅ External API health checks (OpenAI, Deepgram, ElevenLabs) with timeouts
 - ✅ Disk space check (write test)
@@ -19,6 +20,7 @@ This document summarizes the implementation of enhanced health checks and self-h
 - ✅ Critical vs non-critical check distinction for readiness probe
 
 **Key Changes:**
+
 - `performHealthChecks()` is now async and includes database/external API checks
 - `/health` endpoint is now async and handles errors gracefully
 - `/health/ready` endpoint prioritizes critical checks (database, memory, uptime)
@@ -27,11 +29,13 @@ This document summarizes the implementation of enhanced health checks and self-h
 ### 2. Self-Healing Agent Initialization (`src/index.ts`)
 
 **Added Features:**
+
 - ✅ Self-Healing Agent imported and initialized after server startup
 - ✅ Prisma instance passed to health check module
 - ✅ Error handling for self-healing agent initialization
 
 **Key Changes:**
+
 - Import `SelfHealingAgent` and `setPrismaInstance`
 - Call `setPrismaInstance(prisma)` before creating health router
 - Initialize `SelfHealingAgent` after server starts listening
@@ -40,6 +44,7 @@ This document summarizes the implementation of enhanced health checks and self-h
 ### 3. Enhanced Self-Healing Agent (`src/agents/self-healing/index.ts`)
 
 **Added Features:**
+
 - ✅ Circuit breaker pattern (opens after 3 consecutive failures)
 - ✅ Exponential backoff strategy (prevents restart loops)
 - ✅ Maximum restart limits (5 restarts per hour)
@@ -49,6 +54,7 @@ This document summarizes the implementation of enhanced health checks and self-h
 - ✅ Health status API (`getHealthStatus()`)
 
 **Key Enhancements:**
+
 - `AgentHealthStatus` interface tracks failures, restarts, circuit breaker state
 - `CircuitBreakerConfig` with configurable thresholds
 - Exponential backoff prevents immediate restart loops
@@ -59,6 +65,7 @@ This document summarizes the implementation of enhanced health checks and self-h
 ### 4. Standalone Entry Point (`src/agents/self-healing/start.ts`)
 
 **Added Features:**
+
 - ✅ Standalone script to run self-healing agent as separate PM2 process
 - ✅ Environment variable loading
 - ✅ Graceful shutdown handling
@@ -66,6 +73,7 @@ This document summarizes the implementation of enhanced health checks and self-h
 ### 5. Unit Tests
 
 **Created Tests:**
+
 - ✅ `tests/unit/health.test.ts` - Health check endpoint tests
 - ✅ `tests/unit/selfHealing.test.ts` - Self-healing agent logic tests
 
@@ -74,6 +82,7 @@ This document summarizes the implementation of enhanced health checks and self-h
 ### Circuit Breaker Configuration
 
 Default values (configurable in `SelfHealingAgent`):
+
 - `failureThreshold`: 3 consecutive failures before opening circuit
 - `resetTimeout`: 60000ms (1 minute) before retry
 - `maxRestarts`: 5 restarts per hour
@@ -92,6 +101,7 @@ Default values (configurable in `SelfHealingAgent`):
 The self-healing agent automatically starts when the main server starts (`src/index.ts`).
 
 **Option 2: Standalone PM2 Process**
+
 ```bash
 # Build first
 npm run build
@@ -103,16 +113,19 @@ pm2 start dist/agents/self-healing/start.js --name self-healing-agent
 ### Health Endpoints
 
 **Basic Health Check:**
+
 ```bash
 curl http://localhost:3000/health
 ```
 
 **Readiness Probe:**
+
 ```bash
 curl http://localhost:3000/health/ready
 ```
 
 **Liveness Probe:**
+
 ```bash
 curl http://localhost:3000/health/live
 ```
@@ -120,6 +133,7 @@ curl http://localhost:3000/health/live
 ### Monitoring Health Status
 
 The self-healing agent tracks health status for all agents. Access via:
+
 ```typescript
 const agent = new SelfHealingAgent();
 const healthStatus = agent.getHealthStatus();
@@ -131,12 +145,14 @@ const healthStatus = agent.getHealthStatus();
 ### Current Checks
 
 ✅ **System Checks:**
+
 - Memory usage (< 90% threshold)
 - Process uptime
 - Environment variables
 - CPU metrics
 
 ✅ **Service Checks:**
+
 - Database connectivity (PostgreSQL via Prisma)
 - Disk space availability
 - External API availability (OpenAI, Deepgram, ElevenLabs)
@@ -164,11 +180,12 @@ const healthStatus = agent.getHealthStatus();
 ✅ **Process Crashes:** Auto-restart with backoff  
 ✅ **Repeated Failures:** Circuit breaker prevents loops  
 ✅ **Health Endpoint Failures:** Monitored separately  
-✅ **Database Issues:** Detected in health checks  
+✅ **Database Issues:** Detected in health checks
 
 ### Limitations
 
 ⚠️ **Not Handled:**
+
 - Application-level errors (handled by error middleware)
 - Configuration errors (require manual fix)
 - External service outages (detected but not auto-fixed)
@@ -207,16 +224,19 @@ Existing smoke tests (`tests/smoke/phase1-backend.test.ts`) already test health 
 ## Next Steps (Future Enhancements)
 
 ### Priority 1
+
 - [ ] Add connection pool health check
 - [ ] Add service-specific health checks (AudioService, etc.)
 - [ ] Create integration tests for self-healing scenarios
 
 ### Priority 2
+
 - [ ] Add health metrics endpoint (`/health/metrics`)
 - [ ] Implement health-based load balancing
 - [ ] Add alerting/notifications on failures
 
 ### Priority 3
+
 - [ ] Predictive failure detection
 - [ ] Automatic scaling based on health
 - [ ] Health-based routing
@@ -228,7 +248,7 @@ Existing smoke tests (`tests/smoke/phase1-backend.test.ts`) already test health 
 ✅ Automatic recovery from transient failures  
 ✅ Circuit breakers prevent restart loops  
 ✅ Health scores tracked (accessible via `getHealthStatus()`)  
-✅ Comprehensive test coverage for health/self-healing  
+✅ Comprehensive test coverage for health/self-healing
 
 ## Notes
 

@@ -51,7 +51,9 @@ export function initSentry() {
           );
         }
       } else {
-        logger.info('Sentry profiling disabled via env SENTRY_ENABLE_PROFILING');
+        logger.info(
+          'Sentry profiling disabled via env SENTRY_ENABLE_PROFILING',
+        );
       }
 
       return integrations;

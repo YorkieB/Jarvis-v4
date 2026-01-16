@@ -1,6 +1,11 @@
 import logger from '../utils/logger';
 
-export type ImageAction = 'generate' | 'variation' | 'inpaint' | 'outpaint' | 'upscale';
+export type ImageAction =
+  | 'generate'
+  | 'variation'
+  | 'inpaint'
+  | 'outpaint'
+  | 'upscale';
 
 export interface ImageGenerateOptions {
   prompt: string;

@@ -7,7 +7,13 @@ import logger from '../utils/logger';
 import { CodeAnalysisService, CodeIssue } from './codeAnalysisService';
 import { extractCodeSnippet } from '../utils/codeParser';
 
-export type ErrorType = 'syntax' | 'type' | 'runtime' | 'logic' | 'linting' | 'external';
+export type ErrorType =
+  | 'syntax'
+  | 'type'
+  | 'runtime'
+  | 'logic'
+  | 'linting'
+  | 'external';
 
 export interface DetectedError {
   id: string;
@@ -33,7 +39,10 @@ export class ErrorDetectionService {
   /**
    * Detect error from runtime exception
    */
-  async detectRuntimeError(error: Error, stackTrace?: string): Promise<DetectedError> {
+  async detectRuntimeError(
+    error: Error,
+    stackTrace?: string,
+  ): Promise<DetectedError> {
     const issues = this.codeAnalysis.extractErrorContext(error);
 
     // Extract file path and line from stack trace
@@ -72,7 +81,11 @@ export class ErrorDetectionService {
     };
 
     this.detectedErrors.set(detectedError.id, detectedError);
-    logger.info('Runtime error detected', { errorId: detectedError.id, filePath, lineNumber });
+    logger.info('Runtime error detected', {
+      errorId: detectedError.id,
+      filePath,
+      lineNumber,
+    });
 
     return detectedError;
   }

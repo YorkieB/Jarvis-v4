@@ -21,8 +21,9 @@ export class AlertAgent extends BaseAgent {
   constructor(prismaClient?: PrismaClient) {
     super();
     this.prisma = prismaClient || globalPrisma;
-    this.highSpendThreshold =
-      Number(process.env.ALERT_HIGH_SPEND_THRESHOLD || '500');
+    this.highSpendThreshold = Number(
+      process.env.ALERT_HIGH_SPEND_THRESHOLD || '500',
+    );
   }
 
   async handleTransactionEvent(event: TransactionEvent): Promise<Alert | null> {
@@ -51,4 +52,3 @@ export class AlertAgent extends BaseAgent {
     return alert;
   }
 }
-

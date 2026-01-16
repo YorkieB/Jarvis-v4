@@ -1,6 +1,8 @@
 import { prisma as globalPrisma } from '../../utils/prisma';
 
-type RTuningDataset = Awaited<ReturnType<typeof globalPrisma.rTuningDataset.findFirstOrThrow>>;
+type RTuningDataset = Awaited<
+  ReturnType<typeof globalPrisma.rTuningDataset.findFirstOrThrow>
+>;
 
 export interface TrainingMessage {
   role: 'system' | 'user' | 'assistant';
@@ -43,7 +45,7 @@ export class RefusalTrainer {
    */
   prepareTrainingData(dataset: RTuningDataset[]): TrainingData {
     const systemPrompt =
-      "You are a helpful AI assistant. If a question cannot be answered, respond with a clear refusal such as \"I don't know.\"";
+      'You are a helpful AI assistant. If a question cannot be answered, respond with a clear refusal such as "I don\'t know."';
 
     return dataset.map<TrainingExample>((item) => ({
       messages: [
@@ -65,7 +67,10 @@ export class RefusalTrainer {
       epochs: options.epochs ?? 3,
       loraRank: options.loraRank ?? 16,
       loraAlpha: options.loraAlpha ?? 32,
-      targetModules: options.targetModules ?? ['attention.q_proj', 'attention.v_proj'],
+      targetModules: options.targetModules ?? [
+        'attention.q_proj',
+        'attention.v_proj',
+      ],
     };
   }
 
@@ -90,7 +95,10 @@ export class RefusalTrainer {
   /**
    * Basic validation to ensure each example contains a refusal.
    */
-  validateTrainingData(data: TrainingData): { valid: boolean; issues: string[] } {
+  validateTrainingData(data: TrainingData): {
+    valid: boolean;
+    issues: string[];
+  } {
     const issues: string[] = [];
     data.forEach((example, idx) => {
       const assistant = example.messages.find((m) => m.role === 'assistant');

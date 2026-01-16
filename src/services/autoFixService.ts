@@ -123,7 +123,10 @@ export class AutoFixService {
     } catch (caughtError) {
       const message =
         caughtError instanceof Error ? caughtError.message : 'Unknown error';
-      logger.error('Auto-fix failed', { error: caughtError, errorId: error.id });
+      logger.error('Auto-fix failed', {
+        error: caughtError,
+        errorId: error.id,
+      });
       return {
         success: false,
         errorId: error.id,
@@ -258,9 +261,7 @@ export class AutoFixService {
   /**
    * Auto-fix all detected errors
    */
-  async autoFixAll(
-    options: AutoFixOptions = {},
-  ): Promise<AutoFixResult[]> {
+  async autoFixAll(options: AutoFixOptions = {}): Promise<AutoFixResult[]> {
     const errors = this.errorDetection.getAllErrors();
     const results = await Promise.all(
       errors.map((error) => this.autoFix(error, options)),

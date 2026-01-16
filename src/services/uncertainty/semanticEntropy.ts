@@ -1,6 +1,6 @@
 /**
  * Semantic Entropy Calculator
- * 
+ *
  * Implements semantic entropy to measure uncertainty over meaning rather than tokens.
  * Groups semantically equivalent responses into clusters and calculates entropy over clusters.
  */
@@ -33,7 +33,7 @@ export class SemanticEntropyCalculator {
 
   /**
    * Calculate semantic entropy for a set of candidate responses
-   * 
+   *
    * @param query - Original query
    * @param responses - Array of candidate responses (5-10 recommended)
    * @returns Semantic entropy result with clusters and entropy score

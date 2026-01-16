@@ -29,7 +29,8 @@ class BackupService {
 
   constructor(prisma: PrismaClient, backupDir?: string) {
     this.prisma = prisma;
-    this.backupDir = backupDir || process.env.BACKUP_DIR || this.DEFAULT_BACKUP_DIR;
+    this.backupDir =
+      backupDir || process.env.BACKUP_DIR || this.DEFAULT_BACKUP_DIR;
 
     // Ensure backup directory exists
     if (!fs.existsSync(this.backupDir)) {
@@ -43,10 +44,7 @@ class BackupService {
    */
   private generateBackupFilename(): string {
     const now = new Date();
-    const timestamp = now
-      .toISOString()
-      .replace(/[:.]/g, '-')
-      .slice(0, -5);
+    const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
     return `jarvis-backup-${timestamp}.sql.gz`;
   }
 
@@ -288,7 +286,9 @@ class BackupService {
   /**
    * Clean up old backups based on retention policy
    */
-  async cleanupOldBackups(retentionDays: number = this.RETENTION_DAYS): Promise<void> {
+  async cleanupOldBackups(
+    retentionDays: number = this.RETENTION_DAYS,
+  ): Promise<void> {
     try {
       const backups = await this.listBackups();
       const cutoffDate = new Date();
@@ -308,7 +308,8 @@ class BackupService {
             logger.info('Deleted old backup', {
               path: backup.path,
               age: Math.floor(
-                (Date.now() - backup.timestamp.getTime()) / (1000 * 60 * 60 * 24),
+                (Date.now() - backup.timestamp.getTime()) /
+                  (1000 * 60 * 60 * 24),
               ),
             });
           } catch (error) {

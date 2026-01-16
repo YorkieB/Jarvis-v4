@@ -39,10 +39,14 @@ export class RemediationLibrary {
       return 'DNS cache flushed (Windows)';
     }
     if (platform === 'darwin') {
-      await this.executor.execute({ cmd: 'sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder' });
+      await this.executor.execute({
+        cmd: 'sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder',
+      });
       return 'DNS cache flushed (macOS)';
     }
-    await this.executor.execute({ cmd: 'sudo systemd-resolve --flush-caches || sudo resolvectl flush-caches' });
+    await this.executor.execute({
+      cmd: 'sudo systemd-resolve --flush-caches || sudo resolvectl flush-caches',
+    });
     return 'DNS cache flushed (Linux)';
   }
 
@@ -54,17 +58,24 @@ export class RemediationLibrary {
       return 'Network stack reset (Windows)';
     }
     if (platform === 'darwin') {
-      await this.executor.execute({ cmd: 'sudo ifconfig en0 down && sudo ifconfig en0 up' });
+      await this.executor.execute({
+        cmd: 'sudo ifconfig en0 down && sudo ifconfig en0 up',
+      });
       return 'Network interface restarted (macOS en0)';
     }
-    await this.executor.execute({ cmd: 'sudo systemctl restart NetworkManager || sudo service networking restart' });
+    await this.executor.execute({
+      cmd: 'sudo systemctl restart NetworkManager || sudo service networking restart',
+    });
     return 'Network service restarted (Linux)';
   }
 
   private async restartAudio(): Promise<string> {
     const platform = os.platform();
     if (platform === 'win32') {
-      await this.executor.execute({ cmd: 'net stop Audiosrv && net start Audiosrv', shell: 'cmd' });
+      await this.executor.execute({
+        cmd: 'net stop Audiosrv && net start Audiosrv',
+        shell: 'cmd',
+      });
       return 'Audio service restarted (Windows)';
     }
     if (platform === 'darwin') {
@@ -79,7 +90,10 @@ export class RemediationLibrary {
   private async clearTemp(): Promise<string> {
     const platform = os.platform();
     if (platform === 'win32') {
-      await this.executor.execute({ cmd: 'del /q/f/s %TEMP%\\*', shell: 'cmd' });
+      await this.executor.execute({
+        cmd: 'del /q/f/s %TEMP%\\*',
+        shell: 'cmd',
+      });
       return 'Temp cleared (Windows)';
     }
     await this.executor.execute({ cmd: 'rm -rf /tmp/*' });
@@ -90,9 +104,14 @@ export class RemediationLibrary {
     if (os.platform() !== 'win32') {
       throw new Error('Windows Update remediation is Windows-only');
     }
-    await this.executor.execute({ cmd: 'net stop wuauserv && net stop bits', shell: 'cmd' });
-    await this.executor.execute({ cmd: 'net start wuauserv && net start bits', shell: 'cmd' });
+    await this.executor.execute({
+      cmd: 'net stop wuauserv && net stop bits',
+      shell: 'cmd',
+    });
+    await this.executor.execute({
+      cmd: 'net start wuauserv && net start bits',
+      shell: 'cmd',
+    });
     return 'Windows Update services restarted';
   }
 }
-

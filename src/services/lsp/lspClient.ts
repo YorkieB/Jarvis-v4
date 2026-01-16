@@ -1,5 +1,14 @@
-import { Diagnostic, InitializeParams, InitializeResult } from 'vscode-languageserver-protocol';
-import { createMessageConnection, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
+import {
+  Diagnostic,
+  InitializeParams,
+  InitializeResult,
+} from 'vscode-languageserver-protocol';
+import {
+  createMessageConnection,
+  MessageConnection,
+  StreamMessageReader,
+  StreamMessageWriter,
+} from 'vscode-jsonrpc/node';
 import fetch from 'node-fetch';
 import logger from '../../utils/logger';
 
@@ -17,7 +26,8 @@ export class LspClient {
   private connection: MessageConnection | null = null;
 
   constructor(serverUrl?: string, language?: string) {
-    this.serverUrl = serverUrl || process.env.LSP_SERVER_URL || 'http://localhost:2087';
+    this.serverUrl =
+      serverUrl || process.env.LSP_SERVER_URL || 'http://localhost:2087';
     this.language = language || process.env.LSP_LANGUAGE || 'typescript';
   }
 
@@ -28,7 +38,10 @@ export class LspClient {
     try {
       await fetch(this.serverUrl, { method: 'HEAD' });
     } catch (error) {
-      logger.warn('LSP server not reachable', { serverUrl: this.serverUrl, error });
+      logger.warn('LSP server not reachable', {
+        serverUrl: this.serverUrl,
+        error,
+      });
       throw error;
     }
 
@@ -65,9 +78,12 @@ export class LspClient {
 
   async diagnostics(uri: string): Promise<NormalizedDiagnostic[]> {
     if (!this.connection) return [];
-    const result = await this.connection.sendRequest<Diagnostic[]>('textDocument/diagnostic', {
-      textDocument: { uri },
-    });
+    const result = await this.connection.sendRequest<Diagnostic[]>(
+      'textDocument/diagnostic',
+      {
+        textDocument: { uri },
+      },
+    );
     return (result || []).map((d) => ({
       severity: d.severity,
       line: d.range.start.line,

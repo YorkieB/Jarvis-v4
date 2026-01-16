@@ -55,9 +55,11 @@ export function errorHandler(
   if (errorDetectionService && process.env.CODE_AUTO_FIX_ENABLED !== 'false') {
     // Only detect runtime errors (not operational errors)
     if (!(err instanceof AppError && err.isOperational)) {
-      void errorDetectionService.detectRuntimeError(err, err.stack).catch((detectError) => {
-        logger.warn('Failed to detect error for auto-fix', { detectError });
-      });
+      void errorDetectionService
+        .detectRuntimeError(err, err.stack)
+        .catch((detectError) => {
+          logger.warn('Failed to detect error for auto-fix', { detectError });
+        });
     }
   }
 
@@ -96,10 +98,17 @@ export function handleUnhandledRejection() {
     });
 
     // Detect error for code self-healing
-    if (errorDetectionService && process.env.CODE_AUTO_FIX_ENABLED !== 'false') {
-      void errorDetectionService.detectRuntimeError(reason, reason.stack).catch((detectError) => {
-        logger.warn('Failed to detect unhandled rejection for auto-fix', { detectError });
-      });
+    if (
+      errorDetectionService &&
+      process.env.CODE_AUTO_FIX_ENABLED !== 'false'
+    ) {
+      void errorDetectionService
+        .detectRuntimeError(reason, reason.stack)
+        .catch((detectError) => {
+          logger.warn('Failed to detect unhandled rejection for auto-fix', {
+            detectError,
+          });
+        });
     }
 
     Sentry.captureException(reason);
@@ -115,10 +124,17 @@ export function handleUncaughtException() {
     });
 
     // Detect error for code self-healing (before exit)
-    if (errorDetectionService && process.env.CODE_AUTO_FIX_ENABLED !== 'false') {
-      void errorDetectionService.detectRuntimeError(error, error.stack).catch((detectError) => {
-        logger.warn('Failed to detect uncaught exception for auto-fix', { detectError });
-      });
+    if (
+      errorDetectionService &&
+      process.env.CODE_AUTO_FIX_ENABLED !== 'false'
+    ) {
+      void errorDetectionService
+        .detectRuntimeError(error, error.stack)
+        .catch((detectError) => {
+          logger.warn('Failed to detect uncaught exception for auto-fix', {
+            detectError,
+          });
+        });
     }
 
     Sentry.captureException(error);

@@ -53,14 +53,11 @@ export class ReflectionGrader {
     this.openai =
       openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.relThreshold =
-      options.relThreshold ??
-      Number(process.env.SELF_RAG_REL_THRESHOLD || 0.5);
+      options.relThreshold ?? Number(process.env.SELF_RAG_REL_THRESHOLD || 0.5);
     this.supThreshold =
-      options.supThreshold ??
-      Number(process.env.SELF_RAG_SUP_THRESHOLD || 0.7);
+      options.supThreshold ?? Number(process.env.SELF_RAG_SUP_THRESHOLD || 0.7);
     this.useThreshold =
-      options.useThreshold ??
-      Number(process.env.SELF_RAG_USE_THRESHOLD || 0.8);
+      options.useThreshold ?? Number(process.env.SELF_RAG_USE_THRESHOLD || 0.8);
     this.model = options.model || process.env.SELF_RAG_MODEL || 'gpt-4o-mini';
   }
 
@@ -73,7 +70,11 @@ export class ReflectionGrader {
     response?: string;
     queryId?: string;
   }): Promise<ReflectionResult> {
-    const prompt = this.buildPrompt(params.query, params.retrievedDocs, params.response);
+    const prompt = this.buildPrompt(
+      params.query,
+      params.retrievedDocs,
+      params.response,
+    );
     try {
       const completion = await this.openai.chat.completions.create({
         model: this.model,
@@ -129,15 +130,14 @@ export class ReflectionGrader {
     docs?: Array<{ id?: string; content: string }>,
     response?: string,
   ): string {
-    const docsText =
-      docs?.length
-        ? docs
-            .map((d, idx) => {
-              const idSuffix = d.id ? ` (${d.id})` : '';
-              return `Doc ${idx + 1}${idSuffix}: ${d.content}`;
-            })
-            .join('\n')
-        : 'No documents retrieved.';
+    const docsText = docs?.length
+      ? docs
+          .map((d, idx) => {
+            const idSuffix = d.id ? ` (${d.id})` : '';
+            return `Doc ${idx + 1}${idSuffix}: ${d.content}`;
+          })
+          .join('\n')
+      : 'No documents retrieved.';
 
     return [
       `Question: ${query}`,
@@ -151,7 +151,10 @@ export class ReflectionGrader {
     try {
       const json = JSON.parse(raw);
       const clamp = (v: any) =>
-        Math.max(0, Math.min(1, typeof v === 'number' ? v : Number.parseFloat(v)));
+        Math.max(
+          0,
+          Math.min(1, typeof v === 'number' ? v : Number.parseFloat(v)),
+        );
       return {
         RET: clamp(json.RET ?? 0),
         REL: clamp(json.REL ?? 0),
@@ -165,10 +168,30 @@ export class ReflectionGrader {
 
   private async persistScores(queryId: string, scores: ReflectionScores) {
     const entries = [
-      { tokenType: 'RET', score: scores.RET, threshold: 0.5, passed: scores.RET >= 0.5 },
-      { tokenType: 'REL', score: scores.REL, threshold: this.relThreshold, passed: scores.REL >= this.relThreshold },
-      { tokenType: 'SUP', score: scores.SUP, threshold: this.supThreshold, passed: scores.SUP >= this.supThreshold },
-      { tokenType: 'USE', score: scores.USE, threshold: this.useThreshold, passed: scores.USE >= this.useThreshold },
+      {
+        tokenType: 'RET',
+        score: scores.RET,
+        threshold: 0.5,
+        passed: scores.RET >= 0.5,
+      },
+      {
+        tokenType: 'REL',
+        score: scores.REL,
+        threshold: this.relThreshold,
+        passed: scores.REL >= this.relThreshold,
+      },
+      {
+        tokenType: 'SUP',
+        score: scores.SUP,
+        threshold: this.supThreshold,
+        passed: scores.SUP >= this.supThreshold,
+      },
+      {
+        tokenType: 'USE',
+        score: scores.USE,
+        threshold: this.useThreshold,
+        passed: scores.USE >= this.useThreshold,
+      },
     ];
 
     for (const entry of entries) {

@@ -1,9 +1,17 @@
 import logger from '../../utils/logger';
-import { SandboxHealth, SandboxResult, SandboxRunOptions, SandboxService } from './types';
+import {
+  SandboxHealth,
+  SandboxResult,
+  SandboxRunOptions,
+  SandboxService,
+} from './types';
 
 type E2bSandboxInstance = {
   id?: string;
-  run?: (cmd: string, opts?: Record<string, unknown>) => Promise<{ stdout: string; stderr: string; exitCode: number | null }>;
+  run?: (
+    cmd: string,
+    opts?: Record<string, unknown>,
+  ) => Promise<{ stdout: string; stderr: string; exitCode: number | null }>;
   close?: () => Promise<void>;
 };
 
@@ -21,16 +29,24 @@ export class E2bSandboxService implements SandboxService {
   private readonly defaultTimeoutMs: number;
   private sandboxCtor: E2bSandboxCtor | null = null;
 
-  constructor(options?: { apiKey?: string; templateId?: string; defaultTimeoutMs?: number }) {
+  constructor(options?: {
+    apiKey?: string;
+    templateId?: string;
+    defaultTimeoutMs?: number;
+  }) {
     this.apiKey = options?.apiKey || process.env.E2B_API_KEY || '';
-    this.templateId = options?.templateId || process.env.E2B_TEMPLATE_ID || 'base';
-    this.defaultTimeoutMs = options?.defaultTimeoutMs ?? Number(process.env.SANDBOX_DEFAULT_TIMEOUT_MS || 20_000);
+    this.templateId =
+      options?.templateId || process.env.E2B_TEMPLATE_ID || 'base';
+    this.defaultTimeoutMs =
+      options?.defaultTimeoutMs ??
+      Number(process.env.SANDBOX_DEFAULT_TIMEOUT_MS || 20_000);
   }
 
   async health(): Promise<SandboxHealth> {
     try {
       await this.loadClient();
-      if (!this.apiKey) return { ok: false, error: 'E2B_API_KEY missing', provider: 'e2b' };
+      if (!this.apiKey)
+        return { ok: false, error: 'E2B_API_KEY missing', provider: 'e2b' };
       return { ok: true, provider: 'e2b' };
     } catch (error) {
       return { ok: false, error: (error as Error).message, provider: 'e2b' };
@@ -57,7 +73,9 @@ export class E2bSandboxService implements SandboxService {
 
       const runner = sandbox.run;
       if (typeof runner !== 'function') {
-        throw new TypeError('E2B sandbox client missing run(command, opts) method');
+        throw new TypeError(
+          'E2B sandbox client missing run(command, opts) method',
+        );
       }
 
       const result = await runner(opts.command, {
@@ -85,7 +103,9 @@ export class E2bSandboxService implements SandboxService {
       });
       return {
         stdout: '',
-        stderr: timedOut ? 'Sandbox execution timed out' : (error as Error).message,
+        stderr: timedOut
+          ? 'Sandbox execution timed out'
+          : (error as Error).message,
         exitCode: null,
         timedOut,
         sandboxId: sandbox?.id,
@@ -105,8 +125,13 @@ export class E2bSandboxService implements SandboxService {
     try {
       // Use the renamed package `e2b`
       const mod = (await import('e2b')) as Record<string, unknown>;
-      const sandboxExport = mod.Sandbox ?? (mod.default as Record<string, unknown> | undefined)?.Sandbox ?? mod.default;
-      const SandboxCtor: E2bSandboxCtor | undefined = sandboxExport as E2bSandboxCtor | undefined;
+      const sandboxExport =
+        mod.Sandbox ??
+        (mod.default as Record<string, unknown> | undefined)?.Sandbox ??
+        mod.default;
+      const SandboxCtor: E2bSandboxCtor | undefined = sandboxExport as
+        | E2bSandboxCtor
+        | undefined;
       if (!SandboxCtor?.create) {
         throw new Error('E2B SDK missing Sandbox.create');
       }

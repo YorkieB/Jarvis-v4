@@ -18,6 +18,8 @@ describe('OnvifClient', () => {
       username: 'admin',
       password: 'password',
     });
-    await expect(client.getCapabilities()).rejects.toThrow('Camera not connected');
+    await expect(client.getCapabilities()).rejects.toThrow(
+      'Camera not connected',
+    );
   });
 });

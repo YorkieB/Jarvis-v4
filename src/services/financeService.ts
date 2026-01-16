@@ -1,11 +1,16 @@
-import type { PrismaClient, Transaction, Account, BankConnection } from '@prisma/client';
+import type {
+  PrismaClient,
+  Transaction,
+  Account,
+  BankConnection,
+} from '@prisma/client';
 import logger from '../utils/logger';
 import { TrueLayerClient, TLAccount, TLTransaction } from './truelayerClient';
 import { prisma as globalPrisma } from '../utils/prisma';
 
 interface SyncOptions {
   from?: string; // ISO date
-  to?: string;   // ISO date
+  to?: string; // ISO date
 }
 
 export class FinanceService {
@@ -34,13 +39,20 @@ export class FinanceService {
     for (const acc of accounts) {
       const accountId = accountMap.get(acc.account_id);
       if (!accountId) continue;
-      const txs = await this.tl.getTransactions(accessToken, acc.account_id, opts.from, opts.to);
+      const txs = await this.tl.getTransactions(
+        accessToken,
+        acc.account_id,
+        opts.from,
+        opts.to,
+      );
       const inserted = await this.upsertTransactions(userId, accountId, txs);
       allTx.push(...inserted);
     }
 
     return {
-      accounts: Array.from(accountMap.values()).map((id) => ({ id } as Account)),
+      accounts: Array.from(accountMap.values()).map(
+        (id) => ({ id }) as Account,
+      ),
       transactions: allTx,
     };
   }
@@ -103,7 +115,8 @@ export class FinanceService {
           update: {
             amount: tx.amount,
             description: tx.description,
-            category: tx.transaction_category || tx.merchant_name || 'uncategorized',
+            category:
+              tx.transaction_category || tx.merchant_name || 'uncategorized',
             date: new Date(tx.timestamp),
             accountId,
           },
@@ -112,17 +125,21 @@ export class FinanceService {
             userId,
             amount: tx.amount,
             description: tx.description,
-            category: tx.transaction_category || tx.merchant_name || 'uncategorized',
+            category:
+              tx.transaction_category || tx.merchant_name || 'uncategorized',
             date: new Date(tx.timestamp),
             accountId,
           },
         });
         results.push(record);
       } catch (error) {
-        logger.warn('Failed to upsert transaction', { accountId, txId: tx.transaction_id, error });
+        logger.warn('Failed to upsert transaction', {
+          accountId,
+          txId: tx.transaction_id,
+          error,
+        });
       }
     }
     return results;
   }
 }
-

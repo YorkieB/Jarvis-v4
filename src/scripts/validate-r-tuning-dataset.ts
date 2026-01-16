@@ -25,7 +25,11 @@ async function main() {
     orderBy: { createdAt: 'asc' },
   });
 
-  logger.info('Validating R-Tuning dataset', { count: items.length, limit, fix });
+  logger.info('Validating R-Tuning dataset', {
+    count: items.length,
+    limit,
+    fix,
+  });
 
   const report = await validator.validateDataset(items);
   logger.info('Validation report', {
@@ -40,7 +44,9 @@ async function main() {
     await prisma.rTuningDataset.deleteMany({
       where: { id: { in: report.duplicates } },
     });
-    logger.warn('Removed duplicate questions', { removed: report.duplicates.length });
+    logger.warn('Removed duplicate questions', {
+      removed: report.duplicates.length,
+    });
   }
 
   await prisma.$disconnect();

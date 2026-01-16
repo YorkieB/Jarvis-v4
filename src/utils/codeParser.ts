@@ -130,7 +130,11 @@ export function extractCodeSnippet(
       },
     };
   } catch (error) {
-    logger.error('Failed to extract code snippet', { error, filePath, lineNumber });
+    logger.error('Failed to extract code snippet', {
+      error,
+      filePath,
+      lineNumber,
+    });
     return null;
   }
 }
@@ -138,7 +142,9 @@ export function extractCodeSnippet(
 /**
  * Get file extension to determine language
  */
-export function getLanguage(filePath: string): 'typescript' | 'javascript' | 'unknown' {
+export function getLanguage(
+  filePath: string,
+): 'typescript' | 'javascript' | 'unknown' {
   const ext = path.extname(filePath).toLowerCase();
   if (ext === '.ts' || ext === '.tsx') {
     return 'typescript';

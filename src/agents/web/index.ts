@@ -44,7 +44,10 @@ export class WebAgent extends BaseAgent {
   private extractTextContent(html: string): string {
     // Remove scripts and styles to avoid noise
     const withoutScripts = html.replaceAll(/<script[\s\S]*?<\/script>/gi, ' ');
-    const withoutStyles = withoutScripts.replaceAll(/<style[\s\S]*?<\/style>/gi, ' ');
+    const withoutStyles = withoutScripts.replaceAll(
+      /<style[\s\S]*?<\/style>/gi,
+      ' ',
+    );
 
     // Strip remaining tags
     const withoutTags = withoutStyles.replaceAll(/<[^>]+>/g, ' ');

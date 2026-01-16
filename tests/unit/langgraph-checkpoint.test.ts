@@ -1,19 +1,37 @@
 import { CheckpointAdapter } from '../../src/services/langgraph/checkpointAdapter';
 
 class FakePrisma {
-  records: Array<{ graphId: string; nodeId: string; state: unknown; runId?: string; timestamp: Date }> = [];
+  records: Array<{
+    graphId: string;
+    nodeId: string;
+    state: unknown;
+    runId?: string;
+    timestamp: Date;
+  }> = [];
 
   graphCheckpoint = {
-    create: async ({ data }: { data: { graphId: string; nodeId: string; state: unknown; runId?: string } }) => {
+    create: async ({
+      data,
+    }: {
+      data: { graphId: string; nodeId: string; state: unknown; runId?: string };
+    }) => {
       const timestamp = new Date(Date.now() + this.records.length);
       this.records.push({ ...data, timestamp });
     },
-    findFirst: async ({ where }: { where: { graphId: string; runId?: string } }) => {
+    findFirst: async ({
+      where,
+    }: {
+      where: { graphId: string; runId?: string };
+    }) => {
       const filtered = this.records.filter(
-        (r) => r.graphId === where.graphId && (where.runId ? r.runId === where.runId : true),
+        (r) =>
+          r.graphId === where.graphId &&
+          (where.runId ? r.runId === where.runId : true),
       );
       if (filtered.length === 0) return null;
-      return filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+      return filtered.sort(
+        (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+      )[0];
     },
   };
 }

@@ -26,7 +26,13 @@ export class PaymentService {
       accountNumber?: string;
     },
   ): Promise<Payment> {
-    const resp = await this.tl.createPayment(accessToken, amount, currency, reference, beneficiary);
+    const resp = await this.tl.createPayment(
+      accessToken,
+      amount,
+      currency,
+      reference,
+      beneficiary,
+    );
 
     const payment = await this.prisma.payment.create({
       data: {
@@ -47,14 +53,18 @@ export class PaymentService {
     paymentId: string,
     accessToken: string,
   ): Promise<Payment | null> {
-    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
     if (!payment) return null;
 
-    const status = await this.tl.getPaymentStatus(accessToken, payment.providerPaymentId);
+    const status = await this.tl.getPaymentStatus(
+      accessToken,
+      payment.providerPaymentId,
+    );
     return this.prisma.payment.update({
       where: { id: paymentId },
       data: { status: status.status },
     });
   }
 }
-

@@ -32,18 +32,21 @@ export function mediaSafetyMiddleware(service: MediaSafetyService) {
   };
 }
 
-export function evaluateMediaSafety(service: MediaSafetyService, req: Request): MediaSafetyDecision {
+export function evaluateMediaSafety(
+  service: MediaSafetyService,
+  req: Request,
+): MediaSafetyDecision {
   return service.evaluate(buildInput(req));
 }
 
 function buildInput(req: Request): MediaSafetyInput {
-  const safetySignals = (req.body?.stabilitySafety || req.body?.safetySignals) as
-    | MediaSafetyInput['safetySignals']
-    | undefined;
+  const safetySignals = (req.body?.stabilitySafety ||
+    req.body?.safetySignals) as MediaSafetyInput['safetySignals'] | undefined;
 
   return {
     source: (req.body?.source as MediaSafetyInput['source']) || 'upload',
-    provider: (req.body?.provider as MediaSafetyInput['provider']) || 'stability',
+    provider:
+      (req.body?.provider as MediaSafetyInput['provider']) || 'stability',
     safetySignals: safetySignals,
     contentType: req.body?.contentType,
     sizeBytes: req.body?.sizeBytes,

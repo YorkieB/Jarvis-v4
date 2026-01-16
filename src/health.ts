@@ -70,7 +70,9 @@ async function checkExternalService(
     const result = await Promise.race([checkFn(), timeoutPromise]);
     return {
       status: result ? 'pass' : 'fail',
-      message: result ? `${serviceName} is reachable` : `${serviceName} check failed`,
+      message: result
+        ? `${serviceName} is reachable`
+        : `${serviceName} check failed`,
     };
   } catch (error) {
     return {
@@ -186,7 +188,10 @@ async function performHealthChecks(): Promise<HealthCheck['checks']> {
   // External API health checks (non-blocking, with timeout)
   checks.openai = await checkExternalService('OpenAI', checkOpenAIHealth);
   checks.deepgram = await checkExternalService('Deepgram', checkDeepgramHealth);
-  checks.elevenlabs = await checkExternalService('ElevenLabs', checkElevenLabsHealth);
+  checks.elevenlabs = await checkExternalService(
+    'ElevenLabs',
+    checkElevenLabsHealth,
+  );
 
   // Disk space check
   checks.diskSpace = checkDiskSpace();

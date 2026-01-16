@@ -66,10 +66,15 @@ export class SystemExecutor {
     this.allow = splitCsvEnv(process.env.SYSTEM_CONTROL_ALLOW);
     this.deny = splitCsvEnv(process.env.SYSTEM_CONTROL_DENY);
     const envTimeout = Number(process.env.SYSTEM_EXECUTOR_DEFAULT_TIMEOUT_MS);
-    this.defaultTimeoutMs = Number.isFinite(envTimeout) && envTimeout > 0 ? envTimeout : DEFAULT_TIMEOUT;
+    this.defaultTimeoutMs =
+      Number.isFinite(envTimeout) && envTimeout > 0
+        ? envTimeout
+        : DEFAULT_TIMEOUT;
     this.sandboxEnabled = (process.env.SANDBOX_ENABLED || 'false') === 'true';
-    this.sandboxFallbackToHost = (process.env.SANDBOX_FALLBACK_HOST || 'true') === 'true';
-    this.defaultSandboxNetwork = (process.env.SANDBOX_ALLOW_NETWORK || 'false') === 'true';
+    this.sandboxFallbackToHost =
+      (process.env.SANDBOX_FALLBACK_HOST || 'true') === 'true';
+    this.defaultSandboxNetwork =
+      (process.env.SANDBOX_ALLOW_NETWORK || 'false') === 'true';
     this.sandboxAdapter = new SandboxAdapter();
   }
 
@@ -98,17 +103,34 @@ export class SystemExecutor {
         allowNetwork: options.allowNetwork ?? this.defaultSandboxNetwork,
       });
       if (sandboxResult || !this.sandboxFallbackToHost) {
-        metrics.increment('executor.sandbox', { source: source || 'unknown', timedOut: sandboxResult.timedOut });
+        metrics.increment('executor.sandbox', {
+          source: source || 'unknown',
+          timedOut: sandboxResult.timedOut,
+        });
         return sandboxResult;
       }
-      logger.warn('Sandbox execution failed or disabled, falling back to host', { cmd });
-      metrics.increment('executor.sandbox_fallback', { source: source || 'unknown' });
+      logger.warn(
+        'Sandbox execution failed or disabled, falling back to host',
+        { cmd },
+      );
+      metrics.increment('executor.sandbox_fallback', {
+        source: source || 'unknown',
+      });
     }
 
     if (dryRun) {
-      logger.info('SystemExecutor dry-run', { cmd: safeCmd, shell: chosenShell });
+      logger.info('SystemExecutor dry-run', {
+        cmd: safeCmd,
+        shell: chosenShell,
+      });
       metrics.increment('executor.dry_run', { source: source || 'unknown' });
-      return { stdout: '', stderr: '', exitCode: null, timedOut: false, dryRun: true };
+      return {
+        stdout: '',
+        stderr: '',
+        exitCode: null,
+        timedOut: false,
+        dryRun: true,
+      };
     }
 
     const args = this.buildArgs(chosenShell, cmd);
@@ -148,7 +170,10 @@ export class SystemExecutor {
 
     try {
       const result = await exitPromise;
-      metrics.increment('executor.host', { source: source || 'unknown', timedOut: timedOut || false });
+      metrics.increment('executor.host', {
+        source: source || 'unknown',
+        timedOut: timedOut || false,
+      });
       return result;
     } finally {
       clearTimeout(to);
@@ -180,15 +205,20 @@ export class SystemExecutor {
     return os.platform() === 'win32' ? 'powershell' : 'bash';
   }
 
-  private buildArgs(shell: ExecuteOptions['shell'], cmd: string): { command: string; args: string[] } {
+  private buildArgs(
+    shell: ExecuteOptions['shell'],
+    cmd: string,
+  ): { command: string; args: string[] } {
     if (shell === 'cmd') {
       return { command: 'cmd', args: ['/c', cmd] };
     }
     if (shell === 'powershell') {
-      return { command: 'powershell', args: ['-NoLogo', '-NoProfile', '-Command', cmd] };
+      return {
+        command: 'powershell',
+        args: ['-NoLogo', '-NoProfile', '-Command', cmd],
+      };
     }
     // default bash
     return { command: 'bash', args: ['-lc', cmd] };
   }
 }
-

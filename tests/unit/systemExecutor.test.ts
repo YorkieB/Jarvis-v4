@@ -14,4 +14,3 @@ describe('SystemExecutor', () => {
     expect(result.exitCode).toBeNull();
   });
 });
-

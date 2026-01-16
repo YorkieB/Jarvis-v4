@@ -18,7 +18,11 @@ describe('MCP integration', () => {
         acl: [{ effect: 'allow', users: ['user-1'] }],
       });
 
-      const result = (await registry.invoke('echo', { msg: 'hi' }, ctx)) as McpToolResult;
+      const result = (await registry.invoke(
+        'echo',
+        { msg: 'hi' },
+        ctx,
+      )) as McpToolResult;
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ msg: 'hi' });
     });
@@ -78,9 +82,9 @@ describe('MCP integration', () => {
 
     it('rejects access outside allowed roots', async () => {
       const fsResource = new FileSystemResource([tmpDir]);
-      await expect(fsResource.read(path.join(tmpDir, '..', 'unauthorized.txt'))).rejects.toThrow(
-        /Path not allowed/,
-      );
+      await expect(
+        fsResource.read(path.join(tmpDir, '..', 'unauthorized.txt')),
+      ).rejects.toThrow(/Path not allowed/);
     });
   });
 });

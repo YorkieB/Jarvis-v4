@@ -152,7 +152,11 @@ export class WorkloadMonitorService {
         }
       } else if (availableAgents.length > 0) {
         // Reassign tasks to available agents
-        for (let i = 0; i < Math.min(pendingTasks.length, availableAgents.length); i++) {
+        for (
+          let i = 0;
+          i < Math.min(pendingTasks.length, availableAgents.length);
+          i++
+        ) {
           await this.taskQueue.assignTask(
             pendingTasks[i].id,
             availableAgents[i].id,
@@ -224,7 +228,10 @@ export class WorkloadMonitorService {
       this.thresholds.high = Math.max(0, Math.min(100, thresholds.high));
     }
     if (thresholds.critical !== undefined) {
-      this.thresholds.critical = Math.max(0, Math.min(100, thresholds.critical));
+      this.thresholds.critical = Math.max(
+        0,
+        Math.min(100, thresholds.critical),
+      );
     }
     logger.info('Workload thresholds updated', { thresholds: this.thresholds });
   }

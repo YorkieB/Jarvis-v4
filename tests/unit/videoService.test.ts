@@ -32,6 +32,8 @@ describe('VideoService', () => {
   it('throws when missing API key', async () => {
     delete process.env.VIDEO_API_KEY;
     const svc = new VideoService();
-    await expect(svc.generate({ prompt: 'test' })).rejects.toThrow('Missing VIDEO_API_KEY');
+    await expect(svc.generate({ prompt: 'test' })).rejects.toThrow(
+      'Missing VIDEO_API_KEY',
+    );
   });
 });

@@ -1,7 +1,18 @@
 import { BaseAgent } from '../base-agent';
-import { ImageService, ImageGenerateOptions, ImageEditOptions } from '../../services/imageService';
-import { VideoService, VideoGenerateOptions, VideoJob } from '../../services/videoService';
-import { VideoEditService, VideoEditOptions } from '../../services/videoEditService';
+import {
+  ImageService,
+  ImageGenerateOptions,
+  ImageEditOptions,
+} from '../../services/imageService';
+import {
+  VideoService,
+  VideoGenerateOptions,
+  VideoJob,
+} from '../../services/videoService';
+import {
+  VideoEditService,
+  VideoEditOptions,
+} from '../../services/videoEditService';
 import { AssetStorage, StoredAsset } from '../../services/assetStorage';
 
 export class MediaAgent extends BaseAgent {
@@ -13,7 +24,12 @@ export class MediaAgent extends BaseAgent {
   private videoEditor: VideoEditService;
   private storage: AssetStorage;
 
-  constructor(images: ImageService, videos: VideoService, videoEditor: VideoEditService, storage: AssetStorage) {
+  constructor(
+    images: ImageService,
+    videos: VideoService,
+    videoEditor: VideoEditService,
+    storage: AssetStorage,
+  ) {
     super();
     this.images = images;
     this.videos = videos;
@@ -41,17 +57,14 @@ export class MediaAgent extends BaseAgent {
     }
 
     return (
-      this.storage.update(
-        result.id,
-        {
-          url: result.url,
-          thumbnailUrl: result.thumbnailUrl,
-          provider: result.provider,
-          metadata: result.metadata,
-          status: 'succeeded',
-          userId,
-        },
-      ) ||
+      this.storage.update(result.id, {
+        url: result.url,
+        thumbnailUrl: result.thumbnailUrl,
+        provider: result.provider,
+        metadata: result.metadata,
+        status: 'succeeded',
+        userId,
+      }) ||
       this.storage.create({
         id: result.id,
         type: 'image',
@@ -67,7 +80,10 @@ export class MediaAgent extends BaseAgent {
     );
   }
 
-  async generateVideo(userId: string | undefined, opts: VideoGenerateOptions): Promise<StoredAsset> {
+  async generateVideo(
+    userId: string | undefined,
+    opts: VideoGenerateOptions,
+  ): Promise<StoredAsset> {
     const job = await this.videos.generate(opts);
     return this.storage.create({
       id: job.id,
@@ -83,7 +99,10 @@ export class MediaAgent extends BaseAgent {
     });
   }
 
-  async editVideo(userId: string | undefined, opts: VideoEditOptions): Promise<StoredAsset> {
+  async editVideo(
+    userId: string | undefined,
+    opts: VideoEditOptions,
+  ): Promise<StoredAsset> {
     const result = await this.videoEditor.edit(opts);
     return this.storage.create({
       id: result.id,

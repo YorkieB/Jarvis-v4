@@ -15,6 +15,7 @@ Jarvis v4 includes automated database backups to protect conversation history an
 ### Manual Backups
 
 Backups can be created on-demand using:
+
 - API endpoint: `POST /api/backup/create`
 - Script: `npm run backup:create`
 - Shell script: `./scripts/backup-db.sh`
@@ -69,6 +70,7 @@ npm run backup:list
 ```
 
 The script will:
+
 1. Verify backup file exists
 2. Check backup checksum
 3. Prompt for confirmation
@@ -150,18 +152,21 @@ BACKUP_RETENTION_DAYS=60 npm run backup:cleanup
 ## Troubleshooting
 
 **Backup Creation Fails:**
+
 - Check `DATABASE_URL` is set correctly
 - Verify PostgreSQL is accessible
 - Check disk space in backup directory
 - Review logs: `/var/log/jarvis/backup.log`
 
 **Restore Fails:**
+
 - Verify backup file integrity (checksum)
 - Check database connection
 - Ensure sufficient disk space
 - Review PostgreSQL logs
 
 **Backups Not Running:**
+
 - Verify cron job is configured: `crontab -l`
 - Check cron logs: `/var/log/jarvis/backup-cron.log`
 - Ensure scripts are executable: `chmod +x scripts/*.sh`
