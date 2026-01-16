@@ -141,8 +141,7 @@ export class WatchdogService {
         return false;
       }
 
-      const timeSinceHeartbeat =
-        Date.now() - agent.lastHeartbeat.getTime();
+      const timeSinceHeartbeat = Date.now() - agent.lastHeartbeat.getTime();
 
       if (timeSinceHeartbeat > this.heartbeatTimeout) {
         return false;
@@ -224,9 +223,12 @@ export class WatchdogService {
         logger.warn('Self-healing agent recovery attempted', { agentId });
       } else {
         // Last resort: manual intervention required
-        logger.error('CRITICAL: Manual intervention required for self-healing agent', {
-          agentId,
-        });
+        logger.error(
+          'CRITICAL: Manual intervention required for self-healing agent',
+          {
+            agentId,
+          },
+        );
       }
     } catch (error) {
       logger.error('Failed to recover self-healing agent', { error, agentId });

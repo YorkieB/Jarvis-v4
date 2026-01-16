@@ -1,4 +1,8 @@
-import { AppError, errorHandler, setErrorDetectionService } from '../../src/middleware/errorHandler';
+import {
+  AppError,
+  errorHandler,
+  setErrorDetectionService,
+} from '../../src/middleware/errorHandler';
 
 describe('errorHandler auto-fix integration', () => {
   const detectRuntimeError = jest.fn();

@@ -111,9 +111,7 @@ export const COMMON_ERROR_PATTERNS: ErrorPattern[] = [
 /**
  * Match error message to pattern
  */
-export function matchErrorPattern(
-  errorMessage: string,
-): ErrorPattern | null {
+export function matchErrorPattern(errorMessage: string): ErrorPattern | null {
   for (const pattern of COMMON_ERROR_PATTERNS) {
     if (pattern.pattern.test(errorMessage)) {
       return pattern;

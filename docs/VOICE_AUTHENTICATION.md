@@ -30,6 +30,7 @@ The voiceprint pipeline now defaults to an onboard ECAPA ONNX encoder (CPU, ~192
 **POST** `/api/voice/enroll`
 
 Request body:
+
 ```json
 {
   "userId": "user-123",
@@ -38,6 +39,7 @@ Request body:
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -50,6 +52,7 @@ Response:
 **GET** `/api/voice/status/:userId`
 
 Response:
+
 ```json
 {
   "hasVoiceprint": true,
@@ -71,6 +74,7 @@ Response:
 ### Database
 
 Voiceprints are stored in the `Voiceprint` table with:
+
 - `userId` - Unique user identifier
 - `embedding` - 192-dimensional voiceprint vector (pgvector)
 - `confidence` - Minimum confidence threshold (default: 0.85)
@@ -102,17 +106,20 @@ Voice verification happens automatically during audio streaming. No additional c
 ## Troubleshooting
 
 **Voice not recognized:**
+
 - Ensure you've enrolled your voice first
 - Check that audio quality is good (minimize background noise)
 - Try re-enrolling with clearer audio samples
 - Confirm the ONNX model file exists at `SPEAKER_ENCODER_PATH`; the pipeline falls back to external endpoint and deterministic PCM if ONNX is unavailable
 
 **Enrollment fails:**
+
 - Ensure at least 3 samples are recorded
 - Total duration must be at least 10 seconds
 - Check microphone permissions
 
 **Verification always fails:**
+
 - Check `VOICE_AUTH_ENABLED` environment variable
 - Verify voiceprint exists in database
 - Check server logs for errors

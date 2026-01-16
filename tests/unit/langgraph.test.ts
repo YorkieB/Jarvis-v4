@@ -10,7 +10,10 @@ describe('LangGraphEngine', () => {
         b: async (state) => ({ state: { ...state, b: true }, done: true }),
       },
     };
-    const engine = new LangGraphEngine(definition, { maxHops: 5, timeoutMs: 1000 });
+    const engine = new LangGraphEngine(definition, {
+      maxHops: 5,
+      timeoutMs: 1000,
+    });
     const result = await engine.run({});
     expect(result.state.a).toBe(true);
     expect(result.state.b).toBe(true);
@@ -24,7 +27,11 @@ describe('LangGraphEngine', () => {
         loop: async (state) => ({ state, next: 'loop' }),
       },
     };
-    const engine = new LangGraphEngine(definition, { maxHops: 3, allowCycles: false, timeoutMs: 500 });
+    const engine = new LangGraphEngine(definition, {
+      maxHops: 3,
+      allowCycles: false,
+      timeoutMs: 500,
+    });
     await expect(engine.run({})).rejects.toThrow(/cycle/);
   });
 
@@ -46,10 +53,20 @@ describe('LangGraphEngine', () => {
     const definition: GraphDefinition = {
       start: 'loop',
       nodes: {
-        loop: async (state) => ({ state: { ...state, count: (state.count as number | undefined) ?? 0 + 1 }, next: 'loop' }),
+        loop: async (state) => ({
+          state: {
+            ...state,
+            count: (state.count as number | undefined) ?? 0 + 1,
+          },
+          next: 'loop',
+        }),
       },
     };
-    const engine = new LangGraphEngine(definition, { maxHops: 3, allowCycles: true, timeoutMs: 500 });
+    const engine = new LangGraphEngine(definition, {
+      maxHops: 3,
+      allowCycles: true,
+      timeoutMs: 500,
+    });
     await expect(engine.run({})).rejects.toThrow(/max hops/);
   });
 
@@ -61,7 +78,10 @@ describe('LangGraphEngine', () => {
         b: async (state) => ({ state: { ...state, b: true }, done: true }),
       },
     };
-    const engine = new LangGraphEngine(definition, { maxHops: 5, timeoutMs: 1000 });
+    const engine = new LangGraphEngine(definition, {
+      maxHops: 5,
+      timeoutMs: 1000,
+    });
     const result = await engine.run({});
     expect(result.trace).toHaveLength(2);
     expect(result.trace[0].node).toBe('a');

@@ -85,7 +85,6 @@ Currently, Jarvis stores conversation history only in memory (`Map<string, ChatC
 
 - Initialize `PrismaClient` instance (reuse from `src/index.ts` or create new)
 - On `generateResponse()`:
-
   1. Get or create `Conversation` record for userId
   2. Load existing messages from database if conversationId provided
   3. Append new user message to history
@@ -120,6 +119,7 @@ Currently, Jarvis stores conversation history only in memory (`Map<string, ChatC
 **Implementation Approach**:
 
 **Option A: Deepgram Speaker Diarization + Custom Verification** (Recommended)
+
 - Use Deepgram's speaker diarization features (already integrated)
 - Extract voice features/embeddings from audio samples
 - Store voiceprint embeddings in database
@@ -127,17 +127,20 @@ Currently, Jarvis stores conversation history only in memory (`Map<string, ChatC
 - Threshold-based matching (e.g., 85% similarity required)
 
 **Option B: Dedicated Voice Biometrics API**
+
 - Use services like VoiceIt, Nuance, or Microsoft Speaker Recognition API
 - More accurate but adds external dependency and cost
 - Better for production-grade security
 
 **Option C: ML-Based Voiceprint Model**
+
 - Train/use pre-trained voiceprint model (e.g., SpeechBrain, wav2vec2)
 - Extract embeddings using transformer models
 - Store embeddings and use cosine similarity for matching
 - Most control but requires ML expertise
 
 **Recommended: Hybrid Approach**
+
 - Use Deepgram for initial audio processing (already integrated)
 - Extract voice features using lightweight ML model
 - Store voiceprint embeddings in database
@@ -156,7 +159,7 @@ model Voiceprint {
   updatedAt   DateTime @updatedAt
   isActive    Boolean  @default(true)
   confidence  Float    @default(0.95)  // Minimum confidence threshold
-  
+
   @@index([embedding(ops: raw("vector_cosine_ops"))])
 }
 ```

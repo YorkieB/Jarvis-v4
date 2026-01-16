@@ -87,7 +87,9 @@ export abstract class BaseAgent {
     }
 
     // Lazy-init shared OpenAI client
-    BaseAgent.openaiClient ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    BaseAgent.openaiClient ??= new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
     const minConfidence = options.confidence ?? 0.9;
@@ -118,7 +120,10 @@ export abstract class BaseAgent {
     try {
       const raw = completion.choices[0]?.message?.content ?? '{}';
       parsed = JSON.parse(raw);
-      parsed.answer = typeof parsed.answer === 'string' ? parsed.answer : String(parsed.answer ?? '');
+      parsed.answer =
+        typeof parsed.answer === 'string'
+          ? parsed.answer
+          : String(parsed.answer ?? '');
       parsed.confidence = Number.isFinite(parsed.confidence)
         ? Math.max(0, Math.min(1, parsed.confidence))
         : 0;
@@ -265,9 +270,7 @@ export abstract class BaseAgent {
   /**
    * Aggregate results from multiple child agents
    */
-  protected async aggregateResults(
-    results: TaskResult[],
-  ): Promise<TaskResult> {
+  protected async aggregateResults(results: TaskResult[]): Promise<TaskResult> {
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
 

@@ -21,8 +21,7 @@ export class LspValidatorAdapter {
 
   constructor(validator?: CodeValidator) {
     this.validator = validator || new CodeValidator();
-    this.maxIterations =
-      Number(process.env.LSP_VALIDATE_MAX_ITERATIONS || 3);
+    this.maxIterations = Number(process.env.LSP_VALIDATE_MAX_ITERATIONS || 3);
   }
 
   async validateWithGenerator(
@@ -33,10 +32,7 @@ export class LspValidatorAdapter {
 
     for (let i = 0; i < this.maxIterations; i++) {
       lastCode = await generate(feedback);
-      const result = await this.validator.validate(
-        lastCode,
-        this.virtualUri(),
-      );
+      const result = await this.validator.validate(lastCode, this.virtualUri());
 
       if (!this.validator.hasBlockingErrors(result)) {
         return {
@@ -67,7 +63,12 @@ export class LspValidatorAdapter {
     };
   }
 
-  private formatDiag(d: { line: number; column: number; message: string; source?: string }) {
+  private formatDiag(d: {
+    line: number;
+    column: number;
+    message: string;
+    source?: string;
+  }) {
     const src = d.source ? `[${d.source}] ` : '';
     return `${src}Line ${d.line + 1}, Col ${d.column + 1}: ${d.message}`;
   }

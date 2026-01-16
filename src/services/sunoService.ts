@@ -43,7 +43,10 @@ export class SunoService {
     try {
       const res = await this.fetchWithAuth('/v1/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': requestId },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': requestId,
+        },
         body: JSON.stringify({
           prompt: options.prompt,
           style: options.style,
@@ -62,7 +65,9 @@ export class SunoService {
 
   async getStatus(trackId: string): Promise<SunoTrack> {
     try {
-      const res = await this.fetchWithAuth(`/v1/tracks/${trackId}`, { method: 'GET' });
+      const res = await this.fetchWithAuth(`/v1/tracks/${trackId}`, {
+        method: 'GET',
+      });
       return this.toTrack(await res.json());
     } catch (error) {
       logger.error('Suno status failed', { error, trackId });
@@ -78,7 +83,10 @@ export class SunoService {
     return track.stems;
   }
 
-  private async fetchWithAuth(path: string, init: RequestInit): Promise<Response> {
+  private async fetchWithAuth(
+    path: string,
+    init: RequestInit,
+  ): Promise<Response> {
     if (!this.apiKey) throw new Error('Missing SUNO_API_KEY');
     const controller = new AbortController();
     const to = setTimeout(() => controller.abort(), this.timeoutMs);

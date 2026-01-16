@@ -103,7 +103,12 @@ export class VisionAgent extends BaseAgent {
 
   async movePTZ(
     cameraId: string,
-    options: { pan?: number; tilt?: number; zoom?: number; speed?: { pan?: number; tilt?: number; zoom?: number } },
+    options: {
+      pan?: number;
+      tilt?: number;
+      zoom?: number;
+      speed?: { pan?: number; tilt?: number; zoom?: number };
+    },
   ) {
     return this.cameraService.movePTZ(cameraId, options);
   }
@@ -128,7 +133,14 @@ export class VisionAgent extends BaseAgent {
     return this.cameraService.getPresets(cameraId);
   }
 
-  async detectObjects(cameraId: string, options?: { frameData?: Buffer; frameUrl?: string; confidenceThreshold?: number }) {
+  async detectObjects(
+    cameraId: string,
+    options?: {
+      frameData?: Buffer;
+      frameUrl?: string;
+      confidenceThreshold?: number;
+    },
+  ) {
     return this.cvService.detect({
       cameraId,
       frameData: options?.frameData,
@@ -148,7 +160,11 @@ export class VisionAgent extends BaseAgent {
     return this.cvService.queryDetections(filters);
   }
 
-  async startRecording(config: { cameraIds: string[]; duration?: number; startTime?: Date }) {
+  async startRecording(config: {
+    cameraIds: string[];
+    duration?: number;
+    startTime?: Date;
+  }) {
     return this.recordingService.startRecording(config);
   }
 

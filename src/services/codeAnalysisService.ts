@@ -6,7 +6,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import logger from '../utils/logger';
-import { parseCode, extractCodeSnippet, getLanguage } from '../utils/codeParser';
+import {
+  parseCode,
+  extractCodeSnippet,
+  getLanguage,
+} from '../utils/codeParser';
 
 export interface CodeIssue {
   type: 'syntax' | 'type' | 'linting' | 'logic' | 'runtime';
@@ -150,10 +154,7 @@ export class CodeAnalysisService {
   /**
    * Basic linting checks
    */
-  private checkBasicLinting(
-    content: string,
-    filePath: string,
-  ): CodeIssue[] {
+  private checkBasicLinting(content: string, filePath: string): CodeIssue[] {
     const issues: CodeIssue[] = [];
     const lines = content.split('\n');
 

@@ -63,12 +63,17 @@ export class VideoEditService {
 
   private validate(options: VideoEditOptions): void {
     if (!options.action) throw new Error('Missing action');
-    if (!options.sources || options.sources.length === 0) throw new Error('Missing sources');
+    if (!options.sources || options.sources.length === 0)
+      throw new Error('Missing sources');
 
     if (options.action === 'stitch' && options.sources.length < 2) {
       throw new Error('Stitch requires at least two sources');
     }
-    if (options.action === 'trim' && options.startSeconds === undefined && options.endSeconds === undefined) {
+    if (
+      options.action === 'trim' &&
+      options.startSeconds === undefined &&
+      options.endSeconds === undefined
+    ) {
       throw new Error('Trim requires startSeconds or endSeconds');
     }
     if (options.action === 'overlay' && !options.overlayUrl) {

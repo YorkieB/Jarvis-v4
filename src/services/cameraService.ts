@@ -1,19 +1,29 @@
 import { PrismaClient } from '@prisma/client';
-import { OnvifClient, OnvifCameraInfo, PTZPosition, PTZCapabilities, StreamProfile } from './onvifClient';
+import {
+  OnvifClient,
+  OnvifCameraInfo,
+  PTZPosition,
+  PTZCapabilities,
+  StreamProfile,
+} from './onvifClient';
 import { RTSPStreamService, StreamConfig } from './rtspStreamService';
 import logger from '../utils/logger';
 import { randomUUID } from 'crypto';
 import * as crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
-const KEY_HEX = process.env.CAMERA_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+const KEY_HEX =
+  process.env.CAMERA_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
 const KEY = Buffer.from(KEY_HEX, 'hex');
 const IV_LENGTH = 12;
 
 function encrypt(text: string): string {
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
-  const ciphertext = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+  const ciphertext = Buffer.concat([
+    cipher.update(text, 'utf8'),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
   return `${iv.toString('hex')}:${tag.toString('hex')}:${ciphertext.toString('hex')}`;
 }
@@ -234,7 +244,12 @@ export class CameraService {
 
   async movePTZ(
     id: string,
-    options: { pan?: number; tilt?: number; zoom?: number; speed?: { pan?: number; tilt?: number; zoom?: number } },
+    options: {
+      pan?: number;
+      tilt?: number;
+      zoom?: number;
+      speed?: { pan?: number; tilt?: number; zoom?: number };
+    },
   ): Promise<void> {
     const client = await this.getONVIFClient(id);
     if (!client) throw new Error('Camera not connected or not ONVIF');
@@ -265,7 +280,9 @@ export class CameraService {
     return client.gotoPreset(token);
   }
 
-  async getPresets(id: string): Promise<Array<{ token: string; name: string }>> {
+  async getPresets(
+    id: string,
+  ): Promise<Array<{ token: string; name: string }>> {
     const client = await this.getONVIFClient(id);
     if (!client) throw new Error('Camera not connected or not ONVIF');
     return client.getPresets();

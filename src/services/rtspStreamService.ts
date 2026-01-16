@@ -19,7 +19,8 @@ export interface ActiveStream {
 export class RTSPStreamService {
   private streams: Map<string, ActiveStream> = new Map();
   private wsServers: Map<string, WebSocketServer> = new Map();
-  private httpServers: Map<string, ReturnType<typeof https.createServer>> = new Map();
+  private httpServers: Map<string, ReturnType<typeof https.createServer>> =
+    new Map();
   private basePort: number;
 
   constructor() {
@@ -36,7 +37,9 @@ export class RTSPStreamService {
     const keyPath = process.env.RTSP_HTTPS_KEY_PATH;
     const certPath = process.env.RTSP_HTTPS_CERT_PATH;
     if (!keyPath || !certPath) {
-      throw new Error('RTSP_HTTPS_KEY_PATH and RTSP_HTTPS_CERT_PATH are required for RTSP streaming');
+      throw new Error(
+        'RTSP_HTTPS_KEY_PATH and RTSP_HTTPS_CERT_PATH are required for RTSP streaming',
+      );
     }
     if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
       throw new Error('RTSP HTTPS cert or key path not found');
@@ -44,18 +47,25 @@ export class RTSPStreamService {
     const wsUrl = `wss://localhost:${port}`;
 
     try {
-      const server = https.createServer({ key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) });
+      const server = https.createServer({
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath),
+      });
       const wss = new WebSocketServer({ server });
 
       wss.on('connection', (ws) => {
-        logger.info('RTSP stream viewer connected', { cameraId: config.cameraId });
+        logger.info('RTSP stream viewer connected', {
+          cameraId: config.cameraId,
+        });
         const stream = this.streams.get(config.cameraId);
         if (stream) {
           stream.viewers++;
         }
 
         ws.on('close', () => {
-          logger.info('RTSP stream viewer disconnected', { cameraId: config.cameraId });
+          logger.info('RTSP stream viewer disconnected', {
+            cameraId: config.cameraId,
+          });
           const stream = this.streams.get(config.cameraId);
           if (stream) {
             stream.viewers = Math.max(0, stream.viewers - 1);
@@ -63,7 +73,10 @@ export class RTSPStreamService {
         });
 
         ws.on('error', (error) => {
-          logger.error('RTSP stream WebSocket error', { cameraId: config.cameraId, error });
+          logger.error('RTSP stream WebSocket error', {
+            cameraId: config.cameraId,
+            error,
+          });
         });
       });
 
@@ -89,7 +102,10 @@ export class RTSPStreamService {
 
       return stream;
     } catch (error) {
-      logger.error('Failed to start RTSP stream', { cameraId: config.cameraId, error });
+      logger.error('Failed to start RTSP stream', {
+        cameraId: config.cameraId,
+        error,
+      });
       const failed: ActiveStream = {
         cameraId: config.cameraId,
         wsUrl: '',

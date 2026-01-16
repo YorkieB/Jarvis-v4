@@ -54,7 +54,10 @@ export class FinanceAgent extends BaseAgent {
           },
         });
       } catch (error) {
-        logger.error('Failed to refresh TrueLayer token', { bankConnectionId, error });
+        logger.error('Failed to refresh TrueLayer token', {
+          bankConnectionId,
+          error,
+        });
         throw error;
       }
     }
@@ -69,4 +72,3 @@ export class FinanceAgent extends BaseAgent {
     logger.info('TrueLayer sync completed', { bankConnectionId, from, to });
   }
 }
-

@@ -1,6 +1,6 @@
 /**
  * Conformal Prediction Implementation
- * 
+ *
  * Provides statistical guarantees on error rates using conformal prediction.
  * Maintains a calibration set and computes empirical quantiles for abstention decisions.
  */
@@ -118,7 +118,7 @@ export class ConformalPrediction {
 
   /**
    * Evaluate if a response should be abstained based on conformal prediction
-   * 
+   *
    * @param query - User query
    * @param response - Generated response
    * @param nonConformityScore - Non-conformity score (e.g., semantic entropy or negative log-likelihood)
@@ -138,7 +138,7 @@ export class ConformalPrediction {
     // Higher score = lower confidence
     const confidence = shouldAbstain
       ? Math.max(0, 1 - (nonConformityScore - quantile) / quantile)
-      : Math.min(1, 1 - (nonConformityScore / quantile));
+      : Math.min(1, 1 - nonConformityScore / quantile);
 
     const reason = shouldAbstain
       ? `Non-conformity score ${nonConformityScore.toFixed(3)} exceeds quantile ${quantile.toFixed(3)} (α=${this.alpha})`
@@ -189,7 +189,8 @@ export class ConformalPrediction {
       const scores = entries.map((entry: { score: number }) => entry.score);
       const minScore = Math.min(...scores);
       const maxScore = Math.max(...scores);
-      const avgScore = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+      const avgScore =
+        scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
       const quantile = await this.computeQuantile();
 
       return {

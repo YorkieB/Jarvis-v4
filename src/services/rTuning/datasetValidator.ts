@@ -4,7 +4,9 @@ import logger from '../../utils/logger';
 import { prisma as globalPrisma } from '../../utils/prisma';
 
 type PrismaClient = typeof globalPrisma;
-type RTuningDataset = Awaited<ReturnType<typeof globalPrisma.rTuningDataset.findFirstOrThrow>>;
+type RTuningDataset = Awaited<
+  ReturnType<typeof globalPrisma.rTuningDataset.findFirstOrThrow>
+>;
 
 export interface ValidationResult {
   id?: string;
@@ -39,16 +41,16 @@ export class DatasetValidator {
     uncertaintyService?: UncertaintyService,
   ) {
     this.prisma = prismaClient || globalPrisma;
-    this.openai = openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    this.uncertainty = uncertaintyService || new UncertaintyService(this.prisma);
+    this.openai =
+      openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    this.uncertainty =
+      uncertaintyService || new UncertaintyService(this.prisma);
   }
 
   /**
    * Validate an entire dataset and persist validation results.
    */
-  async validateDataset(
-    items: RTuningDataset[],
-  ): Promise<ValidationReport> {
+  async validateDataset(items: RTuningDataset[]): Promise<ValidationReport> {
     const results: ValidationResult[] = [];
     const embeddings: number[][] = [];
     const duplicates: string[] = [];
@@ -60,7 +62,9 @@ export class DatasetValidator {
       // Duplicate detection
       const embedding = await this.embed(item.question);
       for (const existing of embeddings) {
-        if (this.cosineSimilarity(existing, embedding) > this.duplicateThreshold) {
+        if (
+          this.cosineSimilarity(existing, embedding) > this.duplicateThreshold
+        ) {
           duplicates.push(item.id);
           result.passed = false;
           result.reasons.push('duplicate_detected');
@@ -110,7 +114,10 @@ export class DatasetValidator {
       reasons.push('answerable_detected');
     }
 
-    const categoryValid = await this.checkCategory(item.question, item.category);
+    const categoryValid = await this.checkCategory(
+      item.question,
+      item.category,
+    );
     if (!categoryValid) {
       reasons.push('category_mismatch');
     }
@@ -173,7 +180,9 @@ export class DatasetValidator {
         max_tokens: 10,
       });
 
-      const label = completion.choices[0]?.message?.content?.trim().toLowerCase();
+      const label = completion.choices[0]?.message?.content
+        ?.trim()
+        .toLowerCase();
       return label === category.toLowerCase();
     } catch (error) {
       logger.warn('Category check failed', { error });

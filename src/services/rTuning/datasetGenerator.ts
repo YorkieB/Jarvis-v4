@@ -31,12 +31,12 @@ export interface GenerationResult {
 export class DatasetGenerator {
   private readonly prisma: PrismaClient;
   private readonly openai: OpenAI;
-  private readonly refusalText =
-    "I don't know. I cannot answer that question.";
+  private readonly refusalText = "I don't know. I cannot answer that question.";
 
   constructor(prismaClient?: PrismaClient, openaiClient?: OpenAI) {
     this.prisma = prismaClient || globalPrisma;
-    this.openai = openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    this.openai =
+      openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
 
   /**

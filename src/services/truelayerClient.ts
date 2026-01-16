@@ -62,12 +62,17 @@ export class TrueLayerClient {
     this.redirectUri =
       process.env.TRUELAYER_REDIRECT_URI ||
       'http://localhost:3000/api/truelayer/callback';
-    this.apiBase = process.env.TRUELAYER_API_BASE || 'https://api.truelayer.com';
+    this.apiBase =
+      process.env.TRUELAYER_API_BASE || 'https://api.truelayer.com';
     this.authBase =
       process.env.TRUELAYER_AUTH_BASE || 'https://auth.truelayer.com';
   }
 
-  buildAuthorizeUrl(state: string, scope?: string, codeChallenge?: string): string {
+  buildAuthorizeUrl(
+    state: string,
+    scope?: string,
+    codeChallenge?: string,
+  ): string {
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: this.clientId,
@@ -138,7 +143,10 @@ export class TrueLayerClient {
 
     if (!res.ok) {
       const text = await res.text();
-      logger.error('TrueLayer token request failed', { status: res.status, body: text });
+      logger.error('TrueLayer token request failed', {
+        status: res.status,
+        body: text,
+      });
       throw new Error('TrueLayer token request failed');
     }
 
@@ -151,7 +159,11 @@ export class TrueLayerClient {
     });
     if (!res.ok) {
       const text = await res.text();
-      logger.warn('TrueLayer GET failed', { status: res.status, body: text, url });
+      logger.warn('TrueLayer GET failed', {
+        status: res.status,
+        body: text,
+        url,
+      });
       throw new Error('TrueLayer request failed');
     }
     return (await res.json()) as T;
@@ -165,11 +177,13 @@ export class TrueLayerClient {
     return data.results || [];
   }
 
-  async getBalance(accessToken: string, accountId: string): Promise<number | null> {
-    const data = await this.authorizedGet<{ results: Array<{ currency: string; available: number }> }>(
-      accessToken,
-      `${this.apiBase}/data/v1/accounts/${accountId}/balance`,
-    );
+  async getBalance(
+    accessToken: string,
+    accountId: string,
+  ): Promise<number | null> {
+    const data = await this.authorizedGet<{
+      results: Array<{ currency: string; available: number }>;
+    }>(accessToken, `${this.apiBase}/data/v1/accounts/${accountId}/balance`);
     const first = data.results?.[0];
     return first ? first.available : null;
   }
@@ -227,14 +241,20 @@ export class TrueLayerClient {
 
     if (!res.ok) {
       const text = await res.text();
-      logger.error('TrueLayer payment create failed', { status: res.status, body: text });
+      logger.error('TrueLayer payment create failed', {
+        status: res.status,
+        body: text,
+      });
       throw new Error('TrueLayer payment create failed');
     }
 
     return (await res.json()) as TLPaymentCreateResponse;
   }
 
-  async getPaymentStatus(accessToken: string, paymentId: string): Promise<TLPaymentStatus> {
+  async getPaymentStatus(
+    accessToken: string,
+    paymentId: string,
+  ): Promise<TLPaymentStatus> {
     const data = await this.authorizedGet<{ results: TLPaymentStatus[] }>(
       accessToken,
       `${this.apiBase}/payments/${paymentId}`,
@@ -246,4 +266,3 @@ export class TrueLayerClient {
     return first;
   }
 }
-

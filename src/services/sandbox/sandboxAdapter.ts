@@ -1,7 +1,12 @@
 import logger from '../../utils/logger';
 import { metrics } from '../../utils/metrics';
 import { E2bSandboxService } from './e2bSandboxService';
-import { SandboxHealth, SandboxResult, SandboxRunOptions, SandboxService } from './types';
+import {
+  SandboxHealth,
+  SandboxResult,
+  SandboxRunOptions,
+  SandboxService,
+} from './types';
 
 function splitCsv(value: string | undefined): string[] {
   if (!value) return [];
@@ -27,7 +32,8 @@ export class SandboxAdapter {
     this.sandbox = service || new E2bSandboxService();
     this.allow = policy?.allow ?? splitCsv(process.env.SANDBOX_ALLOW);
     this.deny = policy?.deny ?? splitCsv(process.env.SANDBOX_DENY);
-    this.forceSandbox = policy?.forceSandbox ?? (process.env.SANDBOX_FORCE || 'false') === 'true';
+    this.forceSandbox =
+      policy?.forceSandbox ?? (process.env.SANDBOX_FORCE || 'false') === 'true';
   }
 
   shouldSandbox(cmd: string): boolean {

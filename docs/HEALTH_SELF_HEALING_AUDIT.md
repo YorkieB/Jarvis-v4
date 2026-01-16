@@ -6,6 +6,7 @@
 ## Executive Summary
 
 Jarvis v4 has foundational health monitoring and error handling, but critical gaps exist in:
+
 1. **Database connectivity checks** - No validation in health endpoints
 2. **External service health** - No checks for OpenAI, Deepgram, ElevenLabs, PostgreSQL
 3. **Self-healing agent** - Not initialized/started in main server
@@ -17,17 +18,20 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 ### 1.1 Health Check Module (`src/health.ts`)
 
 **Current Implementation:**
+
 - `/health` - Full health check with system metrics
 - `/health/live` - Liveness probe (always returns 200)
 - `/health/ready` - Readiness probe with checks
 
 **Current Checks:**
+
 - ✅ Memory usage (< 90% threshold)
 - ✅ Process uptime
 - ✅ Environment variables (only checks `NODE_ENV`)
 - ✅ System metrics (CPU, memory, platform)
 
 **Gaps:**
+
 - ❌ **No database connectivity check** - Prisma/PostgreSQL not validated
 - ❌ **No external API health checks** - OpenAI, Deepgram, ElevenLabs not checked
 - ❌ **No service-specific checks** - AudioService, VoiceAuthService, BackupService status unknown
@@ -38,6 +42,7 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 ### 1.2 Error Handling (`src/middleware/errorHandler.ts`)
 
 **Current Implementation:**
+
 - ✅ Global error handler middleware
 - ✅ Unhandled rejection handler
 - ✅ Uncaught exception handler
@@ -45,11 +50,13 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 - ✅ Winston logging
 
 **Strengths:**
+
 - Proper error classification (operational vs non-operational)
 - Sentry integration for production error tracking
 - Structured logging with context
 
 **Gaps:**
+
 - ❌ **No automatic recovery attempts** - Errors logged but not auto-fixed
 - ❌ **No circuit breaker pattern** - Repeated failures not detected
 - ❌ **No retry logic** - Transient failures not retried
@@ -59,12 +66,14 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 ### 1.3 Sentry Integration (`src/sentry.ts`)
 
 **Current Implementation:**
+
 - ✅ Sentry initialization with profiling
 - ✅ Error filtering and sanitization
 - ✅ Performance monitoring
 - ✅ Environment-aware sampling
 
 **Gaps:**
+
 - ❌ **No health check integration** - Sentry doesn't trigger self-healing
 - ❌ **No alert thresholds** - No automatic alerts on error spikes
 - ❌ **No custom health metrics** - No business-specific health indicators
@@ -74,6 +83,7 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 ### 2.1 Current Implementation (`src/agents/self-healing/index.ts`)
 
 **What Exists:**
+
 - PM2-based process monitoring
 - 30-second check interval
 - Auto-restart for stopped/errored processes
@@ -104,16 +114,19 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 ### 2.2 Integration Status
 
 **Server Startup (`src/index.ts`):**
+
 - ❌ SelfHealingAgent not imported
 - ❌ No initialization of self-healing monitoring
 - ❌ Health endpoints registered but not monitored by self-healing agent
 
 **Orchestrator (`src/orchestrator/index.ts`):**
+
 - ❌ No self-healing integration
 - ❌ No agent health tracking
 - ❌ No automatic failover
 
 **PM2 Configuration (`ecosystem.config.cjs`):**
+
 - ✅ Self-healing agent defined in PM2 config
 - ❌ But no actual script file exists at `./dist/agents/self-healing/index.js`
 - ❌ No entry point to start the agent
@@ -123,6 +136,7 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 ### 3.1 Current Startup Flow (`src/index.ts`)
 
 **Order of Operations:**
+
 1. ✅ Environment variable validation
 2. ✅ Sentry initialization
 3. ✅ Global error handlers
@@ -134,6 +148,7 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 9. ❌ **SelfHealingAgent NOT initialized**
 
 **Issues:**
+
 - Database schema check is async but doesn't block startup
 - No validation that critical services (Prisma, AudioService) are actually working
 - No health check before accepting traffic
@@ -142,9 +157,10 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 ### 3.2 Service Dependencies
 
 **Critical Dependencies Not Checked:**
+
 - ❌ PostgreSQL connection pool
 - ❌ OpenAI API connectivity
-- ❌ Deepgram API connectivity  
+- ❌ Deepgram API connectivity
 - ❌ ElevenLabs API connectivity
 - ❌ Socket.IO server health
 - ❌ File system (for backups/logs)
@@ -154,26 +170,31 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 ### 4.1 Critical Gaps
 
 #### Gap 1: Database Health Checks Missing
+
 **Impact:** High  
 **Current State:** Database schema check exists but not in health endpoint  
 **Recommendation:** Add database connectivity check to `/health/ready`
 
 #### Gap 2: Self-Healing Agent Not Running
+
 **Impact:** Critical  
 **Current State:** Agent code exists but never started  
 **Recommendation:** Initialize and start SelfHealingAgent in `src/index.ts`
 
 #### Gap 3: No External Service Health Checks
+
 **Impact:** High  
 **Current State:** No validation of OpenAI, Deepgram, ElevenLabs availability  
 **Recommendation:** Add async health checks with timeouts
 
 #### Gap 4: No Intelligent Auto-Fix
+
 **Impact:** Medium  
 **Current State:** Only PM2 restart, no smart recovery  
 **Recommendation:** Implement circuit breakers, backoff, and failure tracking
 
 #### Gap 5: No Health Degradation Tracking
+
 **Impact:** Medium  
 **Current State:** Binary healthy/unhealthy, no gradual degradation  
 **Recommendation:** Add health scores and partial degradation modes
@@ -185,6 +206,7 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 **File:** `src/health.ts`
 
 **Changes Needed:**
+
 1. Add database connectivity check
 2. Add external API health checks (with timeouts)
 3. Add service-specific health checks
@@ -192,12 +214,13 @@ Jarvis v4 has foundational health monitoring and error handling, but critical ga
 5. Add connection pool status
 
 **Example Implementation:**
+
 ```typescript
 async function performHealthChecks(): Promise<HealthCheck['checks']> {
   const checks: HealthCheck['checks'] = {};
-  
+
   // Existing checks...
-  
+
   // NEW: Database connectivity
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -205,18 +228,22 @@ async function performHealthChecks(): Promise<HealthCheck['checks']> {
   } catch (error) {
     checks.database = { status: 'fail', message: 'Database connection failed' };
   }
-  
+
   // NEW: External API checks (with timeout)
   checks.openai = await checkExternalService('OpenAI', checkOpenAIHealth);
   checks.deepgram = await checkExternalService('Deepgram', checkDeepgramHealth);
-  checks.elevenlabs = await checkExternalService('ElevenLabs', checkElevenLabsHealth);
-  
+  checks.elevenlabs = await checkExternalService(
+    'ElevenLabs',
+    checkElevenLabsHealth,
+  );
+
   // NEW: Disk space check
   const diskUsage = await checkDiskSpace();
-  checks.diskSpace = diskUsage < 90 ? 
-    { status: 'pass', message: `Disk usage: ${diskUsage}%` } :
-    { status: 'fail', message: `Disk usage critical: ${diskUsage}%` };
-  
+  checks.diskSpace =
+    diskUsage < 90
+      ? { status: 'pass', message: `Disk usage: ${diskUsage}%` }
+      : { status: 'fail', message: `Disk usage critical: ${diskUsage}%` };
+
   return checks;
 }
 ```
@@ -226,18 +253,20 @@ async function performHealthChecks(): Promise<HealthCheck['checks']> {
 **File:** `src/index.ts`
 
 **Changes Needed:**
+
 1. Import SelfHealingAgent
 2. Initialize after server starts
 3. Start monitoring
 
 **Example Implementation:**
+
 ```typescript
 import { SelfHealingAgent } from './agents/self-healing';
 
 // After server.listen()
 server.listen(PORT, async () => {
   // ... existing code ...
-  
+
   // Initialize Self-Healing Agent
   try {
     const selfHealingAgent = new SelfHealingAgent();
@@ -254,6 +283,7 @@ server.listen(PORT, async () => {
 **File:** `src/agents/self-healing/index.ts`
 
 **Changes Needed:**
+
 1. Add health endpoint monitoring
 2. Implement backoff strategy
 3. Add maximum restart attempts
@@ -262,6 +292,7 @@ server.listen(PORT, async () => {
 6. Add intelligent failure detection
 
 **Key Enhancements:**
+
 - Monitor `/health` endpoints for all agents
 - Exponential backoff on repeated failures
 - Circuit breaker to prevent restart loops
@@ -273,6 +304,7 @@ server.listen(PORT, async () => {
 **New File:** `src/services/autoFixService.ts`
 
 **Features:**
+
 1. Automatic database reconnection
 2. Service restart with dependency checks
 3. Configuration validation and auto-correction
@@ -282,36 +314,43 @@ server.listen(PORT, async () => {
 ### 4.3 Testing Recommendations
 
 #### Unit Tests
+
 - `tests/unit/health.test.ts` - Test health check logic
 - `tests/unit/selfHealing.test.ts` - Test self-healing agent
 - `tests/unit/autoFix.test.ts` - Test auto-fix service
 
 #### Integration Tests
+
 - `tests/integration/health-endpoints.test.ts` - Test health endpoints with real services
 - `tests/integration/self-healing.test.ts` - Test agent restart scenarios
 
 #### Smoke Tests
+
 - `tests/smoke/phase4-health-monitoring.test.ts` - End-to-end health monitoring
 - `tests/smoke/phase5-self-healing.test.ts` - Self-healing scenarios
 
 ## 5. Implementation Priority
 
 ### Priority 1 (Critical - Do First)
+
 1. ✅ Initialize SelfHealingAgent in `src/index.ts`
 2. ✅ Add database health check to `/health/ready`
 3. ✅ Add external API health checks
 
 ### Priority 2 (High - Do Next)
+
 4. ✅ Implement backoff strategy in self-healing
 5. ✅ Add circuit breaker pattern
 6. ✅ Add health score tracking
 
 ### Priority 3 (Medium - Nice to Have)
+
 7. ✅ Create AutoFixService
 8. ✅ Add disk space monitoring
 9. ✅ Add connection pool health checks
 
 ### Priority 4 (Low - Future Enhancements)
+
 10. ✅ Automatic scaling
 11. ✅ Health-based load balancing
 12. ✅ Predictive failure detection
@@ -319,6 +358,7 @@ server.listen(PORT, async () => {
 ## 6. Success Criteria
 
 After implementation, the system should:
+
 - ✅ Self-healing agent running and monitoring all agents
 - ✅ Health endpoints include database and external API checks
 - ✅ Automatic recovery from transient failures

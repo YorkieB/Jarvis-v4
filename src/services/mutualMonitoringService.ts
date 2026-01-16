@@ -65,7 +65,10 @@ export class MutualMonitoringService {
   /**
    * Set up mutual monitoring between two agents
    */
-  async setupMutualMonitoring(agentId1: string, agentId2: string): Promise<void> {
+  async setupMutualMonitoring(
+    agentId1: string,
+    agentId2: string,
+  ): Promise<void> {
     try {
       // Update database relationships
       await this.prisma.agent.update({
@@ -104,7 +107,10 @@ export class MutualMonitoringService {
   /**
    * Remove mutual monitoring
    */
-  async removeMutualMonitoring(agentId1: string, agentId2: string): Promise<void> {
+  async removeMutualMonitoring(
+    agentId1: string,
+    agentId2: string,
+  ): Promise<void> {
     try {
       await this.prisma.agent.update({
         where: { id: agentId1 },
@@ -190,8 +196,7 @@ export class MutualMonitoringService {
 
       // Check last heartbeat
       if (agent.lastHeartbeat) {
-        const timeSinceHeartbeat =
-          Date.now() - agent.lastHeartbeat.getTime();
+        const timeSinceHeartbeat = Date.now() - agent.lastHeartbeat.getTime();
         if (timeSinceHeartbeat > 120000) {
           // 2 minutes
           return false;
@@ -228,7 +233,11 @@ export class MutualMonitoringService {
         failedAgentId,
       });
     } catch (error) {
-      logger.error('Failed to notify monitor', { error, monitorId, failedAgentId });
+      logger.error('Failed to notify monitor', {
+        error,
+        monitorId,
+        failedAgentId,
+      });
     }
   }
 

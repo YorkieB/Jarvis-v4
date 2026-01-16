@@ -34,7 +34,8 @@ async function main() {
       : trainer.exportForOpenAIFineTuning(entries);
 
   const baseDir = path.resolve(process.env.R_TUNING_EXPORT_BASE || 'data');
-  const fileName = format === 'json' ? 'r-tuning-dataset.json' : 'r-tuning-dataset.jsonl';
+  const fileName =
+    format === 'json' ? 'r-tuning-dataset.json' : 'r-tuning-dataset.jsonl';
   const outPath = path.join(baseDir, fileName);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, content, 'utf8');

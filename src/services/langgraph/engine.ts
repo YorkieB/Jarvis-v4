@@ -18,7 +18,10 @@ export class LangGraphEngine {
   private readonly definition: GraphDefinition;
   private readonly policies: GraphPolicies;
 
-  constructor(definition: GraphDefinition, policies: Partial<GraphPolicies> = {}) {
+  constructor(
+    definition: GraphDefinition,
+    policies: Partial<GraphPolicies> = {},
+  ) {
     this.definition = definition;
     this.policies = { ...DEFAULT_POLICIES, ...policies };
     assertNodeExists(definition, definition.start);
@@ -41,7 +44,11 @@ export class LangGraphEngine {
 
       const started = Date.now();
       try {
-        const result = await this.runWithTimeout(this.definition.nodes[current], state, this.policies.timeoutMs);
+        const result = await this.runWithTimeout(
+          this.definition.nodes[current],
+          state,
+          this.policies.timeoutMs,
+        );
         const ended = Date.now();
         trace.push({
           node: current,
@@ -80,7 +87,10 @@ export class LangGraphEngine {
     timeoutMs: number,
   ): Promise<NodeResult> {
     return new Promise<NodeResult>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('LangGraph node timeout')), timeoutMs);
+      const timer = setTimeout(
+        () => reject(new Error('LangGraph node timeout')),
+        timeoutMs,
+      );
       node(state)
         .then((res) => {
           clearTimeout(timer);

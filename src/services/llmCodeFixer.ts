@@ -163,7 +163,10 @@ export class LLMCodeFixer {
             fix: item.fix,
             explanation: item.explanation,
             confidence: Math.max(0, Math.min(1, item.confidence || 0.5)),
-            riskLevel: (item.riskLevel || 'medium') as 'low' | 'medium' | 'high',
+            riskLevel: (item.riskLevel || 'medium') as
+              | 'low'
+              | 'medium'
+              | 'high',
           });
         }
       } else {

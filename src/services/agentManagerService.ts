@@ -120,10 +120,7 @@ export class AgentManagerService {
   /**
    * Spawn a new child agent
    */
-  async spawnChildAgent(
-    parentId: string,
-    agentType: string,
-  ): Promise<string> {
+  async spawnChildAgent(parentId: string, agentType: string): Promise<string> {
     const capabilities = this.agentRegistry.get(agentType);
     if (!capabilities) {
       throw new Error(`Unknown agent type: ${agentType}`);
@@ -202,10 +199,7 @@ export class AgentManagerService {
   /**
    * Update agent health score
    */
-  async updateHealthScore(
-    agentId: string,
-    healthScore: number,
-  ): Promise<void> {
+  async updateHealthScore(agentId: string, healthScore: number): Promise<void> {
     try {
       await this.prisma.agent.update({
         where: { id: agentId },
@@ -234,10 +228,7 @@ export class AgentManagerService {
         capabilities: { hasSome: capabilities },
         id: excludeAgentIds ? { notIn: excludeAgentIds } : undefined,
       },
-      orderBy: [
-        { currentWorkload: 'asc' },
-        { healthScore: 'desc' },
-      ],
+      orderBy: [{ currentWorkload: 'asc' }, { healthScore: 'desc' }],
     });
 
     return agents.filter(
@@ -249,7 +240,9 @@ export class AgentManagerService {
   /**
    * Get agent health metrics
    */
-  async getAgentHealthMetrics(agentId: string): Promise<AgentHealthMetrics | null> {
+  async getAgentHealthMetrics(
+    agentId: string,
+  ): Promise<AgentHealthMetrics | null> {
     const agent = await this.prisma.agent.findUnique({
       where: { id: agentId },
       include: {

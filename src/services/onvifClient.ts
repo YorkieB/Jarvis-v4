@@ -61,11 +61,16 @@ export class OnvifClient {
         },
         (err) => {
           if (err) {
-            logger.error('ONVIF connection failed', { hostname: this.info.hostname, error: err });
+            logger.error('ONVIF connection failed', {
+              hostname: this.info.hostname,
+              error: err,
+            });
             reject(err);
             return;
           }
-          logger.info('ONVIF camera connected', { hostname: this.info.hostname });
+          logger.info('ONVIF camera connected', {
+            hostname: this.info.hostname,
+          });
           resolve();
         },
       );
@@ -91,9 +96,15 @@ export class OnvifClient {
           hasPan: !!ptz,
           hasTilt: !!ptz,
           hasZoom: !!ptz,
-          panRange: ptz?.X?.Range ? { min: ptz.X.Range.Min, max: ptz.X.Range.Max } : undefined,
-          tiltRange: ptz?.Y?.Range ? { min: ptz.Y.Range.Min, max: ptz.Y.Range.Max } : undefined,
-          zoomRange: ptz?.Z?.Range ? { min: ptz.Z.Range.Min, max: ptz.Z.Range.Max } : undefined,
+          panRange: ptz?.X?.Range
+            ? { min: ptz.X.Range.Min, max: ptz.X.Range.Max }
+            : undefined,
+          tiltRange: ptz?.Y?.Range
+            ? { min: ptz.Y.Range.Min, max: ptz.Y.Range.Max }
+            : undefined,
+          zoomRange: ptz?.Z?.Range
+            ? { min: ptz.Z.Range.Min, max: ptz.Z.Range.Max }
+            : undefined,
         });
       });
     });
@@ -118,10 +129,13 @@ export class OnvifClient {
           const result: StreamProfile[] = profiles.map((profile: any) => ({
             token: profile.$.token,
             name: profile.name,
-            videoEncoding: profile.video?.encoderConfiguration?.encoding || 'H.264',
+            videoEncoding:
+              profile.video?.encoderConfiguration?.encoding || 'H.264',
             resolution: {
-              width: profile.video?.encoderConfiguration?.resolution?.width || 1920,
-              height: profile.video?.encoderConfiguration?.resolution?.height || 1080,
+              width:
+                profile.video?.encoderConfiguration?.resolution?.width || 1920,
+              height:
+                profile.video?.encoderConfiguration?.resolution?.height || 1080,
             },
             rtspUrl: data.uri,
           }));

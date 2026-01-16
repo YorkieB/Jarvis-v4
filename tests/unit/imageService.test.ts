@@ -16,7 +16,9 @@ describe('ImageService', () => {
   it('throws when missing API key', async () => {
     delete process.env.STABILITY_API_KEY;
     const svc = new ImageService();
-    await expect(svc.generate({ prompt: 'test' })).rejects.toThrow('Missing STABILITY_API_KEY');
+    await expect(svc.generate({ prompt: 'test' })).rejects.toThrow(
+      'Missing STABILITY_API_KEY',
+    );
   });
 
   it('sends generate payload', async () => {

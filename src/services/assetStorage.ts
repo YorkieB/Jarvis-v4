@@ -34,7 +34,9 @@ export class AssetStorage {
     this.deliveryBase = process.env.MEDIA_DELIVERY_BASE || '';
   }
 
-  create(entry: Omit<StoredAsset, 'id' | 'createdAt'> & { id?: string }): StoredAsset {
+  create(
+    entry: Omit<StoredAsset, 'id' | 'createdAt'> & { id?: string },
+  ): StoredAsset {
     const id = entry.id || randomUUID();
     const asset: StoredAsset = { ...entry, id, createdAt: new Date() };
     this.assets.set(id, asset);
@@ -67,7 +69,10 @@ export class AssetStorage {
       thumbnailUrl: this.resolveUrl(asset.thumbnailUrl),
       variants: asset.variants
         ? Object.fromEntries(
-            Object.entries(asset.variants).map(([k, v]) => [k, this.resolveUrl(v) || v]),
+            Object.entries(asset.variants).map(([k, v]) => [
+              k,
+              this.resolveUrl(v) || v,
+            ]),
           )
         : undefined,
     };

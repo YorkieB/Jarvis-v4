@@ -1,6 +1,13 @@
 import logger from '../../utils/logger';
 import { FileSystemResource } from './resources/fileSystemResource';
-import { JSONObject, McpRequest, McpResponse, RequestContext, ResourceHandler, ToolDefinition } from './types';
+import {
+  JSONObject,
+  McpRequest,
+  McpResponse,
+  RequestContext,
+  ResourceHandler,
+  ToolDefinition,
+} from './types';
 import { ToolRegistry } from './toolRegistry';
 
 export interface McpServerOptions {
@@ -37,7 +44,10 @@ export class McpServer {
     return this.tools.list();
   }
 
-  async handle(request: McpRequest, ctx?: RequestContext): Promise<McpResponse> {
+  async handle(
+    request: McpRequest,
+    ctx?: RequestContext,
+  ): Promise<McpResponse> {
     if (!this.enabled) {
       return { success: false, error: 'MCP disabled' };
     }
@@ -47,7 +57,11 @@ export class McpServer {
         return this.handleResource(request, ctx);
       }
       if (request.kind === 'tool') {
-        const result = await this.tools.invoke(request.name, request.input, ctx);
+        const result = await this.tools.invoke(
+          request.name,
+          request.input,
+          ctx,
+        );
         return result;
       }
       return { success: false, error: 'Unsupported request kind' };

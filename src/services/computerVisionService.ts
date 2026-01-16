@@ -29,7 +29,9 @@ export class ComputerVisionService {
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
-    this.confidenceThreshold = Number(process.env.CV_CONFIDENCE_THRESHOLD || 0.5);
+    this.confidenceThreshold = Number(
+      process.env.CV_CONFIDENCE_THRESHOLD || 0.5,
+    );
   }
 
   async detect(options: DetectionOptions): Promise<DetectionResult[]> {
@@ -45,8 +47,12 @@ export class ComputerVisionService {
     const detections: DetectionResult[] = [];
 
     if (options.frameData || options.frameUrl) {
-      const mockDetections = this.mockDetection(options.frameData || options.frameUrl || '');
-      detections.push(...mockDetections.filter((d) => d.confidence >= threshold));
+      const mockDetections = this.mockDetection(
+        options.frameData || options.frameUrl || '',
+      );
+      detections.push(
+        ...mockDetections.filter((d) => d.confidence >= threshold),
+      );
     }
 
     if (detections.length > 0) {
@@ -56,7 +62,10 @@ export class ComputerVisionService {
     return detections;
   }
 
-  async trackDetections(cameraId: string, detections: DetectionResult[]): Promise<DetectionResult[]> {
+  async trackDetections(
+    cameraId: string,
+    detections: DetectionResult[],
+  ): Promise<DetectionResult[]> {
     const cameraTracks = this.trackingMap.get(cameraId) || new Map();
     const tracked: DetectionResult[] = [];
 
@@ -93,7 +102,8 @@ export class ComputerVisionService {
       if (filters.startTime) where.frameTime.gte = filters.startTime;
       if (filters.endTime) where.frameTime.lte = filters.endTime;
     }
-    if (filters.minConfidence) where.confidence = { gte: filters.minConfidence };
+    if (filters.minConfidence)
+      where.confidence = { gte: filters.minConfidence };
 
     const detections = await this.prisma.detection.findMany({
       where,
@@ -112,7 +122,10 @@ export class ComputerVisionService {
     return detections;
   }
 
-  private async storeDetections(cameraId: string, detections: DetectionResult[]): Promise<void> {
+  private async storeDetections(
+    cameraId: string,
+    detections: DetectionResult[],
+  ): Promise<void> {
     const tracked = await this.trackDetections(cameraId, detections);
 
     await Promise.all(

@@ -41,6 +41,8 @@ describe('SunoService', () => {
   it('throws on missing API key', async () => {
     delete process.env.SUNO_API_KEY;
     const svc = new SunoService();
-    await expect(svc.generate({ prompt: 'test' })).rejects.toThrow('Missing SUNO_API_KEY');
+    await expect(svc.generate({ prompt: 'test' })).rejects.toThrow(
+      'Missing SUNO_API_KEY',
+    );
   });
 });

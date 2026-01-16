@@ -111,7 +111,10 @@ export class ChildFailureHandler {
       }
 
       if (!recoveryMethod) {
-        logger.warn('No recovery method determined', { failureId, failureType });
+        logger.warn('No recovery method determined', {
+          failureId,
+          failureType,
+        });
         return;
       }
 
@@ -298,8 +301,7 @@ export class ChildFailureHandler {
           (stats.byRecoveryMethod[failure.recoveryMethod] || 0) + 1;
 
         const recoveryTime =
-          failure.recoveryTime.getTime() -
-          failure.createdAt.getTime();
+          failure.recoveryTime.getTime() - failure.createdAt.getTime();
         totalRecoveryTime += recoveryTime;
         recoveryCount++;
       }

@@ -1,5 +1,9 @@
 import { BaseAgent } from '../base-agent';
-import { SunoService, SunoGenerateOptions, SunoTrack } from '../../services/sunoService';
+import {
+  SunoService,
+  SunoGenerateOptions,
+  SunoTrack,
+} from '../../services/sunoService';
 import { MusicStorage, StoredTrack } from '../../services/musicStorage';
 
 export class MusicAgent extends BaseAgent {

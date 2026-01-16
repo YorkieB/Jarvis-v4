@@ -7,6 +7,7 @@ The Visual Guidance System provides comprehensive support for multiple Optical Z
 ## Architecture
 
 The system consists of:
+
 - **CameraService**: Manages camera connections, discovery, and metadata
 - **OnvifClient**: Handles ONVIF protocol communication and PTZ control
 - **RTSPStreamService**: Manages RTSP streaming and WebSocket relay
@@ -17,6 +18,7 @@ The system consists of:
 ## Features
 
 ### Camera Management
+
 - ONVIF camera discovery on local network
 - Manual camera addition (ONVIF or RTSP)
 - Camera connection/disconnection
@@ -24,24 +26,28 @@ The system consists of:
 - Encrypted password storage
 
 ### Streaming
+
 - Real-time RTSP stream access
 - WebSocket-based streaming for web clients
 - Multi-camera concurrent streaming
 - Stream health monitoring
 
 ### Camera Control (PTZ)
+
 - Pan/Tilt/Zoom control (absolute and relative)
 - Preset management (save/recall)
 - PTZ position query
 - Speed control for smooth movements
 
 ### Object Detection
+
 - Object detection on camera feeds
 - Multi-object tracking across frames
 - Detection result storage and querying
 - Configurable confidence thresholds
 
 ### Recording
+
 - Manual and scheduled recording
 - Multi-camera synchronized recording
 - Storage management with retention policies
@@ -55,6 +61,7 @@ The system consists of:
 Add a new camera.
 
 Request body:
+
 ```json
 {
   "name": "Front Door Camera",
@@ -88,6 +95,7 @@ Disconnect from camera.
 Discover ONVIF cameras on network.
 
 Request body:
+
 ```json
 {
   "timeout": 5000
@@ -114,6 +122,7 @@ List all active streams.
 Move camera PTZ.
 
 Request body:
+
 ```json
 {
   "pan": 0.5,
@@ -137,6 +146,7 @@ Get current PTZ position.
 Save or recall preset.
 
 Request body:
+
 ```json
 {
   "token": "preset1",
@@ -154,6 +164,7 @@ List all presets.
 Trigger object detection.
 
 Request body:
+
 ```json
 {
   "frameData": "base64-encoded-image",
@@ -163,6 +174,7 @@ Request body:
 
 **GET** `/api/vision/detections`
 Query detections with filters:
+
 - `?cameraId=xxx`
 - `?objectType=person`
 - `?startTime=2026-01-14T00:00:00Z`
@@ -179,6 +191,7 @@ Get detection details.
 Start recording.
 
 Request body:
+
 ```json
 {
   "cameraIds": ["camera-id-1", "camera-id-2"],
@@ -192,6 +205,7 @@ Stop recording.
 
 **GET** `/api/vision/recordings`
 List recordings with filters:
+
 - `?cameraId=xxx`
 - `?status=completed`
 - `?startTime=2026-01-14T00:00:00Z`
@@ -218,15 +232,19 @@ Download recording file.
 ## Database Models
 
 ### Camera
+
 Stores camera configuration and metadata.
 
 ### Stream
+
 Tracks active streams and viewer counts.
 
 ### Recording
+
 Manages video recordings with file paths and metadata.
 
 ### Detection
+
 Stores object detection results with bounding boxes and tracking IDs.
 
 ## Security

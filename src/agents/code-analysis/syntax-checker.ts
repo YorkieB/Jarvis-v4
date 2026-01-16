@@ -13,7 +13,10 @@ export class SyntaxCheckerAgent extends BaseAgent {
   /**
    * Check code for syntax errors
    */
-  async checkSyntax(code: string, language: string = 'typescript'): Promise<{
+  async checkSyntax(
+    code: string,
+    language: string = 'typescript',
+  ): Promise<{
     valid: boolean;
     errors: Array<{ line: number; column: number; message: string }>;
   }> {

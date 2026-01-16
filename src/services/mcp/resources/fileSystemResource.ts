@@ -2,7 +2,12 @@ import fs from 'node:fs/promises';
 import { Stats } from 'node:fs';
 import path from 'node:path';
 import logger from '../../../utils/logger';
-import { RequestContext, ResourceHandler, ResourceListEntry, ResourceMetadata } from '../types';
+import {
+  RequestContext,
+  ResourceHandler,
+  ResourceListEntry,
+  ResourceMetadata,
+} from '../types';
 
 function splitCsv(value: string | undefined): string[] {
   if (!value) return [];
@@ -23,7 +28,10 @@ function ensureWithinRoots(resolved: string, allowedRoots: string[]): void {
   }
 }
 
-async function toMetadata(target: string, stats: Stats): Promise<ResourceMetadata> {
+async function toMetadata(
+  target: string,
+  stats: Stats,
+): Promise<ResourceMetadata> {
   return {
     path: target,
     isDirectory: stats.isDirectory(),

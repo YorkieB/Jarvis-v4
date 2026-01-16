@@ -44,9 +44,14 @@ export class SelfRAGService {
   private readonly correctiveAttempts: number;
   private readonly enableWebExpansion: boolean;
 
-  constructor(prismaClient?: PrismaClient, openaiClient?: OpenAI, options: SelfRAGOptions = {}) {
+  constructor(
+    prismaClient?: PrismaClient,
+    openaiClient?: OpenAI,
+    options: SelfRAGOptions = {},
+  ) {
     this.prisma = prismaClient || globalPrisma;
-    this.openai = openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    this.openai =
+      openaiClient || new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.grader = new ReflectionGrader(this.prisma, this.openai, {
       relThreshold: options.relThreshold,
       supThreshold: options.supThreshold,
@@ -63,7 +68,8 @@ export class SelfRAGService {
       model: process.env.SELF_RAG_MODEL || 'gpt-4o-mini',
       enableWebExpansion: this.enableWebExpansion,
     });
-    this.maxRetries = options.maxRetries ?? Number(process.env.SELF_RAG_MAX_RETRIES || 2);
+    this.maxRetries =
+      options.maxRetries ?? Number(process.env.SELF_RAG_MAX_RETRIES || 2);
     const llmConfig = getLLMConfig('reasoning');
     this.model = options.model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
     this.temperature = options.temperature ?? llmConfig.temperature ?? 0.3;
@@ -84,7 +90,11 @@ export class SelfRAGService {
     let correctiveMeta: Record<string, unknown> | undefined;
 
     if (needRetrieval && retrievalFn) {
-      const retrieval = await this.retrieveWithCorrective(query, retrievalFn, options?.queryId);
+      const retrieval = await this.retrieveWithCorrective(
+        query,
+        retrievalFn,
+        options?.queryId,
+      );
       if (retrieval.aborted) {
         return {
           response: null,
@@ -114,7 +124,11 @@ export class SelfRAGService {
     aborted: boolean;
   }> {
     const docs = await retrievalFn(query);
-    const rel = await this.grader.score({ query, retrievedDocs: docs, queryId });
+    const rel = await this.grader.score({
+      query,
+      retrievedDocs: docs,
+      queryId,
+    });
     if (rel.pass.REL) {
       return { docs, aborted: false };
     }
@@ -196,15 +210,14 @@ export class SelfRAGService {
     query: string,
     docs: SelfRAGDocument[],
   ): Promise<string> {
-    const context =
-      docs?.length
-        ? docs
-            .map((d, idx) => {
-              const idSuffix = d.id ? ` (${d.id})` : '';
-              return `Document ${idx + 1}${idSuffix}: ${d.content}`;
-            })
-            .join('\n\n')
-        : 'No external documents retrieved.';
+    const context = docs?.length
+      ? docs
+          .map((d, idx) => {
+            const idSuffix = d.id ? ` (${d.id})` : '';
+            return `Document ${idx + 1}${idSuffix}: ${d.content}`;
+          })
+          .join('\n\n')
+      : 'No external documents retrieved.';
 
     const completion = await this.openai.chat.completions.create({
       model: this.model,

@@ -154,18 +154,25 @@ export class DialogueAgent extends BaseAgent {
       await this.saveMessage(convId, 'user', input);
 
       // LangGraph dialogue flow (wrapping Self-RAG + retrieval)
-      const graph = buildDialogueGraph(this.knowledgeAgent, this.selfRAG, convId);
+      const graph = buildDialogueGraph(
+        this.knowledgeAgent,
+        this.selfRAG,
+        convId,
+      );
       let responseText: string | undefined;
       try {
         const state = await graph.run({ input });
-        responseText = (state.response as string | undefined) ?? "I don't know. I cannot answer that.";
+        responseText =
+          (state.response as string | undefined) ??
+          "I don't know. I cannot answer that.";
         // Save checkpoint for traceability
         await this.checkpoint.save(convId, 'draft', state, sessionId);
       } catch (err) {
-        logger.warn('Dialogue graph failed, falling back to direct Self-RAG', { err });
-        const selfRAGResult = await this.selfRAG.run(
-          input,
-          (q) => this.knowledgeAgent.retrieveRelevantDocs(q, 5),
+        logger.warn('Dialogue graph failed, falling back to direct Self-RAG', {
+          err,
+        });
+        const selfRAGResult = await this.selfRAG.run(input, (q) =>
+          this.knowledgeAgent.retrieveRelevantDocs(q, 5),
         );
         responseText =
           selfRAGResult.response ?? "I don't know. I cannot answer that.";
@@ -194,10 +201,7 @@ export class DialogueAgent extends BaseAgent {
   /**
    * Create new conversation
    */
-  async createConversation(
-    userId: string,
-    title?: string,
-  ): Promise<string> {
+  async createConversation(userId: string, title?: string): Promise<string> {
     const conversation = await this.prisma.conversation.create({
       data: {
         userId,
@@ -250,7 +254,10 @@ export class DialogueAgent extends BaseAgent {
   /**
    * Delete conversation
    */
-  async deleteConversation(conversationId: string, userId: string): Promise<void> {
+  async deleteConversation(
+    conversationId: string,
+    userId: string,
+  ): Promise<void> {
     // Verify ownership
     const conversation = await this.prisma.conversation.findFirst({
       where: {

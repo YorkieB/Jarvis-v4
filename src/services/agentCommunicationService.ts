@@ -8,8 +8,10 @@ import logger from '../utils/logger';
 
 export class AgentCommunicationService {
   private readonly messageBus: MessageBus;
-  private readonly agentSubscriptions: Map<string, (message: AgentMessage) => void> =
-    new Map();
+  private readonly agentSubscriptions: Map<
+    string,
+    (message: AgentMessage) => void
+  > = new Map();
 
   constructor() {
     this.messageBus = MessageBus.getInstance();
@@ -43,10 +45,7 @@ export class AgentCommunicationService {
   /**
    * Subscribe to messages for this agent
    */
-  subscribe(
-    agentId: string,
-    handler: (message: AgentMessage) => void,
-  ): void {
+  subscribe(agentId: string, handler: (message: AgentMessage) => void): void {
     // Remove existing subscription if any
     const existingHandler = this.agentSubscriptions.get(agentId);
     if (existingHandler) {

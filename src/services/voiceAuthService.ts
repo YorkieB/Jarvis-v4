@@ -29,10 +29,13 @@ class VoiceAuthService {
   private readonly MIN_ENROLLMENT_DURATION = 10; // seconds
   private readonly MIN_CONFIDENCE_THRESHOLD = 0.85;
   private readonly REQUIRED_SAMPLES = 3; // Minimum samples for enrollment
-  private readonly externalEmbeddingEndpoint = process.env.SPEAKER_EMBEDDING_ENDPOINT || '';
-  private readonly externalEmbeddingApiKey = process.env.SPEAKER_EMBEDDING_API_KEY || '';
-  private readonly speakerEncoderProvider =
-    (process.env.SPEAKER_ENCODER_PROVIDER || 'onnx').toLowerCase();
+  private readonly externalEmbeddingEndpoint =
+    process.env.SPEAKER_EMBEDDING_ENDPOINT || '';
+  private readonly externalEmbeddingApiKey =
+    process.env.SPEAKER_EMBEDDING_API_KEY || '';
+  private readonly speakerEncoderProvider = (
+    process.env.SPEAKER_ENCODER_PROVIDER || 'onnx'
+  ).toLowerCase();
   private readonly targetEmbeddingDim =
     parseInt(process.env.SPEAKER_EMBEDDING_DIM || '192', 10) || 192;
   private readonly onnxModelPath =
@@ -95,7 +98,9 @@ class VoiceAuthService {
   /**
    * Run ONNX-based speaker encoder. Returns normalized embedding or null.
    */
-  private async runOnnxEmbedding(audioBuffer: Buffer): Promise<number[] | null> {
+  private async runOnnxEmbedding(
+    audioBuffer: Buffer,
+  ): Promise<number[] | null> {
     const session = await this.getOnnxSession();
     if (!session || !this.onnxInputName) return null;
 
@@ -108,7 +113,10 @@ class VoiceAuthService {
       if (!outputKey) throw new Error('ONNX output name not found');
       const embeddingTensor = output[outputKey];
       const raw = Array.from(embeddingTensor.data as number[] | Float32Array);
-      const normalized = this.normalizeEmbeddingDim(raw, this.targetEmbeddingDim);
+      const normalized = this.normalizeEmbeddingDim(
+        raw,
+        this.targetEmbeddingDim,
+      );
       this.onnxHealthy = true;
       return normalized;
     } catch (error) {
@@ -122,7 +130,9 @@ class VoiceAuthService {
    * Attempt to fetch embedding from an external speaker model service (e.g., ECAPA/TitaNet)
    * Expects response: { embedding: number[] }
    */
-  private async fetchExternalEmbedding(audioBuffer: Buffer): Promise<number[] | null> {
+  private async fetchExternalEmbedding(
+    audioBuffer: Buffer,
+  ): Promise<number[] | null> {
     if (!this.externalEmbeddingEndpoint) return null;
 
     const attemptFetch = async () => {
@@ -130,7 +140,9 @@ class VoiceAuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(this.externalEmbeddingApiKey ? { Authorization: `Bearer ${this.externalEmbeddingApiKey}` } : {}),
+          ...(this.externalEmbeddingApiKey
+            ? { Authorization: `Bearer ${this.externalEmbeddingApiKey}` }
+            : {}),
         },
         body: JSON.stringify({
           audio_base64: audioBuffer.toString('base64'),
@@ -141,7 +153,11 @@ class VoiceAuthService {
         throw new Error(`status ${resp.status} body: ${text}`);
       }
       const data = (await resp.json()) as { embedding?: number[] };
-      if (!data.embedding || !Array.isArray(data.embedding) || data.embedding.length === 0) {
+      if (
+        !data.embedding ||
+        !Array.isArray(data.embedding) ||
+        data.embedding.length === 0
+      ) {
         throw new Error('missing embedding');
       }
       return data.embedding;
@@ -155,7 +171,10 @@ class VoiceAuthService {
         this.lastExternalSuccess = Date.now();
         return embedding;
       } catch (error) {
-        logger.warn('External speaker embedding attempt failed', { attempt, error });
+        logger.warn('External speaker embedding attempt failed', {
+          attempt,
+          error,
+        });
         if (attempt < maxAttempts) {
           await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
         } else {
@@ -187,7 +206,9 @@ class VoiceAuthService {
    * Extract voice features from audio buffer
    * Tries ONNX encoder first, then external service, then deterministic PCM-based embedding.
    */
-  private async extractVoiceFeatures(audioBuffer: Buffer): Promise<VoiceprintFeatures> {
+  private async extractVoiceFeatures(
+    audioBuffer: Buffer,
+  ): Promise<VoiceprintFeatures> {
     const sampleRate = 16000; // assumed stream sample rate; conservative estimate for duration
     const duration = audioBuffer.length / (sampleRate * 2); // 16-bit samples
 
@@ -258,7 +279,12 @@ class VoiceAuthService {
     // Expand to target dims by deterministic tiling with slight variation
     const embeddingValues: number[] = [];
     while (embeddingValues.length < this.targetEmbeddingDim) {
-      for (let i = 0; i < baseVector.length && embeddingValues.length < this.targetEmbeddingDim; i++) {
+      for (
+        let i = 0;
+        i < baseVector.length &&
+        embeddingValues.length < this.targetEmbeddingDim;
+        i++
+      ) {
         const v = baseVector[i];
         // apply small deterministic modulation to avoid repetition artifacts
         const mod = Math.sin((embeddingValues.length + 1) * 0.017) * 0.05;
@@ -271,7 +297,8 @@ class VoiceAuthService {
       Math.sqrt(embeddingValues.reduce((sum, v) => sum + v * v, 0)) || 1;
     const embedding = embeddingValues.map((v) => v / magnitude);
 
-    const energyMean = rmsBuckets.reduce((a, b) => a + b, 0) / rmsBuckets.length || 0;
+    const energyMean =
+      rmsBuckets.reduce((a, b) => a + b, 0) / rmsBuckets.length || 0;
     const sampleQuality =
       duration >= this.MIN_ENROLLMENT_DURATION && energyMean > 0.01 ? 1.0 : 0.5;
 
@@ -342,7 +369,8 @@ class VoiceAuthService {
       }
 
       // Average embeddings from all samples for better accuracy
-      const embeddingLength = features[0]?.embedding.length || this.targetEmbeddingDim;
+      const embeddingLength =
+        features[0]?.embedding.length || this.targetEmbeddingDim;
       const averagedEmbedding = new Array(embeddingLength).fill(0);
       features.forEach((f) => {
         f.embedding.forEach((val, idx) => {
@@ -362,7 +390,7 @@ class VoiceAuthService {
       // Store voiceprint in database using raw SQL with pgvector
       // Prisma doesn't support vector type directly, so we use raw SQL
       const embeddingString = `[${finalEmbedding.join(',')}]`;
-      
+
       await this.prisma.$executeRaw(
         Prisma.sql`
           INSERT INTO "Voiceprint" (id, "userId", embedding, "enrolledAt", "updatedAt", "isActive", confidence)
@@ -400,11 +428,13 @@ class VoiceAuthService {
   ): Promise<VoiceVerificationResult> {
     try {
       // Get user's voiceprint using raw SQL
-      const voiceprint = await this.prisma.$queryRaw<Array<{
-        embedding: string;
-        confidence: number;
-        isActive: boolean;
-      }>>(
+      const voiceprint = await this.prisma.$queryRaw<
+        Array<{
+          embedding: string;
+          confidence: number;
+          isActive: boolean;
+        }>
+      >(
         Prisma.sql`
           SELECT embedding::text as embedding, confidence, "isActive"
           FROM "Voiceprint"

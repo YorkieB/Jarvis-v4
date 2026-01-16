@@ -17,12 +17,16 @@ describe('VoiceAuthService (integration-mocked)', () => {
   it('prefers ONNX embedding when available', async () => {
     const service = new VoiceAuthService(prisma as any) as any;
     const dim = service.getTargetEmbeddingDim();
-    const onnxEmbedding = new Array(dim).fill(0).map((_, i) => (i === 0 ? 1 : 0));
+    const onnxEmbedding = new Array(dim)
+      .fill(0)
+      .map((_, i) => (i === 0 ? 1 : 0));
 
     service.runOnnxEmbedding = jest.fn(async () => onnxEmbedding);
     service.fetchExternalEmbedding = jest.fn(async () => null);
 
-    const features = await (service as any).extractVoiceFeatures(Buffer.alloc(320));
+    const features = await (service as any).extractVoiceFeatures(
+      Buffer.alloc(320),
+    );
     expect(features.embedding).toEqual(onnxEmbedding);
     expect(service.runOnnxEmbedding).toHaveBeenCalled();
     expect(service.fetchExternalEmbedding).not.toHaveBeenCalled();
@@ -36,7 +40,9 @@ describe('VoiceAuthService (integration-mocked)', () => {
     service.runOnnxEmbedding = jest.fn(async () => null);
     service.fetchExternalEmbedding = jest.fn(async () => externalEmbedding);
 
-    const features = await (service as any).extractVoiceFeatures(Buffer.alloc(320));
+    const features = await (service as any).extractVoiceFeatures(
+      Buffer.alloc(320),
+    );
     expect(features.embedding.length).toBe(dim);
     expect(service.runOnnxEmbedding).toHaveBeenCalled();
     expect(service.fetchExternalEmbedding).toHaveBeenCalled();
@@ -51,9 +57,12 @@ describe('VoiceAuthService (integration-mocked)', () => {
       sampleQuality: 1,
     }));
 
-    await expect(service.enrollVoiceprint('user-1', [Buffer.alloc(100), Buffer.alloc(100)])).rejects.toThrow(
-      /At least 3 audio samples/,
-    );
+    await expect(
+      service.enrollVoiceprint('user-1', [
+        Buffer.alloc(100),
+        Buffer.alloc(100),
+      ]),
+    ).rejects.toThrow(/At least 3 audio samples/);
   });
 
   it('enrolls when requirements met and stores embedding', async () => {
@@ -65,16 +74,26 @@ describe('VoiceAuthService (integration-mocked)', () => {
       sampleQuality: 1,
     }));
 
-    await service.enrollVoiceprint('user-1', [Buffer.alloc(100), Buffer.alloc(100), Buffer.alloc(100)]);
+    await service.enrollVoiceprint('user-1', [
+      Buffer.alloc(100),
+      Buffer.alloc(100),
+      Buffer.alloc(100),
+    ]);
     expect(prisma.$executeRaw).toHaveBeenCalled();
   });
 
   it('verifies voice against stored embedding', async () => {
     const service = new VoiceAuthService(prisma as any) as any;
     const dim = service.getTargetEmbeddingDim();
-    const unitEmbedding = new Array(dim).fill(0).map((_, i) => (i === 0 ? 1 : 0));
+    const unitEmbedding = new Array(dim)
+      .fill(0)
+      .map((_, i) => (i === 0 ? 1 : 0));
     prisma.$queryRaw.mockResolvedValueOnce([
-      { embedding: JSON.stringify(unitEmbedding), confidence: 0.85, isActive: true },
+      {
+        embedding: JSON.stringify(unitEmbedding),
+        confidence: 0.85,
+        isActive: true,
+      },
     ]);
 
     service.extractVoiceFeatures = jest.fn(async () => ({

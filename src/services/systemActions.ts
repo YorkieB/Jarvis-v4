@@ -26,31 +26,41 @@ export class SystemActions {
   }
 
   async killProcess(pid: number): Promise<void> {
-    const cmd = os.platform() === 'win32' ? `taskkill /PID ${pid} /F` : `kill -9 ${pid}`;
+    const cmd =
+      os.platform() === 'win32' ? `taskkill /PID ${pid} /F` : `kill -9 ${pid}`;
     await this.executor.execute({ cmd });
   }
 
   // Services
   async listServices(): Promise<string> {
     if (os.platform() === 'win32') {
-      const res = await this.executor.execute({ cmd: 'sc query type= service state= all' });
+      const res = await this.executor.execute({
+        cmd: 'sc query type= service state= all',
+      });
       return res.stdout;
     }
     if (os.platform() === 'darwin') {
       const res = await this.executor.execute({ cmd: 'launchctl list' });
       return res.stdout;
     }
-    const res = await this.executor.execute({ cmd: 'systemctl list-units --type=service --all' });
+    const res = await this.executor.execute({
+      cmd: 'systemctl list-units --type=service --all',
+    });
     return res.stdout;
   }
 
   async restartService(name: string): Promise<void> {
     if (os.platform() === 'win32') {
-      await this.executor.execute({ cmd: `sc stop "${name}" && sc start "${name}"`, shell: 'cmd' });
+      await this.executor.execute({
+        cmd: `sc stop "${name}" && sc start "${name}"`,
+        shell: 'cmd',
+      });
       return;
     }
     if (os.platform() === 'darwin') {
-      await this.executor.execute({ cmd: `sudo launchctl stop ${name} && sudo launchctl start ${name}` });
+      await this.executor.execute({
+        cmd: `sudo launchctl stop ${name} && sudo launchctl start ${name}`,
+      });
       return;
     }
     await this.executor.execute({ cmd: `sudo systemctl restart ${name}` });
@@ -79,12 +89,17 @@ export class SystemActions {
 
   // Network
   async pingHost(host: string): Promise<boolean> {
-    const cmd = os.platform() === 'win32' ? `ping -n 1 ${host}` : `ping -c 1 ${host}`;
+    const cmd =
+      os.platform() === 'win32' ? `ping -n 1 ${host}` : `ping -c 1 ${host}`;
     const res = await this.executor.execute({ cmd });
     return res.exitCode === 0;
   }
 
-  async checkPort(host: string, port: number, timeoutMs = 3000): Promise<boolean> {
+  async checkPort(
+    host: string,
+    port: number,
+    timeoutMs = 3000,
+  ): Promise<boolean> {
     return new Promise((resolve) => {
       const socket = new net.Socket();
       let finished = false;
@@ -126,4 +141,3 @@ export class SystemActions {
     await this.executor.execute({ cmd, shell: 'powershell' });
   }
 }
-

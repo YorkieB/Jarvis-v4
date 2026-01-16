@@ -37,7 +37,13 @@ interface Thresholds {
   sanitize: number;
 }
 
-const DEFAULT_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'audio/mpeg', 'audio/mp3'];
+const DEFAULT_ALLOWED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'audio/mpeg',
+  'audio/mp3',
+];
 const DEFAULT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 export class MediaSafetyService {
@@ -57,8 +63,12 @@ export class MediaSafetyService {
       'MEDIA_SAFETY_ALLOWED_CONTENT_TYPES',
       DEFAULT_ALLOWED_TYPES,
     );
-    this.maxSizeBytes = this.readNumberEnv('MEDIA_SAFETY_MAX_SIZE_BYTES', DEFAULT_MAX_SIZE);
-    this.enableLocalFallback = process.env.MEDIA_SAFETY_ENABLE_LOCAL_FALLBACK !== 'false';
+    this.maxSizeBytes = this.readNumberEnv(
+      'MEDIA_SAFETY_MAX_SIZE_BYTES',
+      DEFAULT_MAX_SIZE,
+    );
+    this.enableLocalFallback =
+      process.env.MEDIA_SAFETY_ENABLE_LOCAL_FALLBACK !== 'false';
   }
 
   evaluate(input: MediaSafetyInput): MediaSafetyDecision {
@@ -69,7 +79,9 @@ export class MediaSafetyService {
 
     const decision =
       decisionFromStability ||
-      (this.enableLocalFallback ? this.evaluateLocalHeuristics(input) : this.allow(input));
+      (this.enableLocalFallback
+        ? this.evaluateLocalHeuristics(input)
+        : this.allow(input));
 
     this.recordDecision(decision, input);
     return decision;
@@ -83,7 +95,9 @@ export class MediaSafetyService {
     return this.recentDecisions.some((d) => d.action !== 'allow');
   }
 
-  private evaluateStabilitySignals(input: MediaSafetyInput): MediaSafetyDecision {
+  private evaluateStabilitySignals(
+    input: MediaSafetyInput,
+  ): MediaSafetyDecision {
     const scores = input.safetySignals ?? [];
     const worst = scores.reduce(
       (acc, curr) => (curr.probability > acc.probability ? curr : acc),
@@ -95,11 +109,16 @@ export class MediaSafetyService {
       .map((s) => s.category);
 
     if (worst.probability >= this.thresholds.block) {
-      return this.makeDecision('block', 'Stability safety signals exceed block threshold', input, {
-        topCategory: worst.category,
-        topProbability: worst.probability,
-        signals: scores,
-      });
+      return this.makeDecision(
+        'block',
+        'Stability safety signals exceed block threshold',
+        input,
+        {
+          topCategory: worst.category,
+          topProbability: worst.probability,
+          signals: scores,
+        },
+      );
     }
 
     if (worst.probability >= this.thresholds.sanitize) {
@@ -129,10 +148,15 @@ export class MediaSafetyService {
     );
   }
 
-  private evaluateLocalHeuristics(input: MediaSafetyInput): MediaSafetyDecision {
+  private evaluateLocalHeuristics(
+    input: MediaSafetyInput,
+  ): MediaSafetyDecision {
     const flagged: string[] = [];
 
-    if (input.contentType && !this.allowedContentTypes.includes(input.contentType)) {
+    if (
+      input.contentType &&
+      !this.allowedContentTypes.includes(input.contentType)
+    ) {
       return this.makeDecision(
         'block',
         'Content type not allowed',
@@ -152,11 +176,21 @@ export class MediaSafetyService {
       );
     }
 
-    return this.makeDecision('allow', 'Local heuristics allow content', input, undefined, flagged);
+    return this.makeDecision(
+      'allow',
+      'Local heuristics allow content',
+      input,
+      undefined,
+      flagged,
+    );
   }
 
   private allow(input: MediaSafetyInput): MediaSafetyDecision {
-    return this.makeDecision('allow', 'No safety signals provided; default allow', input);
+    return this.makeDecision(
+      'allow',
+      'No safety signals provided; default allow',
+      input,
+    );
   }
 
   private makeDecision(
@@ -179,7 +213,10 @@ export class MediaSafetyService {
     };
   }
 
-  private deriveScore(action: MediaSafetyAction, details?: Record<string, unknown>): number {
+  private deriveScore(
+    action: MediaSafetyAction,
+    details?: Record<string, unknown>,
+  ): number {
     if (action === 'block') return 1;
     if (action === 'sanitize') return 0.7;
     if (details?.topProbability && typeof details.topProbability === 'number') {
@@ -188,7 +225,10 @@ export class MediaSafetyService {
     return 0;
   }
 
-  private recordDecision(decision: MediaSafetyDecision, input: MediaSafetyInput): void {
+  private recordDecision(
+    decision: MediaSafetyDecision,
+    input: MediaSafetyInput,
+  ): void {
     this.recentDecisions.push(decision);
     if (this.recentDecisions.length > this.recentLimit) {
       this.recentDecisions.shift();

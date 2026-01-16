@@ -10,4 +10,3 @@ describe('TrueLayerClient', () => {
     expect(challenge.length).toBeGreaterThan(10);
   });
 });
-

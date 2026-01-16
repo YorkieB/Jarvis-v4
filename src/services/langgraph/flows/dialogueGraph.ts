@@ -18,12 +18,19 @@ export function buildDialogueGraph(
         return { state, next: 'retrieve' };
       },
       retrieve: async (state) => {
-        const docs = await knowledge.retrieveRelevantDocs(state.input as string, 5);
+        const docs = await knowledge.retrieveRelevantDocs(
+          state.input as string,
+          5,
+        );
         return { state: { ...state, docs }, next: 'draft' };
       },
       draft: async (state) => {
-        const docs = (state.docs as Array<{ content: string }> | undefined) || [];
-        const result = await selfRag.run(state.input as string, async () => docs);
+        const docs =
+          (state.docs as Array<{ content: string }> | undefined) || [];
+        const result = await selfRag.run(
+          state.input as string,
+          async () => docs,
+        );
         return {
           state: {
             ...state,

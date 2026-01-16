@@ -53,7 +53,10 @@ export class MessageBus extends EventEmitter {
   /**
    * Subscribe to messages for a specific agent
    */
-  subscribeToAgent(agentId: string, handler: (message: AgentMessage) => void): void {
+  subscribeToAgent(
+    agentId: string,
+    handler: (message: AgentMessage) => void,
+  ): void {
     this.on(`agent:${agentId}`, handler);
   }
 
@@ -77,7 +80,10 @@ export class MessageBus extends EventEmitter {
   /**
    * Unsubscribe from messages
    */
-  unsubscribe(agentId?: string, handler?: (message: AgentMessage) => void): void {
+  unsubscribe(
+    agentId?: string,
+    handler?: (message: AgentMessage) => void,
+  ): void {
     if (agentId && handler) {
       this.off(`agent:${agentId}`, handler);
     } else if (agentId) {

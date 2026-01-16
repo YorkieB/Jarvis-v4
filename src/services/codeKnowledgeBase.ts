@@ -173,7 +173,17 @@ export class CodeKnowledgeBase {
    */
   private extractKeyWords(message: string): string {
     // Extract important words (skip common words)
-    const commonWords = ['the', 'a', 'an', 'is', 'are', 'was', 'were', 'error', 'failed'];
+    const commonWords = [
+      'the',
+      'a',
+      'an',
+      'is',
+      'are',
+      'was',
+      'were',
+      'error',
+      'failed',
+    ];
     const words = message
       .toLowerCase()
       .split(/\s+/)

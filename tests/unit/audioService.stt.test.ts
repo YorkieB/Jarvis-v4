@@ -94,7 +94,12 @@ describe('AudioStreamingService - barge-in and failover', () => {
       session.googleActive = true;
     });
 
-    (service as any).handleSttFailure(session, 'deepgram', socket, 'test-error');
+    (service as any).handleSttFailure(
+      session,
+      'deepgram',
+      socket,
+      'test-error',
+    );
 
     expect(session.sttProvider).toBe('google');
     expect(socket.emit).toHaveBeenCalledWith(

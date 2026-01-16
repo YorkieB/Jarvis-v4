@@ -88,9 +88,10 @@ export class TaskQueueService {
           where: { id: agentId },
           data: {
             currentWorkload: agent.currentWorkload + 1,
-            status: agent.currentWorkload + 1 >= agent.maxConcurrentTasks
-              ? 'busy'
-              : 'busy',
+            status:
+              agent.currentWorkload + 1 >= agent.maxConcurrentTasks
+                ? 'busy'
+                : 'busy',
             updatedAt: new Date(),
           },
         });
@@ -106,10 +107,7 @@ export class TaskQueueService {
   /**
    * Complete a task
    */
-  async completeTask(
-    taskId: string,
-    result: TaskResult,
-  ): Promise<void> {
+  async completeTask(taskId: string, result: TaskResult): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
         const task = await tx.task.findUnique({
@@ -126,7 +124,9 @@ export class TaskQueueService {
           where: { id: taskId },
           data: {
             status: result.success ? 'completed' : 'failed',
-            result: result.data ? (result.data as Record<string, unknown>) : null,
+            result: result.data
+              ? (result.data as Record<string, unknown>)
+              : null,
             error: result.error || null,
             completedAt: new Date(),
           },
@@ -134,7 +134,10 @@ export class TaskQueueService {
 
         // Update agent workload if assigned
         if (task.assignedAgentId && task.assignedAgent) {
-          const newWorkload = Math.max(0, task.assignedAgent.currentWorkload - 1);
+          const newWorkload = Math.max(
+            0,
+            task.assignedAgent.currentWorkload - 1,
+          );
           await tx.agent.update({
             where: { id: task.assignedAgentId },
             data: {
@@ -159,10 +162,7 @@ export class TaskQueueService {
   /**
    * Get next pending task for assignment
    */
-  async getNextPendingTask(
-    capabilities: string[],
-    excludeTaskIds?: string[],
-  ) {
+  async getNextPendingTask(capabilities: string[], excludeTaskIds?: string[]) {
     const tasks = await this.prisma.task.findMany({
       where: {
         status: 'pending',
@@ -195,10 +195,7 @@ export class TaskQueueService {
         parentTask: true,
         subtasks: true,
       },
-      orderBy: [
-        { priority: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
       take: filter.limit || 100,
       skip: filter.offset || 0,
     });
@@ -267,10 +264,7 @@ export class TaskQueueService {
         // Cancel task and subtasks
         await tx.task.updateMany({
           where: {
-            OR: [
-              { id: taskId },
-              { parentTaskId: taskId },
-            ],
+            OR: [{ id: taskId }, { parentTaskId: taskId }],
           },
           data: {
             status: 'cancelled',
@@ -279,7 +273,10 @@ export class TaskQueueService {
 
         // Update agent workload if assigned
         if (task.assignedAgentId && task.assignedAgent) {
-          const newWorkload = Math.max(0, task.assignedAgent.currentWorkload - 1);
+          const newWorkload = Math.max(
+            0,
+            task.assignedAgent.currentWorkload - 1,
+          );
           await tx.agent.update({
             where: { id: task.assignedAgentId },
             data: {

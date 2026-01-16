@@ -14,7 +14,8 @@ const pool = new Pool({ connectionString: databaseUrl });
 export const prisma = new PrismaClient({
   adapter: new PrismaPg(pool),
   // Keep logs minimal by default; enable query logging via env toggle
-  log: process.env.PRISMA_LOG_QUERIES === 'true' ? ['query', 'error'] : ['error'],
+  log:
+    process.env.PRISMA_LOG_QUERIES === 'true' ? ['query', 'error'] : ['error'],
 });
 
 export type PrismaInstance = typeof prisma;

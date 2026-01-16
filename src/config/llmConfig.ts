@@ -1,6 +1,6 @@
 /**
  * Centralized LLM Configuration
- * 
+ *
  * Standardizes temperature settings across all LLM calls
  * to ensure deterministic behavior where needed.
  */
@@ -52,9 +52,7 @@ export const LLM_CONFIG = {
 /**
  * Get LLM config by name
  */
-export function getLLMConfig(
-  mode: keyof typeof LLM_CONFIG,
-): LLMConfig {
+export function getLLMConfig(mode: keyof typeof LLM_CONFIG): LLMConfig {
   return LLM_CONFIG[mode];
 }
 
