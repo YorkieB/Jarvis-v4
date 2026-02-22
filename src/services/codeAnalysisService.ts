@@ -27,6 +27,7 @@ export interface AnalysisResult {
   issues: CodeIssue[];
   hasErrors: boolean;
   hasWarnings: boolean;
+  content?: string;
 }
 
 export class CodeAnalysisService {

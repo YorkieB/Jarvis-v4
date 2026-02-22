@@ -21,7 +21,6 @@ describe('SunoService', () => {
       audio_url: 'https://audio',
     });
     const mockFetch = jest.fn().mockResolvedValue({ ok: true, json: mockJson });
-    // @ts-expect-error override global fetch for test
     global.fetch = mockFetch;
 
     await svc.generate({ prompt: 'lofi beat' });

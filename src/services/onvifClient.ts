@@ -59,7 +59,7 @@ export class OnvifClient {
           username: this.info.username,
           password: this.info.password,
         },
-        (err) => {
+        (err: Error | null) => {
           if (err) {
             logger.error('ONVIF connection failed', {
               hostname: this.info.hostname,
@@ -85,7 +85,7 @@ export class OnvifClient {
     if (!this.camera) throw new Error('Camera not connected');
 
     return new Promise((resolve, reject) => {
-      this.camera!.getCapabilities((err, data) => {
+      this.camera!.getCapabilities((err: Error | null, data: any) => {
         if (err) {
           reject(err);
           return;
@@ -114,13 +114,13 @@ export class OnvifClient {
     if (!this.camera) throw new Error('Camera not connected');
 
     return new Promise((resolve, reject) => {
-      this.camera!.getStreamUri({ protocol: 'RTSP' }, (err, data) => {
+      this.camera!.getStreamUri({ protocol: 'RTSP' }, (err: Error | null, data: any) => {
         if (err) {
           reject(err);
           return;
         }
 
-        this.camera!.getProfiles((profileErr, profiles) => {
+        this.camera!.getProfiles((profileErr: Error | null, profiles: any[]) => {
           if (profileErr) {
             reject(profileErr);
             return;
@@ -150,7 +150,7 @@ export class OnvifClient {
     if (!this.camera) throw new Error('Camera not connected');
 
     return new Promise((resolve, reject) => {
-      this.camera!.getStatus({}, (err, data) => {
+      this.camera!.getStatus({}, (err: Error | null, data: any) => {
         if (err) {
           reject(err);
           return;
@@ -190,7 +190,7 @@ export class OnvifClient {
           },
           timeout: 1,
         },
-        (err) => {
+        (err: Error | null) => {
           if (err) {
             reject(err);
             return;
@@ -205,7 +205,7 @@ export class OnvifClient {
     if (!this.camera) throw new Error('Camera not connected');
 
     return new Promise((resolve, reject) => {
-      this.camera!.stop({}, (err) => {
+      this.camera!.stop({}, (err: Error | null) => {
         if (err) {
           reject(err);
           return;
@@ -232,7 +232,7 @@ export class OnvifClient {
             z: 0.5,
           },
         },
-        (err) => {
+        (err: Error | null) => {
           if (err) {
             reject(err);
             return;
@@ -252,7 +252,7 @@ export class OnvifClient {
           presetToken: token,
           presetName: name,
         },
-        (err) => {
+        (err: Error | null) => {
           if (err) {
             reject(err);
             return;
@@ -272,7 +272,7 @@ export class OnvifClient {
           preset: token,
           speed: { x: 0.5, y: 0.5, z: 0.5 },
         },
-        (err) => {
+        (err: Error | null) => {
           if (err) {
             reject(err);
             return;
@@ -287,7 +287,7 @@ export class OnvifClient {
     if (!this.camera) throw new Error('Camera not connected');
 
     return new Promise((resolve, reject) => {
-      this.camera!.getPresets({}, (err, data) => {
+      this.camera!.getPresets({}, (err: Error | null, data: any) => {
         if (err) {
           reject(err);
           return;

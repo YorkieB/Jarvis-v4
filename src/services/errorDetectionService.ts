@@ -54,6 +54,8 @@ export class ErrorDetectionService {
       const trace = stackTrace || error.stack || '';
       const match = trace.match(/at .+ \((.+):(\d+):(\d+)\)/);
       if (match) {
+        let lineStr: string;
+        let colStr: string;
         [, filePath, lineStr, colStr] = match;
         lineNumber = parseInt(lineStr, 10);
         columnNumber = parseInt(colStr, 10);

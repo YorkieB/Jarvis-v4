@@ -1,5 +1,9 @@
 import { MediaSafetyService } from '../../src/services/mediaSafetyService';
 
+jest.mock('../../src/governance/audit-logger', () => ({
+  auditLogger: { logDecision: jest.fn().mockResolvedValue(undefined) },
+}));
+
 describe('MediaSafetyService', () => {
   const originalEnv = { ...process.env };
 

@@ -1,4 +1,5 @@
 import { GraphState } from './types';
+import { Prisma } from '@prisma/client';
 import { prisma as globalPrisma } from '../../utils/prisma';
 
 type PrismaClient = typeof globalPrisma;
@@ -20,7 +21,7 @@ export class CheckpointAdapter {
       data: {
         graphId,
         nodeId,
-        state,
+        state: state as unknown as Prisma.InputJsonValue,
         runId,
       },
     });

@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { getLLMConfig } from '../../config/llmConfig';
 import logger from '../../utils/logger';
+import { Prisma } from '@prisma/client';
 import { prisma as globalPrisma } from '../../utils/prisma';
 
 type PrismaClient = typeof globalPrisma;
@@ -133,7 +134,7 @@ export class DatasetGenerator {
       question: item.question,
       category: item.category,
       expectedResponse: item.expectedResponse,
-      metadata: item.metadata ?? {},
+      metadata: (item.metadata ?? {}) as Prisma.InputJsonValue,
     }));
 
     const result = await this.prisma.rTuningDataset.createMany({

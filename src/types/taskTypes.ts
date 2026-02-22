@@ -4,6 +4,8 @@
 
 import { TaskPriority, TaskStatus } from './agentTypes';
 
+export { TaskPriority, TaskStatus };
+
 export interface TaskPayload {
   [key: string]: unknown;
 }

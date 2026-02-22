@@ -118,6 +118,7 @@ export class MediaSafetyService {
           topProbability: worst.probability,
           signals: scores,
         },
+        flagged,
       );
     }
 

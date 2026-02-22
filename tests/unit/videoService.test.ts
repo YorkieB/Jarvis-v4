@@ -20,7 +20,6 @@ describe('VideoService', () => {
       status: 'processing',
     });
     const mockFetch = jest.fn().mockResolvedValue({ ok: true, json: mockJson });
-    // @ts-expect-error override fetch
     global.fetch = mockFetch;
 
     await svc.generate({ prompt: 'short clip', durationSeconds: 40 });
