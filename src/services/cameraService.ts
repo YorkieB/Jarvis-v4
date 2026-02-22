@@ -2,6 +2,7 @@ import { OnvifClient, PTZPosition, StreamProfile } from './onvifClient';
 import { RTSPStreamService } from './rtspStreamService';
 import logger from '../utils/logger';
 import * as crypto from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { prisma as globalPrisma } from '../utils/prisma';
 
 type PrismaClient = typeof globalPrisma;
@@ -155,7 +156,9 @@ export class CameraService {
         username: config.username,
         password: encryptedPassword,
         model: config.model,
-        capabilities,
+        capabilities: capabilities !== null
+          ? (capabilities as Prisma.InputJsonValue)
+          : undefined,
         isActive: true,
       },
     });

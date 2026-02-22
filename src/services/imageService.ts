@@ -73,7 +73,7 @@ export class ImageService {
   private async callStability(
     path: string,
     action: ImageAction,
-    payload: Record<string, unknown>,
+    payload: ImageGenerateOptions | ImageEditOptions,
   ): Promise<ImageResult> {
     if (!this.apiKey) throw new Error('Missing STABILITY_API_KEY');
     let lastErr: unknown;

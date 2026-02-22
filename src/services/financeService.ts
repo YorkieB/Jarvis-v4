@@ -4,6 +4,7 @@ import type {
   Account,
   BankConnection,
 } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import logger from '../utils/logger';
 import { TrueLayerClient, TLAccount, TLTransaction } from './truelayerClient';
 import { prisma as globalPrisma } from '../utils/prisma';
@@ -78,7 +79,7 @@ export class FinanceService {
           iban: acc.iban,
           sortCode: acc.sort_code,
           accountNumber: acc.account_number,
-          meta: acc.meta ?? {},
+          meta: (acc.meta ?? {}) as Prisma.InputJsonValue,
         },
         create: {
           userId,
@@ -90,7 +91,7 @@ export class FinanceService {
           iban: acc.iban,
           sortCode: acc.sort_code,
           accountNumber: acc.account_number,
-          meta: acc.meta ?? {},
+          meta: (acc.meta ?? {}) as Prisma.InputJsonValue,
         },
       });
       map.set(acc.account_id, record.id);

@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { UncertaintyService } from '../uncertainty/uncertaintyService';
 import logger from '../../utils/logger';
+import { Prisma } from '@prisma/client';
 import { prisma as globalPrisma } from '../../utils/prisma';
 
 type PrismaClient = typeof globalPrisma;
@@ -80,9 +81,11 @@ export class DatasetValidator {
           isValidated: result.passed,
           validationScore: result.score,
           metadata: {
-            ...item.metadata,
+            ...(typeof item.metadata === 'object' && item.metadata !== null
+              ? (item.metadata as Record<string, unknown>)
+              : {}),
             validationReasons: result.reasons,
-          },
+          } as Prisma.InputJsonValue,
         },
       });
     }

@@ -21,6 +21,16 @@ jest.mock('@deepgram/sdk', () => ({
       })),
     },
   })),
+  LiveTranscriptionEvents: {
+    Open: 'open',
+    Close: 'close',
+    Error: 'error',
+    Transcript: 'Results',
+    Metadata: 'Metadata',
+    UtteranceEnd: 'UtteranceEnd',
+    SpeechStarted: 'SpeechStarted',
+    Unhandled: 'Unhandled',
+  },
 }));
 
 jest.mock('@google-cloud/speech', () => ({

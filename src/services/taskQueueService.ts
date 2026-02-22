@@ -3,7 +3,7 @@
  * Manages task distribution, tracking, and prioritization
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import logger from '../utils/logger';
 import {
   TaskPriority,
@@ -37,7 +37,7 @@ export class TaskQueueService {
       const task = await this.prisma.task.create({
         data: {
           type,
-          payload,
+          payload: payload as unknown as Prisma.InputJsonValue,
           priority,
           parentTaskId,
           timeoutMs,
@@ -125,8 +125,8 @@ export class TaskQueueService {
           data: {
             status: result.success ? 'completed' : 'failed',
             result: result.data
-              ? (result.data as Record<string, unknown>)
-              : null,
+              ? (result.data as Prisma.InputJsonValue)
+              : Prisma.JsonNull,
             error: result.error || null,
             completedAt: new Date(),
           },

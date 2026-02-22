@@ -4,6 +4,7 @@
  */
 
 import logger from '../utils/logger';
+import { Prisma } from '@prisma/client';
 import { prisma as globalPrisma } from '../utils/prisma';
 
 type JsonInput =
@@ -42,11 +43,11 @@ export class AuditLogger {
         agentId: entry.agent_id,
         userId: entry.user_id,
         action: entry.action,
-        input: entry.input as JsonInput | undefined,
-        output: entry.output as JsonInput | undefined,
+        input: entry.input as Prisma.InputJsonValue | undefined,
+        output: entry.output as Prisma.InputJsonValue | undefined,
         status: entry.status,
         error: entry.error,
-        metadata: entry.metadata as JsonInput | undefined,
+        metadata: entry.metadata as Prisma.InputJsonValue | undefined,
       },
     });
   }

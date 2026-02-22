@@ -85,7 +85,7 @@ export class RTSPStreamService {
           cameraId: config.cameraId,
           port,
           rtspUrl: config.rtspUrl,
-          protocol: useHttps ? 'https' : 'http',
+          protocol: 'https',
         });
       });
 

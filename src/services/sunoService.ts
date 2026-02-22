@@ -39,6 +39,7 @@ export class SunoService {
   }
 
   async generate(options: SunoGenerateOptions): Promise<SunoTrack> {
+    if (!this.apiKey) throw new Error('Missing SUNO_API_KEY');
     const requestId = randomUUID();
     try {
       const res = await this.fetchWithAuth('/v1/generate', {
@@ -56,7 +57,7 @@ export class SunoService {
         }),
       });
 
-      return this.toTrack(await res.json());
+      return this.toTrack((await res.json()) as SunoResponse);
     } catch (error) {
       logger.error('Suno generate failed', { error, requestId });
       throw new Error('Suno generation failed');
@@ -68,7 +69,7 @@ export class SunoService {
       const res = await this.fetchWithAuth(`/v1/tracks/${trackId}`, {
         method: 'GET',
       });
-      return this.toTrack(await res.json());
+      return this.toTrack((await res.json()) as SunoResponse);
     } catch (error) {
       logger.error('Suno status failed', { error, trackId });
       throw new Error('Suno status failed');

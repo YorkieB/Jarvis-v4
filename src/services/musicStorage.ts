@@ -11,6 +11,7 @@ export interface StoredTrack {
   stems?: Record<string, string>;
   status: 'pending' | 'processing' | 'succeeded' | 'failed';
   safetyDecision?: string;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
 }
 

@@ -400,7 +400,7 @@ describe('AudioStreamingService - barge-in and failover', () => {
       transcriptBuffer: '',
       startTime: Date.now(),
       userId: TEST_USER_ID_2,
-      audioBuffer: [],
+      audioBuffer: [Buffer.alloc(100)],
       latencyMetrics: { stt: 0, llm: 0, tts: 0 },
       turnGuard: 0,
       sttProvider: 'deepgram',

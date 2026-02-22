@@ -10,6 +10,7 @@ describe('SystemExecutor sandbox policy', () => {
   it('routes to sandbox when enabled and policy requires it', async () => {
     process.env.SANDBOX_ENABLED = 'true';
     process.env.SANDBOX_FALLBACK_HOST = 'false';
+    process.env.SYSTEM_CONTROL_ALLOW = 'echo';
     const executor = new SystemExecutor();
 
     const sandboxExecute = jest.fn(async () => ({
@@ -34,6 +35,7 @@ describe('SystemExecutor sandbox policy', () => {
 
   it('respects dry-run when sandbox not required', async () => {
     process.env.SANDBOX_ENABLED = 'false';
+    process.env.SYSTEM_CONTROL_ALLOW = 'echo';
     const executor = new SystemExecutor();
 
     // Sandbox adapter should not be called when disabled

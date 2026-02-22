@@ -90,8 +90,12 @@ export class SystemActions {
   async pingHost(host: string): Promise<boolean> {
     const cmd =
       os.platform() === 'win32' ? `ping -n 1 ${host}` : `ping -c 1 ${host}`;
-    const res = await this.executor.execute({ cmd });
-    return res.exitCode === 0;
+    try {
+      const res = await this.executor.execute({ cmd });
+      return res.exitCode === 0;
+    } catch {
+      return false;
+    }
   }
 
   async checkPort(
