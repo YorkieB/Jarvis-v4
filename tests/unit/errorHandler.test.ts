@@ -7,7 +7,7 @@ import { ErrorDetectionService } from '../../src/services/errorDetectionService'
 import { Request, Response } from 'express';
 
 describe('errorHandler auto-fix integration', () => {
-  const detectRuntimeError = jest.fn();
+  const detectRuntimeError = jest.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -25,18 +25,12 @@ describe('errorHandler auto-fix integration', () => {
       url: '/test',
       get: jest.fn().mockReturnValue('test-user-agent'),
     } as Partial<Request> as Request;
+    let resStatusCode = 0;
     const res = {
-      statusCode: 0,
-      body: undefined as unknown,
-      status(code: number) {
-        this.statusCode = code;
-        return this;
-      },
-      json(payload: unknown) {
-        this.body = payload;
-        return this;
-      },
-    } as Partial<Response> as Response;
+      get statusCode() { return resStatusCode; },
+      status(code: number) { resStatusCode = code; return res; },
+      json(_payload: unknown) { return res; },
+    } as unknown as Response;
 
     await errorHandler(new Error('boom'), req, res, () => {});
     expect(detectRuntimeError).toHaveBeenCalled();
@@ -52,15 +46,9 @@ describe('errorHandler auto-fix integration', () => {
       get: jest.fn().mockReturnValue('test-user-agent'),
     } as Partial<Request> as Request;
     const res = {
-      status(code: number) {
-        this.statusCode = code;
-        return this;
-      },
-      json(payload: unknown) {
-        this.body = payload;
-        return this;
-      },
-    } as Partial<Response> as Response;
+      status(_code: number) { return res; },
+      json(_payload: unknown) { return res; },
+    } as unknown as Response;
 
     // errorHandler expects 4 arguments (err, req, res, next)
     // AppError constructor takes 2 arguments (message, statusCode); isOperational is always true

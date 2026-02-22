@@ -8,8 +8,11 @@ describe('SystemExecutor', () => {
   });
 
   it('allows dry-run without execution', async () => {
+    const original = process.env.SYSTEM_CONTROL_ALLOW;
+    process.env.SYSTEM_CONTROL_ALLOW = 'echo';
     const exec = new SystemExecutor();
     const result = await exec.execute({ cmd: 'echo hello', dryRun: true });
+    process.env.SYSTEM_CONTROL_ALLOW = original;
     expect(result.dryRun).toBe(true);
     expect(result.exitCode).toBeNull();
   });

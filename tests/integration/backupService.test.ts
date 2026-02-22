@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import BackupService from '../../src/services/backupService';
 
-jest.mock('child_process', () => {
+jest.mock('node:child_process', () => {
   const realFs = require('fs') as typeof fs;
   return {
     exec: (

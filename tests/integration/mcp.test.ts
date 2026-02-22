@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { FileSystemResource } from '../../src/services/mcp/resources/fileSystemResource';
 import { ToolRegistry } from '../../src/services/mcp/toolRegistry';
-import { McpToolResult, RequestContext } from '../../src/services/mcp/types';
+import { McpToolResult, JSONValue, RequestContext } from '../../src/services/mcp/types';
 
 describe('MCP integration', () => {
   describe('ToolRegistry ACL and schema', () => {
@@ -14,7 +14,7 @@ describe('MCP integration', () => {
       registry.register({
         name: 'echo',
         description: 'echo tool',
-        handler: async (input) => ({ success: true, data: input }),
+        handler: async (input) => ({ success: true, data: input as JSONValue }),
         acl: [{ effect: 'allow', users: ['user-1'] }],
       });
 

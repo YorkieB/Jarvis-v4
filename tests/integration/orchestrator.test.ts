@@ -4,6 +4,23 @@
 
 import { Orchestrator } from '../../src/orchestrator';
 
+jest.mock('../../src/utils/prisma', () => ({
+  prisma: {
+    agent: {
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({ id: 'agent-1' }),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    task: {
+      create: jest.fn().mockResolvedValue({ id: 'task-1' }),
+      findUnique: jest.fn().mockResolvedValue(null),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue({}),
+    },
+  },
+}));
+
 describe('Orchestrator', () => {
   let orchestrator: Orchestrator;
 
