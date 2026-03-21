@@ -4,7 +4,7 @@
  */
 
 import { Application, Request, Response, Router } from 'express';
-import os from 'os';
+import os from 'node:os';
 import { PrismaClient } from '@prisma/client';
 import logger from './utils/logger';
 
@@ -36,10 +36,18 @@ interface HealthCheck {
   };
 }
 
+interface CodeHealthMetrics {
+  totalErrors: number;
+}
+
+type CodeHealthAgent = {
+  getCodeHealthMetrics: () => Promise<CodeHealthMetrics>;
+};
+
 // Store Prisma instance for health checks (set by createHealthRouter)
 let prismaInstance: PrismaClient | null = null;
 // Store code analysis agent for code health checks
-let codeAnalysisAgent: any = null;
+let codeAnalysisAgent: CodeHealthAgent | null = null;
 
 /**
  * Set Prisma instance for health checks
@@ -51,7 +59,7 @@ export function setPrismaInstance(prisma: PrismaClient): void {
 /**
  * Set code analysis agent for code health checks
  */
-export function setCodeAnalysisAgent(agent: any): void {
+export function setCodeAnalysisAgent(agent: CodeHealthAgent): void {
   codeAnalysisAgent = agent;
 }
 
@@ -128,91 +136,120 @@ function checkDiskSpace(): { status: 'pass' | 'fail'; message?: string } {
 /**
  * Perform comprehensive health checks
  */
-async function performHealthChecks(): Promise<HealthCheck['checks']> {
-  const checks: HealthCheck['checks'] = {};
-
-  // Check memory usage
+function buildMemoryCheck(): HealthCheck['checks']['memory'] {
   const totalMem = os.totalmem();
   const freeMem = os.freemem();
   const usedMem = totalMem - freeMem;
   const memUsagePercent = (usedMem / totalMem) * 100;
 
-  checks.memory = {
+  return {
     status: memUsagePercent < 90 ? 'pass' : 'fail',
     message:
       memUsagePercent < 90
         ? 'Memory usage within acceptable range'
         : 'Memory usage critical',
   };
+}
 
-  // Check process uptime
+function buildUptimeCheck(): HealthCheck['checks']['uptime'] {
   const uptime = process.uptime();
-  checks.uptime = {
+  return {
     status: uptime > 0 ? 'pass' : 'fail',
     message: `Process has been running for ${Math.floor(uptime)} seconds`,
   };
+}
 
-  // Check if required environment variables are set
+function buildEnvironmentCheck(): HealthCheck['checks']['environment'] {
   const requiredEnvVars = ['NODE_ENV'];
   const missingEnvVars = requiredEnvVars.filter((v) => !process.env[v]);
 
-  checks.environment = {
+  return {
     status: missingEnvVars.length === 0 ? 'pass' : 'fail',
     message:
       missingEnvVars.length === 0
         ? 'All required environment variables are set'
         : `Missing environment variables: ${missingEnvVars.join(', ')}`,
   };
+}
 
-  // Database connectivity check
-  if (prismaInstance) {
-    try {
-      await prismaInstance.$queryRaw`SELECT 1`;
-      checks.database = {
-        status: 'pass',
-        message: 'Database connected',
-      };
-    } catch (error) {
-      checks.database = {
-        status: 'fail',
-        message: `Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
-    }
-  } else {
-    checks.database = {
+async function checkDatabaseHealth(): Promise<HealthCheck['checks']['database']> {
+  if (!prismaInstance) {
+    return {
       status: 'fail',
       message: 'Database instance not initialized',
     };
   }
 
-  // External API health checks (non-blocking, with timeout)
-  checks.openai = await checkExternalService('OpenAI', checkOpenAIHealth);
-  checks.deepgram = await checkExternalService('Deepgram', checkDeepgramHealth);
-  checks.elevenlabs = await checkExternalService(
-    'ElevenLabs',
-    checkElevenLabsHealth,
-  );
+  try {
+    await prismaInstance.$queryRaw`SELECT 1`;
+    return {
+      status: 'pass',
+      message: 'Database connected',
+    };
+  } catch (error) {
+    return {
+      status: 'fail',
+      message: `Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
 
-  // Disk space check
+async function checkCodeHealth():
+  Promise<HealthCheck['checks']['codeHealth'] | undefined> {
+  if (!codeAnalysisAgent) {
+    return undefined;
+  }
+
+  try {
+    const codeHealth = await codeAnalysisAgent.getCodeHealthMetrics();
+    const hasErrors = codeHealth.totalErrors > 0;
+    return {
+      status: hasErrors ? 'fail' : 'pass',
+      message: hasErrors
+        ? `${codeHealth.totalErrors} code errors detected`
+        : 'No code errors detected',
+    };
+  } catch (error) {
+    return {
+      status: 'fail',
+      message: `Code health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
+async function performHealthChecks(): Promise<HealthCheck['checks']> {
+  const checks: HealthCheck['checks'] = {
+    memory: buildMemoryCheck(),
+    uptime: buildUptimeCheck(),
+    environment: buildEnvironmentCheck(),
+  };
+  const skipOptionalChecks =
+    process.env.HEALTH_SKIP_OPTIONAL_CHECKS === 'true';
+
+  checks.database = await checkDatabaseHealth();
+
+  if (skipOptionalChecks) {
+    const skipped = {
+      status: 'pass' as const,
+      message: 'Skipped via HEALTH_SKIP_OPTIONAL_CHECKS',
+    };
+    checks.openai = skipped;
+    checks.deepgram = skipped;
+    checks.elevenlabs = skipped;
+  } else {
+    checks.openai = await checkExternalService('OpenAI', checkOpenAIHealth);
+    checks.deepgram = await checkExternalService('Deepgram', checkDeepgramHealth);
+    checks.elevenlabs = await checkExternalService(
+      'ElevenLabs',
+      checkElevenLabsHealth,
+    );
+  }
+
   checks.diskSpace = checkDiskSpace();
 
-  // Code health check (if code analysis agent is available)
-  if (codeAnalysisAgent) {
-    try {
-      const codeHealth = await codeAnalysisAgent.getCodeHealthMetrics();
-      const hasErrors = codeHealth.totalErrors > 0;
-      checks.codeHealth = {
-        status: hasErrors ? 'fail' : 'pass',
-        message: hasErrors
-          ? `${codeHealth.totalErrors} code errors detected`
-          : 'No code errors detected',
-      };
-    } catch (error) {
-      checks.codeHealth = {
-        status: 'fail',
-        message: `Code health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
-    }
+  const codeHealth = await checkCodeHealth();
+  if (codeHealth) {
+    checks.codeHealth = codeHealth;
   }
 
   return checks;
@@ -296,9 +333,6 @@ export function createHealthRouter(): Router {
       const criticalChecks = ['database', 'memory', 'uptime'];
       const criticalChecksPassed = criticalChecks.every(
         (key) => checks[key]?.status === 'pass',
-      );
-      const allChecksPassed = Object.values(checks).every(
-        (check) => check.status === 'pass',
       );
 
       if (criticalChecksPassed) {

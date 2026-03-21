@@ -6,8 +6,26 @@ import {
 import { ErrorDetectionService } from '../../src/services/errorDetectionService';
 import { Request, Response } from 'express';
 
+type ResponseWithBody = Response & { body?: unknown };
+
+function createMockResponse(): ResponseWithBody {
+  const res: Partial<ResponseWithBody> = {
+    statusCode: 0,
+    body: undefined,
+    status(this: ResponseWithBody, code: number) {
+      this.statusCode = code;
+      return this;
+    },
+    json(this: ResponseWithBody, payload: unknown) {
+      this.body = payload;
+      return this;
+    },
+  };
+  return res as ResponseWithBody;
+}
+
 describe('errorHandler auto-fix integration', () => {
-  const detectRuntimeError = jest.fn();
+  const detectRuntimeError = jest.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -25,18 +43,7 @@ describe('errorHandler auto-fix integration', () => {
       url: '/test',
       get: jest.fn().mockReturnValue('test-user-agent'),
     } as Partial<Request> as Request;
-    const res = {
-      statusCode: 0,
-      body: undefined as unknown,
-      status(code: number) {
-        this.statusCode = code;
-        return this;
-      },
-      json(payload: unknown) {
-        this.body = payload;
-        return this;
-      },
-    } as Partial<Response> as Response;
+    const res = createMockResponse();
 
     await errorHandler(new Error('boom'), req, res, () => {});
     expect(detectRuntimeError).toHaveBeenCalled();
@@ -51,16 +58,7 @@ describe('errorHandler auto-fix integration', () => {
       url: '/test',
       get: jest.fn().mockReturnValue('test-user-agent'),
     } as Partial<Request> as Request;
-    const res = {
-      status(code: number) {
-        this.statusCode = code;
-        return this;
-      },
-      json(payload: unknown) {
-        this.body = payload;
-        return this;
-      },
-    } as Partial<Response> as Response;
+    const res = createMockResponse();
 
     // errorHandler expects 4 arguments (err, req, res, next)
     // AppError constructor takes 2 arguments (message, statusCode); isOperational is always true

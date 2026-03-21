@@ -1,5 +1,4 @@
 import type { PrismaClient, BankConnection, Payment } from '@prisma/client';
-import logger from '../utils/logger';
 import { TrueLayerClient } from './truelayerClient';
 import { prisma as globalPrisma } from '../utils/prisma';
 

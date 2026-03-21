@@ -1,10 +1,104 @@
 import logger from '../utils/logger';
 
+type OnvifCamConstructor = new (
+  options: OnvifCameraInfo,
+  callback: (err?: Error | null) => void,
+) => OnvifCamera;
+
+interface AxisRange {
+  Range?: {
+    Min: number;
+    Max: number;
+  };
+}
+
+interface OnvifCapabilities {
+  PTZ?: {
+    X?: AxisRange;
+    Y?: AxisRange;
+    Z?: AxisRange;
+  };
+}
+
+interface OnvifStreamUri {
+  uri: string;
+}
+
+interface OnvifProfile {
+  $: { token: string };
+  name: string;
+  video?: {
+    encoderConfiguration?: {
+      encoding?: string;
+      resolution?: {
+        width?: number;
+        height?: number;
+      };
+    };
+  };
+}
+
+interface OnvifStatus {
+  position?: {
+    panTilt?: { x?: number; y?: number };
+    zoom?: { x?: number };
+  };
+}
+
+interface OnvifPreset {
+  $: { token: string };
+  name?: string;
+}
+
+interface OnvifCamera {
+  getCapabilities(cb: (err: Error | null, data: OnvifCapabilities) => void): void;
+  getStreamUri(
+    options: { protocol: string },
+    cb: (err: Error | null, data: OnvifStreamUri) => void,
+  ): void;
+  getProfiles(cb: (err: Error | null, profiles: OnvifProfile[]) => void): void;
+  getStatus(
+    options: Record<string, unknown>,
+    cb: (err: Error | null, data: OnvifStatus) => void,
+  ): void;
+  continuousMove(
+    options: { speed: { x: number; y: number; z: number }; timeout: number },
+    cb: (err: Error | null) => void,
+  ): void;
+  stop(options: Record<string, unknown>, cb: (err: Error | null) => void): void;
+  absoluteMove(
+    options: {
+      position: { x: number; y: number; z: number };
+      speed: { x: number; y: number; z: number };
+    },
+    cb: (err: Error | null) => void,
+  ): void;
+  setPreset(
+    options: { presetToken: string; presetName?: string },
+    cb: (err: Error | null) => void,
+  ): void;
+  gotoPreset(
+    options: { preset: string; speed: { x: number; y: number; z: number } },
+    cb: (err: Error | null) => void,
+  ): void;
+  getPresets(
+    options: Record<string, unknown>,
+    cb: (err: Error | null, data: OnvifPreset | OnvifPreset[]) => void,
+  ): void;
+}
+
 // Dynamic import for onvif to handle potential module structure differences
-function getOnvifCam(): any {
+async function getOnvifCam(): Promise<OnvifCamConstructor> {
   try {
-    const onvifModule = require('onvif');
-    return onvifModule.Cam || onvifModule.default?.Cam || onvifModule;
+    const module = (await import('onvif')) as {
+      Cam?: OnvifCamConstructor;
+      default?: { Cam?: OnvifCamConstructor };
+    };
+    const Cam = module.Cam || module.default?.Cam;
+    if (!Cam) {
+      throw new Error('ONVIF camera constructor missing');
+    }
+    return Cam;
   } catch (error) {
     logger.warn('ONVIF module not available', { error });
     throw new Error('ONVIF module not installed. Run: npm install onvif');
@@ -42,7 +136,7 @@ export interface StreamProfile {
 }
 
 export class OnvifClient {
-  private camera: any = null;
+  private camera: OnvifCamera | null = null;
   private info: OnvifCameraInfo;
 
   constructor(info: OnvifCameraInfo) {
@@ -50,7 +144,7 @@ export class OnvifClient {
   }
 
   async connect(): Promise<void> {
-    const Cam = getOnvifCam();
+    const Cam = await getOnvifCam();
     return new Promise((resolve, reject) => {
       this.camera = new Cam(
         {
@@ -126,7 +220,7 @@ export class OnvifClient {
             return;
           }
 
-          const result: StreamProfile[] = profiles.map((profile: any) => ({
+          const result: StreamProfile[] = profiles.map((profile) => ({
             token: profile.$.token,
             name: profile.name,
             videoEncoding:
@@ -175,12 +269,6 @@ export class OnvifClient {
 
     return new Promise((resolve, reject) => {
       const speed = options.speed || { pan: 0.5, tilt: 0.5, zoom: 0.5 };
-      const velocity = {
-        x: options.pan !== undefined ? options.pan : 0,
-        y: options.tilt !== undefined ? options.tilt : 0,
-        zoom: options.zoom !== undefined ? options.zoom : 0,
-      };
-
       this.camera!.continuousMove(
         {
           speed: {
@@ -295,7 +383,7 @@ export class OnvifClient {
 
         const presets = Array.isArray(data) ? data : [data];
         resolve(
-          presets.map((preset: any) => ({
+          presets.map((preset) => ({
             token: preset.$.token,
             name: preset.name || preset.$.token,
           })),

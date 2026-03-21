@@ -2,6 +2,7 @@ import { SunoService } from '../../src/services/sunoService';
 
 describe('SunoService', () => {
   const originalEnv = { ...process.env };
+  const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
     process.env.SUNO_API_KEY = 'test-key';
@@ -10,6 +11,7 @@ describe('SunoService', () => {
 
   afterEach(() => {
     process.env = { ...originalEnv };
+    globalThis.fetch = originalFetch;
     jest.restoreAllMocks();
   });
 
@@ -21,8 +23,7 @@ describe('SunoService', () => {
       audio_url: 'https://audio',
     });
     const mockFetch = jest.fn().mockResolvedValue({ ok: true, json: mockJson });
-    // @ts-expect-error override global fetch for test
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch as unknown as typeof globalThis.fetch;
 
     await svc.generate({ prompt: 'lofi beat' });
 

@@ -1,7 +1,17 @@
+import { Prisma } from '@prisma/client';
 import { GraphState } from './types';
 import { prisma as globalPrisma } from '../../utils/prisma';
 
 type PrismaClient = typeof globalPrisma;
+
+function serializeState(
+  state: GraphState,
+): Prisma.InputJsonValue | Prisma.JsonNullValueInput {
+  if (state === null) {
+    return Prisma.JsonNull;
+  }
+  return state as Prisma.InputJsonValue;
+}
 
 export class CheckpointAdapter {
   private readonly prisma: PrismaClient;
@@ -20,7 +30,7 @@ export class CheckpointAdapter {
       data: {
         graphId,
         nodeId,
-        state,
+        state: serializeState(state),
         runId,
       },
     });

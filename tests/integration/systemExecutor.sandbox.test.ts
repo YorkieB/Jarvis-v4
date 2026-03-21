@@ -3,6 +3,14 @@ import { SystemExecutor } from '../../src/services/systemExecutor';
 describe('SystemExecutor sandbox policy', () => {
   const originalEnv = { ...process.env };
 
+  beforeEach(() => {
+    process.env = {
+      ...originalEnv,
+      SYSTEM_CONTROL_ALLOW: 'echo',
+      SYSTEM_CONTROL_DENY: '',
+    };
+  });
+
   afterEach(() => {
     process.env = { ...originalEnv };
   });

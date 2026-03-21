@@ -14,7 +14,10 @@ describe('MCP integration', () => {
       registry.register({
         name: 'echo',
         description: 'echo tool',
-        handler: async (input) => ({ success: true, data: input }),
+        handler: async (input): Promise<McpToolResult> => ({
+          success: true,
+          data: input as McpToolResult['data'],
+        }),
         acl: [{ effect: 'allow', users: ['user-1'] }],
       });
 

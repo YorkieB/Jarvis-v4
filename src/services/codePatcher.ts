@@ -6,7 +6,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import logger from '../utils/logger';
-import { extractCodeSnippet } from '../utils/codeParser';
 
 export interface PatchResult {
   success: boolean;

@@ -1,8 +1,9 @@
-module.exports = {
+export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts', '**/*.spec.ts'],
+  setupFiles: ['<rootDir>/tests/setupEnv.ts'],
   testTimeout: 15000, // 15s timeout for network calls in smoke tests
   transform: {
     '^.+\\.ts$': [

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import logger from '../utils/logger';
 
 export interface DetectionBBox {
@@ -25,7 +25,7 @@ export interface DetectionOptions {
 export class ComputerVisionService {
   private prisma: PrismaClient;
   private confidenceThreshold: number;
-  private trackingMap: Map<string, Map<string, number>> = new Map();
+  private trackingMap: Map<string, Map<string, string>> = new Map();
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
@@ -66,19 +66,20 @@ export class ComputerVisionService {
     cameraId: string,
     detections: DetectionResult[],
   ): Promise<DetectionResult[]> {
-    const cameraTracks = this.trackingMap.get(cameraId) || new Map();
+    const cameraTracks =
+      this.trackingMap.get(cameraId) || new Map<string, string>();
     const tracked: DetectionResult[] = [];
 
     for (const det of detections) {
       const key = `${det.objectType}-${det.bbox.x}-${det.bbox.y}`;
-      let trackingId = cameraTracks.get(key);
+      const existingId = cameraTracks.get(key);
+      const trackingId = existingId ?? this.createTrackingId(cameraId);
 
-      if (!trackingId) {
-        trackingId = `${cameraId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        cameraTracks.set(key, trackingId as any);
+      if (!existingId) {
+        cameraTracks.set(key, trackingId);
       }
 
-      tracked.push({ ...det, trackingId: trackingId.toString() });
+      tracked.push({ ...det, trackingId });
     }
 
     this.trackingMap.set(cameraId, cameraTracks);
@@ -93,7 +94,7 @@ export class ComputerVisionService {
     minConfidence?: number;
     limit?: number;
   }) {
-    const where: any = {};
+    const where: Prisma.DetectionWhereInput = {};
 
     if (filters.cameraId) where.cameraId = filters.cameraId;
     if (filters.objectType) where.objectType = filters.objectType;
@@ -135,7 +136,12 @@ export class ComputerVisionService {
             cameraId,
             objectType: det.objectType,
             confidence: det.confidence,
-            bbox: det.bbox as any,
+            bbox: {
+              x: det.bbox.x,
+              y: det.bbox.y,
+              width: det.bbox.width,
+              height: det.bbox.height,
+            } as Prisma.JsonObject,
             frameTime: new Date(),
             trackingId: det.trackingId,
           },
@@ -144,7 +150,11 @@ export class ComputerVisionService {
     );
   }
 
-  private mockDetection(frameData: Buffer | string): DetectionResult[] {
+  private createTrackingId(cameraId: string): string {
+    return `${cameraId}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  }
+
+  private mockDetection(_frameData: Buffer | string): DetectionResult[] {
     return [
       {
         objectType: 'person',

@@ -2,6 +2,7 @@ import { VideoService } from '../../src/services/videoService';
 
 describe('VideoService', () => {
   const originalEnv = { ...process.env };
+  const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
     process.env.VIDEO_API_KEY = 'vidkey';
@@ -11,6 +12,7 @@ describe('VideoService', () => {
 
   afterEach(() => {
     process.env = { ...originalEnv };
+    globalThis.fetch = originalFetch;
   });
 
   it('caps duration to 15 seconds', async () => {
@@ -20,8 +22,7 @@ describe('VideoService', () => {
       status: 'processing',
     });
     const mockFetch = jest.fn().mockResolvedValue({ ok: true, json: mockJson });
-    // @ts-expect-error override fetch
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch as unknown as typeof globalThis.fetch;
 
     await svc.generate({ prompt: 'short clip', durationSeconds: 40 });
 

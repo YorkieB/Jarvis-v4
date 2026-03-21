@@ -56,9 +56,13 @@ export class SunoService {
         }),
       });
 
-      return this.toTrack(await res.json());
+      const payload = (await res.json()) as SunoResponse;
+      return this.toTrack(payload);
     } catch (error) {
       logger.error('Suno generate failed', { error, requestId });
+      if (error instanceof Error && error.message === 'Missing SUNO_API_KEY') {
+        throw error;
+      }
       throw new Error('Suno generation failed');
     }
   }
@@ -68,9 +72,13 @@ export class SunoService {
       const res = await this.fetchWithAuth(`/v1/tracks/${trackId}`, {
         method: 'GET',
       });
-      return this.toTrack(await res.json());
+      const payload = (await res.json()) as SunoResponse;
+      return this.toTrack(payload);
     } catch (error) {
       logger.error('Suno status failed', { error, trackId });
+      if (error instanceof Error && error.message === 'Missing SUNO_API_KEY') {
+        throw error;
+      }
       throw new Error('Suno status failed');
     }
   }

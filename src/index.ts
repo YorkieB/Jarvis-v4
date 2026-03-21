@@ -33,7 +33,7 @@ if (missingVars.length > 0) {
 
 // CRITICAL: Initialize Sentry FIRST to capture boot-time errors
 import { initSentry } from './sentry';
-initSentry();
+await initSentry();
 
 // Import monitoring and utilities
 import logger from './utils/logger';

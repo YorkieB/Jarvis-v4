@@ -5,7 +5,6 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import logger from './logger';
 
 const execAsync = promisify(exec);
 
@@ -48,8 +47,8 @@ export class TypeChecker {
         errors,
         output,
       };
-    } catch (error: any) {
-      const output = error.stdout || '' + error.stderr || '';
+    } catch (error) {
+      const output = this.combineCommandOutput(error);
       const errors = this.parseTypeErrors(output);
 
       return {
@@ -78,8 +77,8 @@ export class TypeChecker {
         errors,
         output,
       };
-    } catch (error: any) {
-      const output = error.stdout || '' + error.stderr || '';
+    } catch (error) {
+      const output = this.combineCommandOutput(error);
       const errors = this.parseTypeErrors(output);
 
       return {
@@ -120,5 +119,31 @@ export class TypeChecker {
     }
 
     return errors;
+  }
+
+  private combineCommandOutput(error: unknown): string {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      ('stdout' in error || 'stderr' in error)
+    ) {
+      const stdout = this.normalizeOutput((error as { stdout?: unknown }).stdout);
+      const stderr = this.normalizeOutput((error as { stderr?: unknown }).stderr);
+      return `${stdout}${stderr}`;
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return '';
+  }
+
+  private normalizeOutput(stream: unknown): string {
+    if (typeof stream === 'string') {
+      return stream;
+    }
+    if (Buffer.isBuffer(stream)) {
+      return stream.toString();
+    }
+    return '';
   }
 }

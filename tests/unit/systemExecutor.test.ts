@@ -1,6 +1,20 @@
 import { SystemExecutor } from '../../src/services/systemExecutor';
 
 describe('SystemExecutor', () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    process.env = {
+      ...originalEnv,
+      SYSTEM_CONTROL_ALLOW: 'echo,ping',
+      SYSTEM_CONTROL_DENY: '',
+    };
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
   it('blocks denied commands', async () => {
     process.env.SYSTEM_CONTROL_DENY = 'rm -rf';
     const exec = new SystemExecutor();

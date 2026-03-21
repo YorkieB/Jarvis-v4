@@ -1,6 +1,6 @@
 import { CameraService } from '../../src/services/cameraService';
 import { RTSPStreamService } from '../../src/services/rtspStreamService';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 
 describe('CameraService', () => {
   let prisma: PrismaClient;
@@ -8,7 +8,7 @@ describe('CameraService', () => {
   let cameraService: CameraService;
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    prisma = {} as unknown as PrismaClient;
     rtspService = new RTSPStreamService();
     cameraService = new CameraService(prisma, rtspService);
   });

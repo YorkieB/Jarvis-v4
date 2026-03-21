@@ -115,7 +115,6 @@ export function extractCodeSnippet(
     const startLine = Math.max(1, lineNumber - contextLines);
     const endLine = Math.min(lines.length, lineNumber + contextLines);
 
-    const snippet = lines.slice(startLine - 1, endLine).join('\n');
     const targetLine = lines[lineNumber - 1];
 
     return {

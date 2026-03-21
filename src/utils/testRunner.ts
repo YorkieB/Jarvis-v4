@@ -3,9 +3,10 @@
  * Wrapper for Jest test execution
  */
 
-import { exec } from 'child_process';
+import { exec } from 'node:child_process';
 import { promisify } from 'util';
 import * as path from 'path';
+import fs from 'node:fs';
 import logger from './logger';
 
 const execAsync = promisify(exec);
@@ -19,7 +20,7 @@ export interface TestResult {
 }
 
 export class TestRunner {
-  private projectRoot: string;
+  private readonly projectRoot: string;
 
   constructor(projectRoot?: string) {
     this.projectRoot = projectRoot || process.cwd();
@@ -80,8 +81,8 @@ export class TestRunner {
         errors,
         output,
       };
-    } catch (error: any) {
-      const output = error.stdout || '' + error.stderr || '';
+    } catch (error) {
+      const output = this.combineCommandOutput(error);
       const failed = this.extractFailedCount(output);
       const errors = this.extractErrors(output);
 
@@ -117,8 +118,8 @@ export class TestRunner {
         errors,
         output,
       };
-    } catch (error: any) {
-      const output = error.stdout || '' + error.stderr || '';
+    } catch (error) {
+      const output = this.combineCommandOutput(error);
       const failed = this.extractFailedCount(output);
       const errors = this.extractErrors(output);
 
@@ -130,6 +131,32 @@ export class TestRunner {
         output,
       };
     }
+  }
+
+  private combineCommandOutput(error: unknown): string {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      ('stdout' in error || 'stderr' in error)
+    ) {
+      const stdout = this.normalizeOutput((error as { stdout?: unknown }).stdout);
+      const stderr = this.normalizeOutput((error as { stderr?: unknown }).stderr);
+      return `${stdout}${stderr}`;
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return '';
+  }
+
+  private normalizeOutput(stream: unknown): string {
+    if (typeof stream === 'string') {
+      return stream;
+    }
+    if (Buffer.isBuffer(stream)) {
+      return stream.toString();
+    }
+    return '';
   }
 
   /**
@@ -168,12 +195,7 @@ export class TestRunner {
    * Check if file exists
    */
   private fileExists(filePath: string): boolean {
-    try {
-      const fs = require('fs');
-      return fs.existsSync(filePath);
-    } catch {
-      return false;
-    }
+    return fs.existsSync(filePath);
   }
 
   /**

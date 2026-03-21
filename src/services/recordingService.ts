@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import logger from '../utils/logger';
@@ -44,7 +44,7 @@ export class RecordingService {
       const fileName = `recording-${cameraId}-${Date.now()}.mp4`;
       const filePath = path.join(this.storagePath, fileName);
 
-      const recording = await this.prisma.recording.create({
+      await this.prisma.recording.create({
         data: {
           id,
           cameraId,
@@ -110,7 +110,7 @@ export class RecordingService {
     endTime?: Date;
     limit?: number;
   }) {
-    const where: any = {};
+    const where: Prisma.RecordingWhereInput = {};
 
     if (filters?.cameraId) where.cameraId = filters.cameraId;
     if (filters?.status) where.status = filters.status;

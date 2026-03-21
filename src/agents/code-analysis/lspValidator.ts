@@ -1,5 +1,4 @@
 import { CodeValidator } from '../../services/lsp/codeValidator';
-import logger from '../../utils/logger';
 
 export interface ValidationOutcome {
   code: string;
@@ -16,11 +15,9 @@ type CodeGenerator = (feedback?: string[]) => Promise<string>;
  * LSP validation loop: generate → validate → re-prompt with diagnostics up to N iterations.
  */
 export class LspValidatorAdapter {
-  private validator: CodeValidator;
-  private maxIterations: number;
+  private readonly maxIterations: number;
 
-  constructor(validator?: CodeValidator) {
-    this.validator = validator || new CodeValidator();
+  constructor(private readonly validator: CodeValidator = new CodeValidator()) {
     this.maxIterations = Number(process.env.LSP_VALIDATE_MAX_ITERATIONS || 3);
   }
 

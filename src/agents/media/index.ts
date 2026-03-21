@@ -7,7 +7,6 @@ import {
 import {
   VideoService,
   VideoGenerateOptions,
-  VideoJob,
 } from '../../services/videoService';
 import {
   VideoEditService,
@@ -19,10 +18,10 @@ export class MediaAgent extends BaseAgent {
   protected agentType = 'media';
   protected permissions = ['write:media', 'read:media'];
 
-  private images: ImageService;
-  private videos: VideoService;
-  private videoEditor: VideoEditService;
-  private storage: AssetStorage;
+  private readonly images: ImageService;
+  private readonly videos: VideoService;
+  private readonly videoEditor: VideoEditService;
+  private readonly storage: AssetStorage;
 
   constructor(
     images: ImageService,

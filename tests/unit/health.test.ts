@@ -3,24 +3,45 @@
  */
 
 import { createHealthRouter, setPrismaInstance } from '../../src/health';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import express from 'express';
 import request from 'supertest';
 
 describe('Health Check Module', () => {
   let app: express.Application;
   let prisma: PrismaClient;
+  const originalEnv = { ...process.env };
+  const restoreEnv = (key: keyof NodeJS.ProcessEnv) => {
+    if (originalEnv[key] === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = originalEnv[key];
+    }
+  };
 
   beforeAll(() => {
+    process.env.NODE_ENV = 'test';
+    process.env.OPENAI_API_KEY = 'test-openai';
+    process.env.DEEPGRAM_API_KEY = 'test-deepgram';
+    process.env.ELEVENLABS_API_KEY = 'test-elevenlabs';
+    process.env.HEALTH_SKIP_OPTIONAL_CHECKS = 'true';
     app = express();
     app.disable('x-powered-by');
-    prisma = new PrismaClient();
+    prisma = {
+      $queryRaw: jest.fn().mockResolvedValue([{ ok: true }]),
+      $disconnect: jest.fn().mockResolvedValue(undefined),
+    } as unknown as PrismaClient;
     setPrismaInstance(prisma);
     app.use(createHealthRouter());
   });
 
   afterAll(async () => {
     await prisma.$disconnect();
+    restoreEnv('NODE_ENV');
+    restoreEnv('OPENAI_API_KEY');
+    restoreEnv('DEEPGRAM_API_KEY');
+    restoreEnv('ELEVENLABS_API_KEY');
+    restoreEnv('HEALTH_SKIP_OPTIONAL_CHECKS');
   });
 
   describe('GET /health', () => {

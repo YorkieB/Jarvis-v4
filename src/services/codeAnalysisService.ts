@@ -3,13 +3,12 @@
  * Static analysis and code quality checks
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import logger from '../utils/logger';
 import {
   parseCode,
   extractCodeSnippet,
-  getLanguage,
 } from '../utils/codeParser';
 
 export interface CodeIssue {
@@ -53,7 +52,6 @@ export class CodeAnalysisService {
       }
 
       const content = fs.readFileSync(filePath, 'utf-8');
-      const language = getLanguage(filePath);
 
       const issues: CodeIssue[] = [];
 

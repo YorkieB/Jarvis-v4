@@ -117,7 +117,7 @@ export class WatchdogService {
         // Update heartbeat
         await this.agentManager.updateAgentStatus(
           agent.id,
-          agent.status as any,
+          agent.status,
           agent.currentWorkload,
         );
       }

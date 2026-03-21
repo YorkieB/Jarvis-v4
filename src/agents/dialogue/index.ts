@@ -13,16 +13,18 @@ export class DialogueAgent extends BaseAgent {
   protected agentType = 'dialogue';
   protected permissions = ['read:conversations', 'write:conversations'];
 
-  private openai: OpenAI;
-  private prisma: PrismaClient;
-  private knowledgeAgent: KnowledgeAgent;
-  private selfRAG: SelfRAGService;
-  private checkpoint: CheckpointAdapter;
+  private readonly openai: OpenAI;
+  private readonly prisma: PrismaClient;
+  private readonly knowledgeAgent: KnowledgeAgent;
+  private readonly selfRAG: SelfRAGService;
+  private readonly checkpoint: CheckpointAdapter;
   // Keep in-memory cache for active conversations (performance optimization)
-  private conversationHistory: Map<string, ChatCompletionMessageParam[]> =
-    new Map();
+  private readonly conversationHistory: Map<
+    string,
+    ChatCompletionMessageParam[]
+  > = new Map();
   // Map sessionId to conversationId for quick lookup
-  private sessionToConversation: Map<string, string> = new Map();
+  private readonly sessionToConversation: Map<string, string> = new Map();
 
   constructor(prisma?: PrismaClient) {
     super();
@@ -201,7 +203,7 @@ export class DialogueAgent extends BaseAgent {
   /**
    * Create new conversation
    */
-  async createConversation(userId: string, title?: string): Promise<string> {
+  async createConversation(userId: string, _title?: string): Promise<string> {
     const conversation = await this.prisma.conversation.create({
       data: {
         userId,

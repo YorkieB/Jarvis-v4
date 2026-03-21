@@ -1,73 +1,57 @@
 import * as Sentry from '@sentry/node';
+import type { Integration } from '@sentry/types';
 import logger from './utils/logger';
 
+async function buildIntegrations(): Promise<Integration[]> {
+  const integrations: Integration[] = [
+    new Sentry.Integrations.Http({ tracing: true }),
+    new Sentry.Integrations.Express({ app: undefined }),
+  ];
+
+  const profilingEnabled =
+    process.env.SENTRY_ENABLE_PROFILING !== 'false' &&
+    process.env.SENTRY_ENABLE_PROFILING !== '0';
+
+  if (!profilingEnabled) {
+    logger.info('Sentry profiling disabled via env SENTRY_ENABLE_PROFILING');
+    return integrations;
+  }
+
+  try {
+    const { ProfilingIntegration } = await import('@sentry/profiling-node');
+    integrations.push(new ProfilingIntegration());
+  } catch (error) {
+    logger.warn('Sentry profiling disabled (native module not available)', {
+      error,
+    });
+  }
+
+  return integrations;
+}
+
 // Initialize Sentry for error tracking and performance monitoring
-export function initSentry() {
+export async function initSentry(): Promise<void> {
   // Only initialize if DSN is provided
   if (!process.env.SENTRY_DSN) {
     logger.warn('Sentry DSN not found. Skipping Sentry initialization.');
     return;
   }
 
+  const integrations = await buildIntegrations();
+
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
-
-    // Set environment (production, development, staging)
     environment: process.env.NODE_ENV || 'development',
-
-    // Release tracking for identifying which version has issues
     release: process.env.SENTRY_RELEASE || 'jarvis-v4@unknown',
-
-    // Sample rate for error tracking (1.0 = 100% of errors)
-    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-
-    // Sample rate for profiling (lower in production to reduce overhead)
-    profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-
-    // Enable performance monitoring
-    integrations: (() => {
-      const integrations = [
-        // Enable HTTP tracking
-        new Sentry.Integrations.Http({ tracing: true }),
-
-        // Enable Express.js integration
-        new Sentry.Integrations.Express({ app: undefined }),
-      ];
-
-      // Load profiling only if available to avoid native binary errors on Windows
-      // and when explicitly enabled (default: enabled).
-      const profilingEnabled =
-        process.env.SENTRY_ENABLE_PROFILING !== 'false' &&
-        process.env.SENTRY_ENABLE_PROFILING !== '0';
-      if (profilingEnabled) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const { ProfilingIntegration } = require('@sentry/profiling-node');
-          integrations.push(new ProfilingIntegration());
-        } catch (error) {
-          logger.warn(
-            'Sentry profiling disabled (native module not available)',
-            { error },
-          );
-        }
-      } else {
-        logger.info(
-          'Sentry profiling disabled via env SENTRY_ENABLE_PROFILING',
-        );
-      }
-
-      return integrations;
-    })(),
-
-    // Filter out sensitive information
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1,
+    profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1,
+    integrations,
     beforeSend(event, _hint) {
-      // Log to Winston when sending to Sentry
       logger.info('Sending error to Sentry', {
         eventId: event.event_id,
         level: event.level,
       });
 
-      // Remove sensitive data from event
       if (event.request) {
         delete event.request.cookies;
         delete event.request.headers?.authorization;
@@ -76,10 +60,7 @@ export function initSentry() {
 
       return event;
     },
-
-    // Ignore certain errors
     ignoreErrors: [
-      // Browser-specific errors that shouldn't appear in Node.js
       'ResizeObserver loop limit exceeded',
       'Non-Error promise rejection captured',
     ],

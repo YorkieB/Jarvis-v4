@@ -150,7 +150,7 @@ export class ReflectionGrader {
   private parseScores(raw: string): ReflectionScores {
     try {
       const json = JSON.parse(raw);
-      const clamp = (v: any) =>
+      const clamp = (v: unknown) =>
         Math.max(
           0,
           Math.min(1, typeof v === 'number' ? v : Number.parseFloat(v)),

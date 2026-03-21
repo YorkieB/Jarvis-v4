@@ -3,16 +3,9 @@
  * Immutable audit trail for all agent actions
  */
 
+import { Prisma } from '@prisma/client';
 import logger from '../utils/logger';
 import { prisma as globalPrisma } from '../utils/prisma';
-
-type JsonInput =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: JsonInput }
-  | JsonInput[];
 
 interface AuditLogEntry {
   timestamp: Date;
@@ -28,6 +21,14 @@ interface AuditLogEntry {
 
 type PrismaClient = typeof globalPrisma;
 
+function toJsonInput(
+  value: unknown,
+): Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return Prisma.JsonNull;
+  return value as Prisma.InputJsonValue;
+}
+
 export class AuditLogger {
   private readonly prisma: PrismaClient;
 
@@ -42,11 +43,11 @@ export class AuditLogger {
         agentId: entry.agent_id,
         userId: entry.user_id,
         action: entry.action,
-        input: entry.input as JsonInput | undefined,
-        output: entry.output as JsonInput | undefined,
+        input: toJsonInput(entry.input),
+        output: toJsonInput(entry.output),
         status: entry.status,
         error: entry.error,
-        metadata: entry.metadata as JsonInput | undefined,
+        metadata: toJsonInput(entry.metadata),
       },
     });
   }

@@ -9,9 +9,11 @@ export class VoiceAgent extends BaseAgent {
 
   private readonly elevenLabs: ElevenLabsClient;
   private readonly deepgram: ReturnType<typeof createClient>;
-  private readonly googleSpeech:
+  private googleSpeech:
     | import('@google-cloud/speech').SpeechClient
     | null = null;
+  private googleSpeechInitPromise: Promise<void> | null = null;
+  private readonly hasGoogleCreds = false;
 
   constructor() {
     super();
@@ -21,24 +23,13 @@ export class VoiceAgent extends BaseAgent {
     this.deepgram = createClient(process.env.DEEPGRAM_API_KEY || '');
 
     // Initialize Google STT only if credentials are provided
-    const hasGoogleCreds =
+    this.hasGoogleCreds =
       !!process.env.GOOGLE_APPLICATION_CREDENTIALS ||
       (!!process.env.GOOGLE_CLOUD_PROJECT_ID &&
         !!process.env.GOOGLE_CLOUD_CLIENT_EMAIL &&
         !!process.env.GOOGLE_CLOUD_PRIVATE_KEY);
 
-    if (hasGoogleCreds) {
-      try {
-        // Dynamically require to keep dependency optional
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const SpeechCtor = require('@google-cloud/speech').SpeechClient;
-        this.googleSpeech = new SpeechCtor();
-        logger.info('✅ Google STT fallback initialized');
-      } catch (error) {
-        logger.warn('⚠️ Google STT fallback not available', { error });
-        this.googleSpeech = null;
-      }
-    } else {
+    if (!this.hasGoogleCreds) {
       logger.info('Google STT fallback not configured (missing credentials)');
     }
   }
@@ -125,6 +116,8 @@ export class VoiceAgent extends BaseAgent {
   private async transcribeWithGoogle(
     audioBuffer: Buffer,
   ): Promise<string | null> {
+    await this.ensureGoogleSpeechInitialized();
+
     if (!this.googleSpeech) return null;
 
     try {
@@ -154,6 +147,27 @@ export class VoiceAgent extends BaseAgent {
     } catch (error) {
       logger.error('Google STT fallback failed', { error });
       return null;
+    }
+  }
+
+  private async ensureGoogleSpeechInitialized(): Promise<void> {
+    if (this.googleSpeech || !this.hasGoogleCreds) return;
+
+    if (!this.googleSpeechInitPromise) {
+      this.googleSpeechInitPromise = this.initializeGoogleSpeech();
+    }
+
+    await this.googleSpeechInitPromise;
+  }
+
+  private async initializeGoogleSpeech(): Promise<void> {
+    try {
+      const { SpeechClient } = await import('@google-cloud/speech');
+      this.googleSpeech = new SpeechClient();
+      logger.info('✅ Google STT fallback initialized');
+    } catch (error) {
+      logger.warn('⚠️ Google STT fallback not available', { error });
+      this.googleSpeech = null;
     }
   }
 }

@@ -4,7 +4,7 @@
  */
 
 import logger from '../utils/logger';
-import { CodeAnalysisService, CodeIssue } from './codeAnalysisService';
+import { CodeAnalysisService } from './codeAnalysisService';
 import { extractCodeSnippet } from '../utils/codeParser';
 
 export type ErrorType =
@@ -43,27 +43,24 @@ export class ErrorDetectionService {
     error: Error,
     stackTrace?: string,
   ): Promise<DetectedError> {
-    const issues = this.codeAnalysis.extractErrorContext(error);
+    const analysisIssues = this.codeAnalysis.extractErrorContext(error);
 
     // Extract file path and line from stack trace
-    let filePath = 'unknown';
-    let lineNumber: number | undefined;
-    let columnNumber: number | undefined;
+    let filePath = analysisIssues[0]?.filePath ?? 'unknown';
+    let lineNumber = analysisIssues[0]?.lineNumber;
+    let columnNumber = analysisIssues[0]?.columnNumber;
+    let codeSnippet = analysisIssues[0]?.codeSnippet;
 
-    if (stackTrace || error.stack) {
+    if (filePath === 'unknown' && (stackTrace || error.stack)) {
       const trace = stackTrace || error.stack || '';
       const match = trace.match(/at .+ \((.+):(\d+):(\d+)\)/);
       if (match) {
         [, filePath, lineStr, colStr] = match;
         lineNumber = parseInt(lineStr, 10);
         columnNumber = parseInt(colStr, 10);
+        codeSnippet = extractCodeSnippet(filePath, lineNumber)?.code;
       }
     }
-
-    const codeSnippet =
-      filePath !== 'unknown' && lineNumber
-        ? extractCodeSnippet(filePath, lineNumber)?.code
-        : undefined;
 
     const detectedError: DetectedError = {
       id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -77,6 +74,7 @@ export class ErrorDetectionService {
       timestamp: new Date(),
       context: {
         name: error.name,
+        analysisIssues,
       },
     };
 

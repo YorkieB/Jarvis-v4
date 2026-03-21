@@ -301,7 +301,7 @@ export class MutualMonitoringService {
       }
 
       // Setup mutual monitoring for agents of the same type (if multiple exist)
-      for (const [agentType, typeAgents] of agentsByType) {
+      for (const typeAgents of agentsByType.values()) {
         if (typeAgents.length >= 2) {
           // Pair up agents
           for (let i = 0; i < typeAgents.length - 1; i++) {

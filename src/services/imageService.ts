@@ -70,10 +70,10 @@ export class ImageService {
     return this.callStability('/v1/image/upscale', 'upscale', opts);
   }
 
-  private async callStability(
+  private async callStability<TPayload extends ImageGenerateOptions | ImageEditOptions>(
     path: string,
     action: ImageAction,
-    payload: Record<string, unknown>,
+    payload: TPayload,
   ): Promise<ImageResult> {
     if (!this.apiKey) throw new Error('Missing STABILITY_API_KEY');
     let lastErr: unknown;

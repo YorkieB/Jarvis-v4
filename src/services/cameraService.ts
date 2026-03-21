@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { OnvifClient, PTZPosition, StreamProfile } from './onvifClient';
 import { RTSPStreamService } from './rtspStreamService';
 import logger from '../utils/logger';
@@ -128,7 +129,7 @@ export class CameraService {
   async addCamera(config: CameraConfig): Promise<string> {
     const encryptedPassword = encrypt(config.password);
 
-    let capabilities: Record<string, unknown> | null = null;
+    let capabilities: Prisma.InputJsonValue | null = null;
     if (config.protocol === 'onvif' && config.ipAddress) {
       try {
         const client = new OnvifClient({
@@ -139,12 +140,17 @@ export class CameraService {
         });
         await client.connect();
         const ptzCapabilities = await client.getCapabilities();
-        capabilities = ptzCapabilities as unknown as Record<string, unknown>;
+        capabilities = ptzCapabilities as unknown as Prisma.InputJsonValue;
         await client.disconnect();
       } catch (error) {
         logger.warn('Failed to fetch ONVIF capabilities during add', { error });
       }
     }
+
+    const capabilitiesData:
+      | Prisma.NullableJsonNullValueInput
+      | Prisma.InputJsonValue
+      | undefined = capabilities === null ? Prisma.JsonNull : capabilities;
 
     const camera = await this.prisma.camera.create({
       data: {
@@ -155,7 +161,7 @@ export class CameraService {
         username: config.username,
         password: encryptedPassword,
         model: config.model,
-        capabilities,
+        capabilities: capabilitiesData,
         isActive: true,
       },
     });

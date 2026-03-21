@@ -143,7 +143,7 @@ export class LLMCodeFixer {
    */
   private parseFixResponse(
     content: string,
-    error: DetectedError,
+    _error: DetectedError,
   ): FixCandidate[] {
     const candidates: FixCandidate[] = [];
 

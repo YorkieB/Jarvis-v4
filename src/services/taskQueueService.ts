@@ -7,7 +7,6 @@ import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
 import {
   TaskPriority,
-  TaskStatus,
   TaskPayload,
   TaskResult,
   TaskFilter,

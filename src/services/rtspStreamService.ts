@@ -36,6 +36,7 @@ export class RTSPStreamService {
     const port = config.port || this.basePort + this.streams.size;
     const keyPath = process.env.RTSP_HTTPS_KEY_PATH;
     const certPath = process.env.RTSP_HTTPS_CERT_PATH;
+    const useHttps = Boolean(keyPath && certPath);
     if (!keyPath || !certPath) {
       throw new Error(
         'RTSP_HTTPS_KEY_PATH and RTSP_HTTPS_CERT_PATH are required for RTSP streaming',
