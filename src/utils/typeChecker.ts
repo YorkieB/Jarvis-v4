@@ -127,8 +127,12 @@ export class TypeChecker {
       error !== null &&
       ('stdout' in error || 'stderr' in error)
     ) {
-      const stdout = this.normalizeOutput((error as { stdout?: unknown }).stdout);
-      const stderr = this.normalizeOutput((error as { stderr?: unknown }).stderr);
+      const stdout = this.normalizeOutput(
+        (error as { stdout?: unknown }).stdout,
+      );
+      const stderr = this.normalizeOutput(
+        (error as { stderr?: unknown }).stderr,
+      );
       return `${stdout}${stderr}`;
     }
     if (error instanceof Error) {

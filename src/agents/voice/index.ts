@@ -9,9 +9,8 @@ export class VoiceAgent extends BaseAgent {
 
   private readonly elevenLabs: ElevenLabsClient;
   private readonly deepgram: ReturnType<typeof createClient>;
-  private googleSpeech:
-    | import('@google-cloud/speech').SpeechClient
-    | null = null;
+  private googleSpeech: import('@google-cloud/speech').SpeechClient | null =
+    null;
   private googleSpeechInitPromise: Promise<void> | null = null;
   private readonly hasGoogleCreds = false;
 

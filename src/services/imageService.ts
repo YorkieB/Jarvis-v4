@@ -70,7 +70,9 @@ export class ImageService {
     return this.callStability('/v1/image/upscale', 'upscale', opts);
   }
 
-  private async callStability<TPayload extends ImageGenerateOptions | ImageEditOptions>(
+  private async callStability<
+    TPayload extends ImageGenerateOptions | ImageEditOptions,
+  >(
     path: string,
     action: ImageAction,
     payload: TPayload,

@@ -1,16 +1,20 @@
 import { SystemActions } from '../../src/services/systemActions';
-import { SystemExecutor, ExecuteResult } from '../../src/services/systemExecutor';
+import {
+  SystemExecutor,
+  ExecuteResult,
+} from '../../src/services/systemExecutor';
 
 class MockExecutor {
-  execute = jest.fn<Promise<ExecuteResult>, Parameters<SystemExecutor['execute']>>(
-    async () => ({
-      stdout: '',
-      stderr: '',
-      exitCode: 0,
-      timedOut: false,
-      dryRun: false,
-    }),
-  );
+  execute = jest.fn<
+    Promise<ExecuteResult>,
+    Parameters<SystemExecutor['execute']>
+  >(async () => ({
+    stdout: '',
+    stderr: '',
+    exitCode: 0,
+    timedOut: false,
+    dryRun: false,
+  }));
 }
 
 describe('SystemActions', () => {

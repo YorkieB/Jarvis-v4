@@ -51,7 +51,9 @@ interface OnvifPreset {
 }
 
 interface OnvifCamera {
-  getCapabilities(cb: (err: Error | null, data: OnvifCapabilities) => void): void;
+  getCapabilities(
+    cb: (err: Error | null, data: OnvifCapabilities) => void,
+  ): void;
   getStreamUri(
     options: { protocol: string },
     cb: (err: Error | null, data: OnvifStreamUri) => void,

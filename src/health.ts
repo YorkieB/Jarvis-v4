@@ -172,7 +172,9 @@ function buildEnvironmentCheck(): HealthCheck['checks']['environment'] {
   };
 }
 
-async function checkDatabaseHealth(): Promise<HealthCheck['checks']['database']> {
+async function checkDatabaseHealth(): Promise<
+  HealthCheck['checks']['database']
+> {
   if (!prismaInstance) {
     return {
       status: 'fail',
@@ -194,8 +196,9 @@ async function checkDatabaseHealth(): Promise<HealthCheck['checks']['database']>
   }
 }
 
-async function checkCodeHealth():
-  Promise<HealthCheck['checks']['codeHealth'] | undefined> {
+async function checkCodeHealth(): Promise<
+  HealthCheck['checks']['codeHealth'] | undefined
+> {
   if (!codeAnalysisAgent) {
     return undefined;
   }
@@ -223,8 +226,7 @@ async function performHealthChecks(): Promise<HealthCheck['checks']> {
     uptime: buildUptimeCheck(),
     environment: buildEnvironmentCheck(),
   };
-  const skipOptionalChecks =
-    process.env.HEALTH_SKIP_OPTIONAL_CHECKS === 'true';
+  const skipOptionalChecks = process.env.HEALTH_SKIP_OPTIONAL_CHECKS === 'true';
 
   checks.database = await checkDatabaseHealth();
 
@@ -238,7 +240,10 @@ async function performHealthChecks(): Promise<HealthCheck['checks']> {
     checks.elevenlabs = skipped;
   } else {
     checks.openai = await checkExternalService('OpenAI', checkOpenAIHealth);
-    checks.deepgram = await checkExternalService('Deepgram', checkDeepgramHealth);
+    checks.deepgram = await checkExternalService(
+      'Deepgram',
+      checkDeepgramHealth,
+    );
     checks.elevenlabs = await checkExternalService(
       'ElevenLabs',
       checkElevenLabsHealth,
