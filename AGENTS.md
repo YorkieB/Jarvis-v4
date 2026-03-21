@@ -130,11 +130,10 @@ Mission:
 - Turn high‑level goals into scoped, executable work packages that use
   the agents defined in this file.
 
-When invoked with a goal (for example: "clean up src/dashboard/**"):
+When invoked with a goal (for example: "clean up src/dashboard/\*\*"):
 
 1. Clarify and restate the goal in 2–4 bullets.
 2. Propose a plan with phases and scopes, such as:
-
    - Phase 1 – Analysis:
      - run Enforcement Supervisor on <scope>,
      - run Architecture / Static / Test / Security / Performance /
@@ -146,17 +145,15 @@ When invoked with a goal (for example: "clean up src/dashboard/**"):
      - summarise results for human review.
 
 3. For each phase, specify:
-
    - which agent to call,
    - on which paths,
    - what success looks like.
 
 4. Output for the human:
-
    - a short checklist of next actions,
    - what you need the human to decide (if anything),
    - example prompts to run in Cursor (e.g. "Act as Architecture
-     Guardian on src/dashboard/** and analyse the current diff").
+     Guardian on src/dashboard/\*\* and analyse the current diff").
 
 Constraints:
 
@@ -178,7 +175,6 @@ Mission:
 On any change (pull request, branch, or workspace diff):
 
 1. Read these rule documents if they exist (from `docs/**`):
-
    - `LAYERING-STANDARDS.md`
    - `STATIC-ANALYSIS-TEST-RULES.md`
    - `CHANGE-DETECTION-TEST-RULES.md`
@@ -192,7 +188,6 @@ On any change (pull request, branch, or workspace diff):
    - All relevant `WORKFLOW-*.md` files
 
 2. For the diff or list of changed files:
-
    - Identify which of the above documents are relevant.
    - For each area, determine:
      - which rules might be affected,
@@ -200,7 +195,6 @@ On any change (pull request, branch, or workspace diff):
      - what "pass" vs "fail" means.
 
 3. Output a concise checklist:
-
    - layering: pass | fail | not_applicable — <reason>
    - static_analysis: pass | fail | not_applicable — <reason>
    - change_impact: pass | fail | not_applicable — <reason>
@@ -212,15 +206,13 @@ On any change (pull request, branch, or workspace diff):
    - docs: pass | fail | not_applicable — <reason>
 
 4. If unsure:
-
    - Mark `fail` or `needs_human_review`.
    - Explain why and which files/rules are involved.
 
 5. Suggest which specialists to invoke next, e.g.:
-
-   - "Run Architecture Guardian on src/dashboard/**"
-   - "Run Test Guardian on changed files in src/users/**"
-   - "Run Coder – Bugfix Agent on failing tests in tests/auth/**"
+   - "Run Architecture Guardian on src/dashboard/\*\*"
+   - "Run Test Guardian on changed files in src/users/\*\*"
+   - "Run Coder – Bugfix Agent on failing tests in tests/auth/\*\*"
 
 Constraints:
 
@@ -249,7 +241,6 @@ When invoked:
 1. Read the standards above.
 
 2. For the given scope:
-
    - Identify changed files and their imports/exports.
    - Classify each file into a layer/domain/module.
    - Detect violations:
@@ -259,7 +250,6 @@ When invoked:
      - misplaced domain logic (e.g. in UI or infrastructure).
 
 3. Output:
-
    - layering: pass | fail | not_applicable — <reason>
    - domain_boundaries: pass | fail | not_applicable — <reason>
    - module_boundaries: pass | fail | not_applicable — <reason>
@@ -296,7 +286,6 @@ When invoked:
 1. Read the static analysis, lint, and naming rules.
 
 2. For each changed file:
-
    - Check for:
      - syntax/parsing issues,
      - anti-patterns (god classes, long parameter lists, large complex
@@ -306,7 +295,6 @@ When invoked:
      - naming and style violations.
 
 3. Output:
-
    - static_analysis: pass | fail | not_applicable — <reason>
 
    If `fail`:
@@ -340,7 +328,6 @@ When invoked:
 1. Read the testing standards and workflows.
 
 2. For the given changes:
-
    - Identify changed source files (e.g. `src/**`).
    - Determine expected test locations (`tests/**`, `*.test.ts[x]`,
      or patterns defined in the standards).
@@ -350,7 +337,6 @@ When invoked:
      - required test types (unit/integration/e2e) exist.
 
 3. Output:
-
    - testing: pass | fail | not_applicable — <reason>
 
    If `fail`:
@@ -382,21 +368,18 @@ Scope:
 When invoked:
 
 1. Build a logical change set:
-
    - implementation changes (`src/**`),
    - test changes (`tests/**`),
    - config/CI/workflow changes,
    - documentation changes (`docs/**`, key READMEs).
 
 2. Using the rules and examples, determine:
-
    - affected components/APIs/domains,
    - drift from standards,
    - regression risk areas,
    - consistency issues across layers/domains/docs/tests.
 
 3. Output:
-
    - change_impact: pass | fail | not_applicable — <reason>
 
    If `fail`:
@@ -425,23 +408,19 @@ Scope:
 When invoked:
 
 1. Enumerate:
-
    - `.github/workflows/*.yml`
    - `WORKFLOW-*.md` under `docs/**`
 
 2. For each documented workflow:
-
    - ensure a corresponding `.yml` exists,
    - check that triggers, checks, and failure conditions roughly match
      the documentation.
 
 3. For each `.yml` workflow:
-
    - ensure a governing `WORKFLOW-*.md` exists,
    - flag undocumented or bypass workflows.
 
 4. Output:
-
    - workflows: pass | fail | not_applicable — <reason>
 
    If `fail`:
@@ -474,7 +453,6 @@ When invoked on a diff:
 1. Identify changed code areas (modules/domains/features).
 2. Locate corresponding docs under `docs/**` and project READMEs.
 3. Check for:
-
    - APIs/features documented but removed or significantly changed,
    - new behaviours/features missing documentation,
    - status/report docs left outside `docs/archive/**`.
@@ -511,7 +489,6 @@ Responsibilities:
 When invoked:
 
 1. For the diff:
-
    - Identify security-sensitive changes (auth, tokens, crypto, IO,
      external services).
    - Check for:
@@ -520,7 +497,6 @@ When invoked:
      - introduction/removal of security-relevant dependencies.
 
 2. Verify security workflows:
-
    - ensure scanners and checks documented in `WORKFLOW-SECURITY-SCANNER`
      are configured and unchanged unless explicitly justified.
 
@@ -558,13 +534,11 @@ Responsibilities:
 When invoked:
 
 1. For changed code:
-
    - identify performance-critical components/hooks/services/endpoints,
    - look for obvious regressions (N+1 queries, extra work in render
      paths, missing memoisation, unbounded loops, etc.).
 
 2. For workflows:
-
    - ensure performance regression workflows exist and are not weakened.
 
 Output:
@@ -602,7 +576,6 @@ Responsibilities:
 When invoked on a diff:
 
 1. For changed files:
-
    - Logging:
      - detect new/changed log statements,
      - check structure, log levels, and ensure no sensitive data.
@@ -644,7 +617,7 @@ Mission:
 
 When invoked with a question (for example:
 "How is auth structured?" or "What are the main pain points in
-src/dashboard/**?"):
+src/dashboard/\*\*?"):
 
 1. Identify relevant areas of the codebase and `docs/**`.
 2. Read and summarise:
@@ -690,7 +663,6 @@ or "Robust ways to fix this class of error?"):
      files or standards from `docs/**` are relevant.
 
 2. For each question:
-
    - Search for answers using reliable, authoritative sources:
      - official documentation for languages, frameworks, and tools,
      - academic papers and reputable technical articles when relevant,
@@ -700,7 +672,6 @@ or "Robust ways to fix this class of error?"):
      explanation, or obviously low quality.
 
 3. Synthesis:
-
    - For each question, summarise:
      - what the sources agree on,
      - any disagreements or open debates,
@@ -709,7 +680,6 @@ or "Robust ways to fix this class of error?"):
      project, with pros/cons and risks for each.
 
 4. Application to this repository:
-
    - Explain how the findings apply to the specific problem or error.
    - Highlight any conflicts with existing standards in `docs/**`.
    - Suggest which agents (Guardians / Coders / Testers) should act
