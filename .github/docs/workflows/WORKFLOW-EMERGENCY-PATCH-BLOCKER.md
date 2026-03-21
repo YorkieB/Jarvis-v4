@@ -5,6 +5,7 @@ Blocks merges that attempt to bypass governance under the guise of emergencies. 
 ---
 
 ## Purpose
+
 - Prevent “hotfix” branches from merging without full tests.
 - Disallow commit messages indicating bypassed validation.
 - Ensure all required workflows pass before merge.
@@ -12,12 +13,14 @@ Blocks merges that attempt to bypass governance under the guise of emergencies. 
 ---
 
 ## Triggers
+
 - Pull request targeting protected branches
 - Push to protected branches
 
 ---
 
 ## Checks Performed
+
 - Scan commit messages for “hotfix”, “emergency”, “bypass”, “skip ci”.
 - Verify all required workflows have passed.
 - Ensure test coverage and linting are complete.
@@ -25,6 +28,7 @@ Blocks merges that attempt to bypass governance under the guise of emergencies. 
 ---
 
 ## Failure Conditions
+
 - Emergency keywords detected without explicit exception approval.
 - Required workflows failing.
 - Missing tests or linting.
@@ -32,18 +36,21 @@ Blocks merges that attempt to bypass governance under the guise of emergencies. 
 ---
 
 ## Outputs / Artifacts
+
 - Emergency report with commit details.
 - PR comment blocking merge.
 
 ---
 
 ## Integration Points
+
 - Runs as a final gate before merge.
 - Uses git log analysis.
 
 ---
 
 ## Recovery Steps
+
 - Follow normal validation workflow.
 - If truly urgent, use documented exception process with approval.
 - Add tests and documentation retroactively.
@@ -51,6 +58,7 @@ Blocks merges that attempt to bypass governance under the guise of emergencies. 
 ---
 
 ## Related Documents
+
 - `docs/governance/PENALTY-SYSTEM.md`
 - `docs/governance/VALIDATION-WORKFLOW.md`
 - `docs/quality/PERMANENT-CODE-POLICY.md`

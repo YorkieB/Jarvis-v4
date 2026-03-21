@@ -5,6 +5,7 @@ Every request to the system must be enhanced with PromptDC ✨ before execution.
 ---
 
 ## 1. Purpose
+
 - Ensure prompts contain full context.
 - Prevent ambiguous or incomplete requests.
 - Maintain alignment with the Yorkie Constitution.
@@ -12,6 +13,7 @@ Every request to the system must be enhanced with PromptDC ✨ before execution.
 ---
 
 ## 2. PromptDC Steps
+
 1. **Context Capture** — Summarize the known state (files, workflows, goals).
 2. **Intent Clarification** — Restate what must be delivered.
 3. **Constraints Listing** — Cite relevant constitutional rules.
@@ -24,6 +26,7 @@ Every enhanced prompt must explicitly walk through these steps.
 ---
 
 ## 3. Template
+
 ```
 PromptDC ✨
 1. Context:
@@ -37,6 +40,7 @@ PromptDC ✨
 ---
 
 ## 4. Validation Rules
+
 - Prompts lacking any section must be rejected.
 - Intent must reference file paths or workflow names explicitly.
 - Constraints must cite Constitution sections when relevant.
@@ -45,13 +49,16 @@ PromptDC ✨
 ---
 
 ## 5. Automation Hooks
+
 - Future governance CLI should parse prompts and confirm PromptDC fields exist before processing.
 - Missing PromptDC metadata → workflow failure.
 
 ---
 
 ## 6. Examples
+
 **Good:**
+
 ```
 1. Context: Need to update PORT-STABILITY-GUIDE.md per Constitution §14.
 2. Intent: Add rules covering deterministic API contracts.
@@ -62,6 +69,7 @@ PromptDC ✨
 ```
 
 **Bad:**
+
 ```
 "Please add something about ports."
 ```
@@ -69,4 +77,5 @@ PromptDC ✨
 ---
 
 ## 7. Summary
+
 PromptDC makes intent explicit. No prompt, no code. Enhance first, execute second.

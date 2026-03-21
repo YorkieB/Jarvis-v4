@@ -5,6 +5,7 @@ Detects duplicated logic, JSX, and patterns across the codebase. This workflow e
 ---
 
 ## Purpose
+
 - Identify repeated blocks, components, or utilities.
 - Prompt refactoring into shared abstractions.
 - Prevent maintenance overhead and logic drift.
@@ -12,6 +13,7 @@ Detects duplicated logic, JSX, and patterns across the codebase. This workflow e
 ---
 
 ## Triggers
+
 - Pull request (any file changes)
 - Push to protected branches
 - Nightly full-repo scan
@@ -19,6 +21,7 @@ Detects duplicated logic, JSX, and patterns across the codebase. This workflow e
 ---
 
 ## Checks Performed
+
 - AST similarity analysis for functions/components.
 - String similarity for repeated JSX.
 - Import duplication checks.
@@ -27,24 +30,28 @@ Detects duplicated logic, JSX, and patterns across the codebase. This workflow e
 ---
 
 ## Failure Conditions
+
 - Duplicates exceed similarity threshold.
 - Repeated imports or utilities without abstraction.
 
 ---
 
 ## Outputs / Artifacts
+
 - Duplicate report with line numbers and similarity scores.
 - PR comment listing duplicates.
 
 ---
 
 ## Integration Points
+
 - Runs after `WORKFLOW-LOGIC-COMPLETENESS`.
 - Uses `jscpd` or custom scanner.
 
 ---
 
 ## Recovery Steps
+
 - Extract shared logic to utilities/hooks/components.
 - Update call sites.
 - Add tests for shared module.
@@ -53,6 +60,7 @@ Detects duplicated logic, JSX, and patterns across the codebase. This workflow e
 ---
 
 ## Related Documents
+
 - `docs/architecture/DUPLICATE-CODE-POLICY.md`
 - `docs/quality/LOGIC-COMPLETENESS-CHECKLIST.md`
 - `docs/governance/PENALTY-SYSTEM.md`

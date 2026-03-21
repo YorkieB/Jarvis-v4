@@ -5,6 +5,7 @@ Scans for security vulnerabilities and unsafe patterns. This workflow enforces t
 ---
 
 ## Purpose
+
 - Detect secrets, unsafe code, and dependency vulnerabilities.
 - Ensure secure coding practices are followed.
 - Fail CI on security issues.
@@ -12,6 +13,7 @@ Scans for security vulnerabilities and unsafe patterns. This workflow enforces t
 ---
 
 ## Triggers
+
 - Pull request (any file changes)
 - Push to protected branches
 - Nightly full-repo scan
@@ -19,6 +21,7 @@ Scans for security vulnerabilities and unsafe patterns. This workflow enforces t
 ---
 
 ## Checks Performed
+
 - Run CodeQL security queries.
 - Scan for secrets (GitHub secret scanning).
 - Run ESLint security rules.
@@ -27,6 +30,7 @@ Scans for security vulnerabilities and unsafe patterns. This workflow enforces t
 ---
 
 ## Failure Conditions
+
 - CodeQL alerts.
 - Secrets detected.
 - Vulnerable dependencies.
@@ -35,18 +39,21 @@ Scans for security vulnerabilities and unsafe patterns. This workflow enforces t
 ---
 
 ## Outputs / Artifacts
+
 - Security report with alerts.
 - PR comment listing issues.
 
 ---
 
 ## Integration Points
+
 - Runs early in the pipeline.
 - Uses CodeQL, secret scanning, and npm audit.
 
 ---
 
 ## Recovery Steps
+
 - Remove or rotate secrets.
 - Fix unsafe patterns.
 - Update or replace vulnerable packages.
@@ -54,6 +61,7 @@ Scans for security vulnerabilities and unsafe patterns. This workflow enforces t
 ---
 
 ## Related Documents
+
 - `docs/quality/SECURITY-STANDARDS.md`
 - `docs/governance/PENALTY-SYSTEM.md`
 - `docs/quality/ERROR-HANDLING-STANDARDS.md`

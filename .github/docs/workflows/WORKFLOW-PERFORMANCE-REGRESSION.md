@@ -5,6 +5,7 @@ Detects performance regressions in components and bundles. This workflow enforce
 ---
 
 ## Purpose
+
 - Identify increased render times or bundle sizes.
 - Flag inefficient patterns.
 - Fail CI on performance regressions.
@@ -12,6 +13,7 @@ Detects performance regressions in components and bundles. This workflow enforce
 ---
 
 ## Triggers
+
 - Pull request (component or hook changes)
 - Push to protected branches
 - Nightly full-repo scan
@@ -19,6 +21,7 @@ Detects performance regressions in components and bundles. This workflow enforce
 ---
 
 ## Checks Performed
+
 - Measure bundle size changes.
 - Run component render benchmarks.
 - Detect unnecessary re-renders or heavy computations.
@@ -26,6 +29,7 @@ Detects performance regressions in components and bundles. This workflow enforce
 ---
 
 ## Failure Conditions
+
 - Bundle size increase beyond threshold.
 - Render time regression.
 - Inefficient patterns detected.
@@ -33,18 +37,21 @@ Detects performance regressions in components and bundles. This workflow enforce
 ---
 
 ## Outputs / Artifacts
+
 - Performance report with metrics.
 - PR comment listing regressions.
 
 ---
 
 ## Integration Points
+
 - Runs after `WORKFLOW-TEST-ENFORCEMENT`.
 - Uses bundle analyzer and render benchmarks.
 
 ---
 
 ## Recovery Steps
+
 - Optimize component logic or memoization.
 - Reduce bundle size (tree-shaking, code splitting).
 - Re-run benchmarks and CI.
@@ -52,6 +59,7 @@ Detects performance regressions in components and bundles. This workflow enforce
 ---
 
 ## Related Documents
+
 - `docs/quality/PERFORMANCE-STANDARDS.md`
 - `docs/architecture/COMPONENT-STANDARDS.md`
 - `docs/governance/PENALTY-SYSTEM.md`

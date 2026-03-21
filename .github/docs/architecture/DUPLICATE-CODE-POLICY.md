@@ -5,7 +5,9 @@ Repeated logic is forbidden. This policy defines how to detect, prevent, and rem
 ---
 
 ## 1. Definition of Duplicate Code
+
 Any of the following counts as duplication:
+
 - Identical or near-identical code blocks copied in multiple places.
 - Repeated JSX structures differing only in literals.
 - Redundant utilities or helpers performing the same logic.
@@ -16,6 +18,7 @@ Any of the following counts as duplication:
 ---
 
 ## 2. Prevention Rules
+
 1. Extract shared logic into utilities, hooks, or components.
 2. Share type definitions via `src/types/`.
 3. Use configuration-driven patterns when behavior differs only by data.
@@ -24,6 +27,7 @@ Any of the following counts as duplication:
 ---
 
 ## 3. Detection Techniques
+
 - `WORKFLOW-DUPLICATE-CODE-SCANNER` runs AST/string similarity checks.
 - Code reviews must flag suspicious copy/paste.
 - Tests should fail when duplicated logic leads to inconsistent behavior.
@@ -31,6 +35,7 @@ Any of the following counts as duplication:
 ---
 
 ## 4. Refactoring Guidelines
+
 1. Identify the minimal reusable abstraction.
 2. Create shared module with clear contract.
 3. Update all call sites.
@@ -40,16 +45,19 @@ Any of the following counts as duplication:
 ---
 
 ## 5. Exceptions
+
 - Boilerplate required by external frameworks (rare).
 - Duplication mandated by security policies (e.g., isolated modules) — must be documented.
 
 ---
 
 ## 6. Enforcement
+
 - Duplicate code triggers Penalty System (Major at minimum, Critical if it causes logic drift).
 - Merges blocked until duplicates removed or exemption documented.
 
 ---
 
 ## 7. Summary
+
 Duplication multiplies maintenance cost and risk. Extract, document, and test shared logic to keep the system clean.

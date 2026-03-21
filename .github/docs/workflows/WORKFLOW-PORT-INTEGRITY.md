@@ -5,6 +5,7 @@ Validates that all ports (APIs, hooks, props, services) remain stable, typed, an
 ---
 
 ## Purpose
+
 - Ensure every port has a typed contract.
 - Detect breaking changes before merge.
 - Validate input/output handling.
@@ -12,6 +13,7 @@ Validates that all ports (APIs, hooks, props, services) remain stable, typed, an
 ---
 
 ## Triggers
+
 - Pull request (changes to ports)
 - Push to protected branches
 - Nightly full-repo scan
@@ -19,6 +21,7 @@ Validates that all ports (APIs, hooks, props, services) remain stable, typed, an
 ---
 
 ## Checks Performed
+
 - Scan `src/types/` for contracts.
 - Verify all exports in `src/services/` and `src/hooks/` have corresponding types.
 - Run TypeScript compiler in strict mode.
@@ -27,6 +30,7 @@ Validates that all ports (APIs, hooks, props, services) remain stable, typed, an
 ---
 
 ## Failure Conditions
+
 - Untyped ports detected.
 - TypeScript errors.
 - Missing validation in services/hooks.
@@ -34,18 +38,21 @@ Validates that all ports (APIs, hooks, props, services) remain stable, typed, an
 ---
 
 ## Outputs / Artifacts
+
 - Port integrity report as artifact.
 - PR comment listing violations.
 
 ---
 
 ## Integration Points
+
 - Depends on TypeScript config.
 - Runs after `WORKFLOW-DEPENDENCY-CHECKER`.
 
 ---
 
 ## Recovery Steps
+
 - Add or update type definitions.
 - Implement missing validation.
 - Commit fixes and re-run CI.
@@ -53,6 +60,7 @@ Validates that all ports (APIs, hooks, props, services) remain stable, typed, an
 ---
 
 ## Related Documents
+
 - `docs/architecture/PORT-STABILITY-GUIDE.md`
 - `docs/quality/ERROR-HANDLING-STANDARDS.md`
 - `docs/governance/PENALTY-SYSTEM.md`

@@ -5,6 +5,7 @@ Validates that the codebase adheres to the defined architecture and layering rul
 ---
 
 ## Purpose
+
 - Ensure directory ownership and import rules are respected.
 - Detect prohibited cross-layer dependencies.
 - Validate component, hook, and service structure.
@@ -12,6 +13,7 @@ Validates that the codebase adheres to the defined architecture and layering rul
 ---
 
 ## Triggers
+
 - Pull request (any file changes)
 - Push to protected branches
 - Nightly full-repo scan
@@ -19,6 +21,7 @@ Validates that the codebase adheres to the defined architecture and layering rul
 ---
 
 ## Checks Performed
+
 - Verify imports match the Architecture Guide table.
 - Detect circular dependencies.
 - Ensure components/hooks/services follow required patterns.
@@ -27,6 +30,7 @@ Validates that the codebase adheres to the defined architecture and layering rul
 ---
 
 ## Failure Conditions
+
 - Import rule violations.
 - Circular dependencies.
 - Missing file headers or incorrect naming.
@@ -34,18 +38,21 @@ Validates that the codebase adheres to the defined architecture and layering rul
 ---
 
 ## Outputs / Artifacts
+
 - Architecture report with file/line details.
 - PR comment listing violations.
 
 ---
 
 ## Integration Points
+
 - Runs after `WORKFLOW-DEPENDENCY-CHECKER`.
 - Uses dependency graph analysis.
 
 ---
 
 ## Recovery Steps
+
 - Restructure imports to match layering.
 - Remove circular dependencies.
 - Add or fix file headers and names.
@@ -53,6 +60,7 @@ Validates that the codebase adheres to the defined architecture and layering rul
 ---
 
 ## Related Documents
+
 - `docs/architecture/ARCHITECTURE-GUIDE.md`
 - `docs/architecture/FILE-HEADER-STANDARDS.md`
 - `docs/quality/NAMING-CONVENTIONS.md`

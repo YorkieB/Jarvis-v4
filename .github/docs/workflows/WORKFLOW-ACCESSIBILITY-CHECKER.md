@@ -5,6 +5,7 @@ Validates accessibility compliance for components and hooks. This workflow enfor
 ---
 
 ## Purpose
+
 - Ensure all interactive elements are accessible.
 - Detect missing labels, focus issues, and contrast problems.
 - Fail CI on accessibility violations.
@@ -12,6 +13,7 @@ Validates accessibility compliance for components and hooks. This workflow enfor
 ---
 
 ## Triggers
+
 - Pull request (component or hook changes)
 - Push to protected branches
 - Nightly full-repo scan
@@ -19,6 +21,7 @@ Validates accessibility compliance for components and hooks. This workflow enfor
 ---
 
 ## Checks Performed
+
 - Run axe-core via Testing Library on component tests.
 - Verify semantic HTML usage.
 - Detect missing ARIA attributes or roles.
@@ -27,6 +30,7 @@ Validates accessibility compliance for components and hooks. This workflow enfor
 ---
 
 ## Failure Conditions
+
 - Axe violations detected.
 - Missing labels or roles.
 - Focus traps or keyboard navigation failures.
@@ -34,18 +38,21 @@ Validates accessibility compliance for components and hooks. This workflow enfor
 ---
 
 ## Outputs / Artifacts
+
 - Accessibility report with violation details.
 - PR comment listing issues.
 
 ---
 
 ## Integration Points
+
 - Runs after `WORKFLOW-TEST-ENFORCEMENT`.
 - Uses `@axe-core/react` and Testing Library.
 
 ---
 
 ## Recovery Steps
+
 - Add labels, roles, or semantic markup.
 - Implement focus management.
 - Re-run tests and CI.
@@ -53,6 +60,7 @@ Validates accessibility compliance for components and hooks. This workflow enfor
 ---
 
 ## Related Documents
+
 - `docs/quality/ACCESSIBILITY-STANDARDS.md`
 - `docs/architecture/COMPONENT-STANDARDS.md`
 - `docs/governance/PENALTY-SYSTEM.md`

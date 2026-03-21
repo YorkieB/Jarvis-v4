@@ -5,6 +5,7 @@ Detects missing logic, unhandled states, and incomplete reasoning. This workflow
 ---
 
 ## Purpose
+
 - Ensure every branch, handler, and state is implemented.
 - Detect silent failures and placeholder logic.
 - Enforce error-first design.
@@ -12,6 +13,7 @@ Detects missing logic, unhandled states, and incomplete reasoning. This workflow
 ---
 
 ## Triggers
+
 - Pull request (any file changes)
 - Push to protected branches
 - Nightly full-repo scan
@@ -19,6 +21,7 @@ Detects missing logic, unhandled states, and incomplete reasoning. This workflow
 ---
 
 ## Checks Performed
+
 - Static analysis for missing returns, empty catch, incomplete switches.
 - Structural analysis for missing handlers (buttons without onClick, forms without onSubmit).
 - Placeholder detection (TODO/FIXME/HACK).
@@ -27,6 +30,7 @@ Detects missing logic, unhandled states, and incomplete reasoning. This workflow
 ---
 
 ## Failure Conditions
+
 - Missing logic detected.
 - Placeholder code present.
 - Incomplete error handling.
@@ -34,18 +38,21 @@ Detects missing logic, unhandled states, and incomplete reasoning. This workflow
 ---
 
 ## Outputs / Artifacts
+
 - Logic completeness report with file/line details.
 - PR comment listing issues.
 
 ---
 
 ## Integration Points
+
 - Runs after `WORKFLOW-PORT-INTEGRITY`.
 - Uses custom AST scanner.
 
 ---
 
 ## Recovery Steps
+
 - Implement missing logic.
 - Remove placeholders.
 - Add error handling and tests.
@@ -54,6 +61,7 @@ Detects missing logic, unhandled states, and incomplete reasoning. This workflow
 ---
 
 ## Related Documents
+
 - `docs/quality/MISSING-LOGIC-DETECTION-GUIDE.md`
 - `docs/quality/LOGIC-COMPLETENESS-CHECKLIST.md`
 - `docs/governance/PENALTY-SYSTEM.md`

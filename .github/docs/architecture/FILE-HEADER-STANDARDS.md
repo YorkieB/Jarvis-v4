@@ -5,6 +5,7 @@ Every file must begin with a conversational header block that explains the file 
 ---
 
 ## 1. Format
+
 ```
 /*
 Hey friend! This file handles ...
@@ -12,6 +13,7 @@ It does ...
 Key detail ...
 */
 ```
+
 - 2–5 sentences, friendly tone.
 - Must appear at the very top of the file (no imports above it).
 - Use plain language while still conveying purpose and key behaviors.
@@ -19,6 +21,7 @@ Key detail ...
 ---
 
 ## 2. Required Content
+
 - What the file does.
 - Why it exists / what problem it solves.
 - Any notable constraints, dependencies, or behaviors.
@@ -27,6 +30,7 @@ Key detail ...
 ---
 
 ## 3. Additional Metadata (Optional but Encouraged)
+
 - Reference to Constitution section.
 - Link to workflow or policy docs.
 - Instructions for future maintainers.
@@ -34,6 +38,7 @@ Key detail ...
 ---
 
 ## 4. Enforcement
+
 - Missing or incorrect headers trigger `WORKFLOW-ARCHITECTURE-INTEGRITY` failure.
 - Headers must be updated whenever file behavior changes significantly.
 - Automated lint rules may check for the header pattern.
@@ -41,7 +46,9 @@ Key detail ...
 ---
 
 ## 5. Examples
+
 Good:
+
 ```
 /*
 Hey friend! This component renders the dashboard header.
@@ -51,6 +58,7 @@ If you change navigation links, update NAVIGATION-GUIDE.md too.
 ```
 
 Bad:
+
 ```
 /* header */
 ```
@@ -58,4 +66,5 @@ Bad:
 ---
 
 ## 6. Summary
+
 File headers are lightweight documentation. Write them with empathy, keep them honest, and update them whenever you touch the file.
